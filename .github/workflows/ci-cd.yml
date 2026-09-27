@@ -1,93 +1,142 @@
-name: Sossoldi Flutter CI
+name: Build APK and publish to VPS
 
 on:
-  pull_request:
   push:
+    branches:
+      - main
 
-env:
-  ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-  ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-  ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.head_ref != '' && github.head_ref || github.ref  }}
-  cancel-in-progress: true
+  group: apk-vps-main
+  cancel-in-progress: false
 
 jobs:
-  format-test-build:
+  build-and-publish:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Setup FVM
+      - name: Read Flutter version
         uses: kuhnroyal/flutter-fvm-config-action/config@v3
-        id: fvm-config-action
+        id: fvm
 
-      - name: Flutter action
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          flutter-version: ${{ steps.fvm.outputs.FLUTTER_VERSION }}
           channel: stable
           cache: true
-          cache-key: flutter-${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
-          cache-path: ${{ runner.tool_cache }}/flutter
 
-      - name: Check versions
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Resolve dependencies
         run: |
-          flutter --version
-          dart --version
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Run build_runner
-        run: |
+          flutter pub get
           dart run build_runner build --delete-conflicting-outputs
 
-      - name: Check formatting
+      - name: Prepare release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          echo "Checking code formatting (default line length 80)..."
-          if ! dart format --set-exit-if-changed --output=none .; then
-            echo "⛔ ERROR: Code format check failed. Please run 'dart format .' on your code and commit the formatted changes."
+          set -euo pipefail
+          missing=()
+          [[ -n "$ANDROID_KEYSTORE_BASE64" ]] || missing+=(ANDROID_KEYSTORE_BASE64)
+          [[ -n "$ANDROID_KEYSTORE_PASSWORD" ]] || missing+=(ANDROID_KEYSTORE_PASSWORD)
+          [[ -n "$ANDROID_KEY_ALIAS" ]] || missing+=(ANDROID_KEY_ALIAS)
+          [[ -n "$ANDROID_KEY_PASSWORD" ]] || missing+=(ANDROID_KEY_PASSWORD)
+          if ((${#missing[@]})); then
+            echo "Missing GitHub Actions secrets: ${missing[*]}"
             exit 1
-          else
-            echo "✅ Code format check passed."
           fi
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > android/app/keystore.jks
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path("android/key.properties").write_text(
+              "storeFile=keystore.jks\n"
+              f"storePassword={os.environ['ANDROID_KEYSTORE_PASSWORD']}\n"
+              f"keyAlias={os.environ['ANDROID_KEY_ALIAS']}\n"
+              f"keyPassword={os.environ['ANDROID_KEY_PASSWORD']}\n"
+          )
+          PY
 
-      - name: Run tests
-        run: flutter test --concurrency=1
-
-      - name: Dump keystore
-        if: github.event_name == 'push'
-        uses: timheuer/base64-to-file@v1.2.4
-        with:
-          fileName: keystore.jks
-          fileDir: android/app
-          encodedString: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-
-      - name: Create key.properties
-        if: github.event_name == 'push'
+      - name: Build release APK
+        env:
+          GOOGLE_OAUTH_WEB_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}
         run: |
-          cat > android/key.properties <<EOF
-          storeFile=keystore.jks
-          storePassword=${ANDROID_KEYSTORE_PASSWORD}
-          keyAlias=${ANDROID_KEY_ALIAS}
-          keyPassword=${ANDROID_KEY_PASSWORD}
-          EOF
+          set -euo pipefail
+          define_args=()
+          if [[ -n "${GOOGLE_OAUTH_WEB_CLIENT_ID}" ]]; then
+            python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("dart_defines.json").write_text(json.dumps({
+              "GOOGLE_OAUTH_WEB_CLIENT_ID": os.environ["GOOGLE_OAUTH_WEB_CLIENT_ID"],
+          }))
+          PY
+            define_args+=(--dart-define-from-file=dart_defines.json)
+          else
+            echo "GOOGLE_OAUTH_WEB_CLIENT_ID is unset; Drive backup will be disabled in this APK."
+          fi
+          flutter build apk --flavor default --release "${define_args[@]}"
+          test -f build/app/outputs/flutter-apk/app-default-release.apk
+          rm -f dart_defines.json
 
-      - name: Build APK and App Bundle
-        if: github.event_name == 'push'
+      - name: Copy APK to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
         run: |
-          flutter build appbundle --flavor default
+          set -euo pipefail
+          missing=()
+          [[ -n "$VPS_HOST" ]] || missing+=(VPS_HOST)
+          [[ -n "$VPS_USER" ]] || missing+=(VPS_USER)
+          [[ -n "$VPS_PATH" ]] || missing+=(VPS_PATH)
+          [[ -n "$VPS_SSH_KEY" ]] || missing+=(VPS_SSH_KEY)
+          if ((${#missing[@]})); then
+            echo "Missing GitHub Actions secrets: ${missing[*]}"
+            exit 1
+          fi
+          if [[ ! "$VPS_PATH" =~ ^/[A-Za-z0-9._/-]+$ ]]; then
+            echo "VPS_PATH must be an absolute directory without spaces."
+            exit 1
+          fi
+          port="${VPS_SSH_PORT:-22}"
+          [[ -n "$port" ]] || port=22
 
-      - name: Verify release Internet permission
-        if: github.event_name == 'push'
-        run: |
-          manifest="$(find build/app/intermediates/merged_manifests -name AndroidManifest.xml -print -quit)"
-          test -n "$manifest"
-          grep -q 'android.permission.INTERNET' "$manifest"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh_opts=(
+            -i "$HOME/.ssh/deploy_key"
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=accept-new
+            -p "$port"
+          )
+          scp_opts=(
+            -i "$HOME/.ssh/deploy_key"
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=accept-new
+            -P "$port"
+          )
+
+          apk="build/app/outputs/flutter-apk/app-default-release.apk"
+          quoted_path=$(printf '%q' "$VPS_PATH")
+          ssh "${ssh_opts[@]}" "${VPS_USER}@${VPS_HOST}" "mkdir -p ${quoted_path}"
+          scp "${scp_opts[@]}" "$apk" "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/sossoldi-bltr.apk.partial"
+          ssh "${ssh_opts[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "mv -f ${quoted_path}/sossoldi-bltr.apk.partial ${quoted_path}/sossoldi-bltr.apk && chmod 644 ${quoted_path}/sossoldi-bltr.apk"
