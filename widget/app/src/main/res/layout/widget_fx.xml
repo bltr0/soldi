@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/pill"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/widget_bg"
+        android:clipToOutline="true">
+
+    <ViewFlipper
+        android:id="@+id/flipper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:animateFirstView="false"
+        android:inAnimation="@anim/fx_in"
+        android:outAnimation="@anim/fx_out">
+
+        <LinearLayout
+            android:id="@+id/state_rate"
+            style="@style/FxState"
+            android:paddingStart="36dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="36dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/rate_label"
+                style="@style/FxLabel" />
+
+            <TextView
+                android:id="@+id/rate_value"
+                style="@style/FxValue" />
+
+            <TextView
+                android:id="@+id/rate_footer"
+                style="@style/FxFooter" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/state_input"
+            style="@style/FxState"
+            android:paddingStart="36dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="36dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/input_label"
+                style="@style/FxLabel" />
+
+            <TextView
+                android:id="@+id/input_value"
+                style="@style/FxValue"
+                android:textColor="@color/fx_krw" />
+
+            <TextView
+                style="@style/FxFooter"
+                android:text="@string/enter_to_convert" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/state_result"
+            style="@style/FxState"
+            android:paddingStart="36dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="36dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:id="@+id/result_label"
+                style="@style/FxLabel"
+                android:textColor="@color/fx_krw" />
+
+            <TextView
+                android:id="@+id/result_value"
+                style="@style/FxValue" />
+
+            <TextView
+                android:id="@+id/result_footer"
+                style="@style/FxFooter" />
+        </LinearLayout>
+    </ViewFlipper>
+    </FrameLayout>
+</FrameLayout>

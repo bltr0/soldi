@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fx_bg_bottom"
+    android:clipToPadding="false"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/app_name"
+            android:textColor="@color/fx_eur"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/scope"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/fx_label"
+            android:textSize="14sp" />
+
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/section_currencies" />
+
+        <LinearLayout style="@style/SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_in"
+                style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsTitle"
+                    android:text="@string/you_type" />
+
+                <TextView
+                    android:id="@+id/in_value"
+                    style="@style/SettingsValue" />
+            </LinearLayout>
+
+            <View style="@style/SettingsDivider" />
+
+            <LinearLayout
+                android:id="@+id/row_out"
+                style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsTitle"
+                    android:text="@string/you_get" />
+
+                <TextView
+                    android:id="@+id/out_value"
+                    style="@style/SettingsValue" />
+            </LinearLayout>
+
+            <View style="@style/SettingsDivider" />
+
+            <TextView
+                android:id="@+id/swap"
+                style="@style/SettingsAction"
+                android:text="@string/swap" />
+        </LinearLayout>
+
+        <TextView
+            style="@style/SettingsSection"
+            android:text="@string/section_refresh" />
+
+        <LinearLayout style="@style/SettingsCard">
+
+            <LinearLayout
+                android:id="@+id/row_refresh"
+                style="@style/SettingsRow">
+
+                <TextView
+                    style="@style/SettingsTitle"
+                    android:text="@string/refresh_title" />
+
+                <TextView
+                    android:id="@+id/refresh_value"
+                    style="@style/SettingsValue" />
+
+                <TextView
+                    style="@style/SettingsHint"
+                    android:text="@string/refresh_hint" />
+            </LinearLayout>
+
+            <View style="@style/SettingsDivider" />
+
+            <LinearLayout style="@style/SettingsRow">
+
+                <TextView
+                    android:id="@+id/status_rate"
+                    style="@style/SettingsTitle" />
+
+                <TextView
+                    android:id="@+id/status_time"
+                    style="@style/SettingsValue" />
+            </LinearLayout>
+
+            <View style="@style/SettingsDivider" />
+
+            <TextView
+                android:id="@+id/refresh_now"
+                style="@style/SettingsAction"
+                android:text="@string/refresh_now" />
+
+            <LinearLayout
+                android:id="@+id/row_battery"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <View style="@style/SettingsDivider" />
+
+                <LinearLayout style="@style/SettingsRow">
+
+                    <TextView
+                        style="@style/SettingsTitle"
+                        android:text="@string/battery_title"
+                        android:textColor="@color/fx_krw" />
+
+                    <TextView
+                        style="@style/SettingsHint"
+                        android:text="@string/battery_hint" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="24dp" />
+
+        <Button
+            android:id="@+id/primary"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/primary_button"
+            android:fontFamily="sans-serif-medium"
+            android:stateListAnimator="@null"
+            android:textAllCaps="false"
+            android:textColor="@color/fx_bg_bottom"
+            android:textSize="16sp" />
+    </LinearLayout>
+</ScrollView>

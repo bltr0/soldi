@@ -1,10 +1,10 @@
-name: Build APK and publish to VPS
+name: Build widget APK and publish to VPS
 
 on:
   push:
     branches:
       - main
-    paths-ignore:
+    paths:
       - "widget/**"
       - ".github/workflows/widget.yml"
 
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: apk-vps-app
+  group: apk-vps-widget
   cancel-in-progress: false
 
 jobs:
@@ -23,27 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Read Flutter version
-        uses: kuhnroyal/flutter-fvm-config-action/config@v3
-        id: fvm
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ steps.fvm.outputs.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Resolve dependencies
-        run: |
-          flutter pub get
-          dart run build_runner build --delete-conflicting-outputs
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Prepare release signing
         env:
@@ -63,11 +50,11 @@ jobs:
             exit 1
           fi
           umask 077
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > android/app/keystore.jks
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > widget/app/keystore.jks
           python3 - <<'PY'
           import os
           from pathlib import Path
-          Path("android/key.properties").write_text(
+          Path("widget/key.properties").write_text(
               "storeFile=keystore.jks\n"
               f"storePassword={os.environ['ANDROID_KEYSTORE_PASSWORD']}\n"
               f"keyAlias={os.environ['ANDROID_KEY_ALIAS']}\n"
@@ -76,32 +63,14 @@ jobs:
           PY
 
       - name: Build release APK
-        env:
-          GOOGLE_OAUTH_WEB_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}
-        run: |
-          set -euo pipefail
-          define_args=()
-          if [[ -n "${GOOGLE_OAUTH_WEB_CLIENT_ID}" ]]; then
-            python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          Path("dart_defines.json").write_text(json.dumps({
-              "GOOGLE_OAUTH_WEB_CLIENT_ID": os.environ["GOOGLE_OAUTH_WEB_CLIENT_ID"],
-          }))
-          PY
-            define_args+=(--dart-define-from-file=dart_defines.json)
-          else
-            echo "GOOGLE_OAUTH_WEB_CLIENT_ID is unset; Drive backup will be disabled in this APK."
-          fi
-          flutter build apk --flavor default --release "${define_args[@]}"
-          test -f build/app/outputs/flutter-apk/app-default-release.apk
-          rm -f dart_defines.json
+        working-directory: widget
+        run: ./gradlew :app:assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: apk
-          path: build/app/outputs/flutter-apk/app-default-release.apk
+          name: fxwidget
+          path: widget/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 1
 
@@ -113,7 +82,7 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: apk
+          name: fxwidget
           path: dist
 
       - name: Copy APK to VPS
@@ -157,10 +126,10 @@ jobs:
             -P "$port"
           )
 
-          apk="dist/app-default-release.apk"
+          apk="dist/app-release.apk"
           test -f "$apk"
           quoted_path=$(printf '%q' "$VPS_PATH")
           ssh "${ssh_opts[@]}" "${VPS_USER}@${VPS_HOST}" "mkdir -p ${quoted_path}"
-          scp "${scp_opts[@]}" "$apk" "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/sossoldi-bltr.apk.partial"
+          scp "${scp_opts[@]}" "$apk" "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/fxwidget-bltr.apk.partial"
           ssh "${ssh_opts[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "mv -f ${quoted_path}/sossoldi-bltr.apk.partial ${quoted_path}/sossoldi-bltr.apk && chmod 644 ${quoted_path}/sossoldi-bltr.apk"
+            "mv -f ${quoted_path}/fxwidget-bltr.apk.partial ${quoted_path}/fxwidget-bltr.apk && chmod 644 ${quoted_path}/fxwidget-bltr.apk"

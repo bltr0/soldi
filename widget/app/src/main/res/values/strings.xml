@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FX Widget</string>
+    <string name="widget_name">Currency converter</string>
+    <string name="widget_description">Tap, type an amount, and see it in another currency.</string>
+    <string name="one_eur">1 EUR</string>
+    <string name="one_unit">1 %1$s</string>
+    <string name="updated_at">Updated %1$s</string>
+    <string name="rate_unavailable">Rate unavailable</string>
+    <string name="fetching_rate">Fetching rate…</string>
+    <string name="enter_to_convert">Enter to convert</string>
+    <string name="convert">Convert</string>
+    <string name="amount_hint">Amount in %1$s</string>
+    <string name="place_hint">Long-press the home screen, open Widgets, and add FX Widget.</string>
+
+    <string name="scope_all">Applies to all your widgets and to new ones.</string>
+    <string name="scope_one">Applies to this widget only.</string>
+    <string name="section_currencies">CURRENCIES</string>
+    <string name="you_type">You type</string>
+    <string name="you_get">You get</string>
+    <string name="swap">Swap</string>
+    <string name="section_refresh">RATE</string>
+    <string name="refresh_title">Check for a new rate</string>
+    <string name="refresh_hint">Each check asks for this pair only. Background checks follow the interval above. Refresh now is limited to once an hour.</string>
+    <string name="refresh_now">Refresh now</string>
+    <string name="checking">Checking…</string>
+    <string name="refresh_failed">Couldn\'t reach the rate service. It will retry when you\'re online.</string>
+    <string name="status_rate">%1$s = %2$s</string>
+    <string name="status_never">Not fetched yet</string>
+    <string name="battery_title">Allow background refresh</string>
+    <string name="battery_hint">One UI can pause apps you never open, which stops the scheduled check. Tap to let this widget refresh on time.</string>
+    <string name="add_to_home">Add widget to home screen</string>
+    <string name="done">Done</string>
+
+    <plurals name="every_hours">
+        <item quantity="one">Every hour</item>
+        <item quantity="other">Every %1$d hours</item>
+    </plurals>
+    <plurals name="refresh_wait">
+        <item quantity="one">You can refresh again in %1$d minute.</item>
+        <item quantity="other">You can refresh again in %1$d minutes.</item>
+    </plurals>
+</resources>
