@@ -13,7 +13,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-publish:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -93,6 +94,25 @@ jobs:
           test -f build/app/outputs/flutter-apk/app-default-release.apk
           rm -f dart_defines.json
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: build/app/outputs/flutter-apk/app-default-release.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
       - name: Copy APK to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -134,7 +154,8 @@ jobs:
             -P "$port"
           )
 
-          apk="build/app/outputs/flutter-apk/app-default-release.apk"
+          apk="dist/app-default-release.apk"
+          test -f "$apk"
           quoted_path=$(printf '%q' "$VPS_PATH")
           ssh "${ssh_opts[@]}" "${VPS_USER}@${VPS_HOST}" "mkdir -p ${quoted_path}"
           scp "${scp_opts[@]}" "$apk" "${VPS_USER}@${VPS_HOST}:${VPS_PATH}/sossoldi-bltr.apk.partial"
