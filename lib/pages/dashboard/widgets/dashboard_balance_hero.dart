@@ -46,7 +46,7 @@ class DashboardBalanceHero extends ConsumerWidget {
 class _HeroContent extends ConsumerWidget {
   const _HeroContent({required this.snapshot, super.key});
 
-  static const double _chartHeight = 230;
+  static const double _chartHeight = 148;
 
   final DashboardSnapshot snapshot;
 
@@ -57,7 +57,7 @@ class _HeroContent extends ConsumerWidget {
     final isVisible = ref.watch(visibilityAmountProvider);
     final titleStyle = Theme.of(context).textTheme.displayLarge?.copyWith(
       color: visual.textPrimary,
-      fontSize: 46,
+      fontSize: 40,
       fontWeight: FontWeight.w800,
       height: 0.95,
       letterSpacing: -1.8,
@@ -89,47 +89,52 @@ class _HeroContent extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: Sizes.md),
-          Semantics(
-            label: isVisible
-                ? 'Monthly balance ${snapshot.balance.toCurrency()} ${currency.code}'
-                : 'Monthly balance hidden',
-            excludeSemantics: true,
-            child: BlurWidget(
-              sigma: 18,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: AnimatedAmount(
-                  value: snapshot.balance,
-                  suffix: ' ${currency.symbol}',
-                  style: titleStyle,
+          const SizedBox(height: Sizes.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Semantics(
+                  label: isVisible
+                      ? 'Monthly balance ${snapshot.balance.toCurrency()} ${currency.code}'
+                      : 'Monthly balance hidden',
+                  excludeSemantics: true,
+                  child: BlurWidget(
+                    sigma: 18,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedAmount(
+                        value: snapshot.balance,
+                        suffix: ' ${currency.symbol}',
+                        style: titleStyle,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: Sizes.lg),
-          Wrap(
-            spacing: Sizes.xl,
-            runSpacing: Sizes.md,
-            children: [
-              _CashFlowMetric(
-                icon: Icons.south_west_rounded,
-                label: 'Income',
-                amount: snapshot.income,
-                symbol: currency.symbol,
-                color: visual.positive,
-              ),
-              _CashFlowMetric(
-                icon: Icons.north_east_rounded,
-                label: 'Expenses',
-                amount: -snapshot.expense,
-                symbol: currency.symbol,
-                color: visual.negative,
+              const SizedBox(width: Sizes.md),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _SideAmount(
+                    label: 'Income',
+                    amount: snapshot.income,
+                    symbol: currency.symbol,
+                    color: visual.positive,
+                  ),
+                  const SizedBox(height: Sizes.xs),
+                  _SideAmount(
+                    label: 'Expenses',
+                    amount: -snapshot.expense,
+                    symbol: currency.symbol,
+                    color: visual.negative,
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: Sizes.xl),
+          const SizedBox(height: Sizes.md),
           SizedBox(
             height: _chartHeight,
             child: AnimatedSwitcher(
@@ -223,16 +228,14 @@ class _PeriodCapsule extends StatelessWidget {
   }
 }
 
-class _CashFlowMetric extends StatelessWidget {
-  const _CashFlowMetric({
-    required this.icon,
+class _SideAmount extends StatelessWidget {
+  const _SideAmount({
     required this.label,
     required this.amount,
     required this.symbol,
     required this.color,
   });
 
-  final IconData icon;
   final String label;
   final num amount;
   final String symbol;
@@ -240,45 +243,21 @@ class _CashFlowMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visual = context.dashboardTheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(14),
+    return Semantics(
+      label: '$label ${amount.toCurrency()} $symbol',
+      excludeSemantics: true,
+      child: BlurWidget(
+        sigma: 14,
+        child: AnimatedAmount(
+          value: amount,
+          suffix: symbol,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
-          child: Icon(icon, color: color, size: 20),
         ),
-        const SizedBox(width: Sizes.sm),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: visual.textSecondary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            BlurWidget(
-              sigma: 18,
-              child: AnimatedAmount(
-                value: amount,
-                suffix: ' $symbol',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
@@ -393,7 +372,7 @@ class _HeroLoading extends StatelessWidget {
       radius: 30,
       padding: const EdgeInsets.all(Sizes.xl),
       child: SizedBox(
-        height: 360,
+        height: 220,
         child: Center(child: CircularProgressIndicator(color: visual.accent)),
       ),
     );

@@ -29,7 +29,7 @@ class AccountsSum extends ConsumerWidget {
 
     return SizedBox(
       width: width,
-      height: 148,
+      height: 72,
       child: TonalGlassSurface(
         onTap: () async {
           await ref
@@ -42,94 +42,40 @@ class AccountsSum extends ConsumerWidget {
               });
         },
         semanticLabel: '${account.name} account',
-        radius: 22,
-        color: Color.alphaBlend(
-          accent.withValues(alpha: 0.12),
-          visual.raisedSurface,
+        radius: 14,
+        color: visual.raisedSurface,
+        borderColor: accent.withValues(alpha: 0.45),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Sizes.md,
+          vertical: Sizes.sm,
         ),
-        borderColor: accent.withValues(alpha: 0.24),
-        padding: const EdgeInsets.all(Sizes.md),
         boxShadow: const [],
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(
-                    accountIconList[account.symbol] ??
-                        Icons.account_balance_wallet_outlined,
-                    color: accent,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: Sizes.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        account.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: visual.textPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (account.mainAccount)
-                        Text(
-                          'Primary account',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: visual.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_outward_rounded,
-                  size: 18,
-                  color: visual.textSecondary,
-                ),
-              ],
+            Text(
+              account.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: visual.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Available balance',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: visual.textSecondary),
+            const SizedBox(height: 2),
+            BlurWidget(
+              sigma: 16,
+              child: Text(
+                '${(account.total ?? 0).toCurrency()}${currency.symbol}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: visual.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                const SizedBox(height: 2),
-                BlurWidget(
-                  sigma: 16,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${(account.total ?? 0).toCurrency()} ${currency.symbol}',
-                      maxLines: 1,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: visual.textPrimary,
-                        fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),

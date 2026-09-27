@@ -144,6 +144,7 @@ class _AccountPageState extends ConsumerState<AccountPage> {
           scrolledUnderElevation: 0,
           elevation: 0,
           foregroundColor: visual.textPrimary,
+          iconTheme: IconThemeData(color: visual.textPrimary),
           title: Text(
             account?.name ?? '',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(

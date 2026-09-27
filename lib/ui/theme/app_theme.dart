@@ -19,7 +19,7 @@ class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      iconTheme: IconThemeData(color: blue5),
+      iconTheme: IconThemeData(color: Colors.black),
       titleTextStyle: TextStyle(
         fontFamily: 'NunitoSans',
         color: blue1,
@@ -220,7 +220,7 @@ class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      iconTheme: IconThemeData(color: darkBlue5),
+      iconTheme: IconThemeData(color: Colors.white),
       titleTextStyle: TextStyle(
         fontFamily: 'NunitoSans',
         color: darkBlue1,

@@ -20,7 +20,7 @@ class MainAccount extends _$MainAccount {
   void setAccount(BankAccount? account) => state = account;
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class SelectedAccount extends _$SelectedAccount {
   @override
   BankAccount? build() => null;

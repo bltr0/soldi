@@ -286,8 +286,12 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
 
     final isSaveEnabled = _canSave(selectedType);
 
+    final arrowColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black;
+
     return PopScope(
-      canPop: false,
+      canPop: true,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           ref.read(transactionsProvider.notifier).reset();
@@ -297,6 +301,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
         appBar: AppBar(
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            color: arrowColor,
             icon: const BackButtonIcon(),
             onPressed: () => Navigator.of(context).pop(),
           ),

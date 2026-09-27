@@ -99,24 +99,11 @@ class _AccountCollection extends StatelessWidget {
             ],
           );
         }
-        if (constraints.maxWidth < 520) {
-          return SizedBox(
-            height: 148,
-            child: ListView.separated(
-              clipBehavior: Clip.none,
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: accounts.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(width: Sizes.sm),
-              itemBuilder: (context, index) => index == accounts.length
-                  ? _AddAccountTile(onTap: onAdd, width: 180)
-                  : AccountsSum(account: accounts[index], width: 224),
-            ),
-          );
-        }
-
         const gap = Sizes.sm;
-        final tileWidth = (constraints.maxWidth - gap) / 2;
+        final columns = constraints.maxWidth >= 280 ? 2 : 1;
+        final tileWidth = columns == 1
+            ? constraints.maxWidth
+            : (constraints.maxWidth - gap) / 2;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
@@ -142,38 +129,27 @@ class _AddAccountTile extends StatelessWidget {
     final visual = context.dashboardTheme;
     return SizedBox(
       width: width,
-      height: 148,
+      height: 72,
       child: TonalGlassSurface(
         onTap: onTap,
         semanticLabel: 'Add account',
-        radius: 22,
+        radius: 14,
         color: visual.raisedSurface,
         borderColor: visual.glassBorder,
-        padding: const EdgeInsets.all(Sizes.md),
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.md),
         boxShadow: const [],
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: visual.accent.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(Icons.add_rounded, color: visual.accent, size: 25),
+        child: Row(
+          children: [
+            Icon(Icons.add_rounded, color: visual.textSecondary, size: 18),
+            const SizedBox(width: Sizes.xs),
+            Text(
+              'New',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: visual.textSecondary,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: Sizes.sm),
-              Text(
-                'New account',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: visual.textPrimary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -217,7 +193,7 @@ class _AccountsLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return Container(
-      height: 148,
+      height: 72,
       decoration: BoxDecoration(
         color: visual.raisedSurface,
         borderRadius: BorderRadius.circular(22),
@@ -236,7 +212,7 @@ class _AccountsError extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return SizedBox(
-      height: 148,
+      height: 72,
       child: Center(
         child: TextButton.icon(
           onPressed: onRetry,
