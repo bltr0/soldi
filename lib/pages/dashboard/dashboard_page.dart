@@ -8,6 +8,7 @@ import '../../ui/device.dart';
 import '../../ui/snack_bars/transactions_snack_bars.dart';
 import 'widgets/account_section.dart';
 import 'widgets/dashboard_balance_hero.dart';
+import 'widgets/due_section.dart';
 import 'widgets/organize_section.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -54,7 +55,17 @@ class DashboardPage extends ConsumerWidget {
                             children: [
                               Expanded(flex: 6, child: AccountSection()),
                               SizedBox(width: Sizes.lg),
-                              Expanded(flex: 5, child: OrganizeSection()),
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  children: [
+                                    DueSection(
+                                      margin: EdgeInsets.only(bottom: Sizes.lg),
+                                    ),
+                                    OrganizeSection(),
+                                  ],
+                                ),
+                              ),
                             ],
                           );
                         }
@@ -62,6 +73,7 @@ class DashboardPage extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             AccountSection(),
+                            DueSection(),
                             SizedBox(height: Sizes.lg),
                             OrganizeSection(),
                           ],

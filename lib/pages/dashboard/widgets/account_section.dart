@@ -110,7 +110,8 @@ class _AccountCollection extends StatelessWidget {
           children: [
             for (final account in accounts)
               AccountsSum(account: account, width: tileWidth),
-            _AddAccountTile(onTap: onAdd, width: tileWidth),
+            if (accounts.length.isOdd)
+              _AddAccountTile(onTap: onAdd, width: tileWidth),
           ],
         );
       },
@@ -138,18 +139,21 @@ class _AddAccountTile extends StatelessWidget {
         borderColor: visual.glassBorder,
         padding: const EdgeInsets.symmetric(horizontal: Sizes.md),
         boxShadow: const [],
-        child: Row(
-          children: [
-            Icon(Icons.add_rounded, color: visual.textSecondary, size: 18),
-            const SizedBox(width: Sizes.xs),
-            Text(
-              'New',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: visual.textSecondary,
-                fontWeight: FontWeight.w700,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, color: visual.textSecondary, size: 18),
+              const SizedBox(width: Sizes.xs),
+              Text(
+                'New',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: visual.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

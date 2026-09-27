@@ -140,6 +140,30 @@ class TransactionsRepository {
     return result.map((json) => Transaction.fromJson(json)).toList();
   }
 
+  Future<List<Transaction>> selectReimbursementDue() async {
+    final db = await _sossoldiDB.database;
+    final result = await db.rawQuery('''
+      SELECT t.*,
+        c.${CategoryTransactionFields.name} as ${TransactionFields.categoryName},
+        c.${CategoryTransactionFields.color} as ${TransactionFields.categoryColor},
+        c.${CategoryTransactionFields.symbol} as ${TransactionFields.categorySymbol},
+        c.${CategoryTransactionFields.parent} as ${TransactionFields.categoryParent},
+        b1.${BankAccountFields.name} as ${TransactionFields.bankAccountName},
+        b2.${BankAccountFields.name} as ${TransactionFields.bankAccountTransferName}
+      FROM "$transactionTable" as t
+      LEFT JOIN $categoryTransactionTable as c
+        ON t.${TransactionFields.idCategory} = c.${CategoryTransactionFields.id}
+      LEFT JOIN $bankAccountTable as b1
+        ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+      LEFT JOIN $bankAccountTable as b2
+        ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
+      WHERE t.${TransactionFields.reimbursementDue} = 1
+        AND t.${TransactionFields.type} = '${TransactionType.expense.code}'
+      ORDER BY t.${TransactionFields.date} DESC
+    ''');
+    return result.map((json) => Transaction.fromJson(json)).toList();
+  }
+
   Future<int> countUncategorized() async {
     final db = await _sossoldiDB.database;
     final result = await db.rawQuery('''

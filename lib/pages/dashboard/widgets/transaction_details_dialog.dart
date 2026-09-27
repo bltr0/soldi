@@ -45,6 +45,7 @@ class _TransactionDetailsDialogState
   late int _accountId;
   int? _toAccountId;
   late int _people;
+  late bool _reimbursementDue;
   bool _saving = false;
 
   Transaction get _original => widget.transaction;
@@ -61,6 +62,7 @@ class _TransactionDetailsDialogState
     _accountId = _original.idBankAccount;
     _toAccountId = _original.idBankAccountTransfer;
     _people = _original.peopleConcerned;
+    _reimbursementDue = _original.reimbursementDue;
   }
 
   @override
@@ -121,6 +123,7 @@ class _TransactionDetailsDialogState
           : null,
       idCategory: keepCategory ? _original.idCategory : null,
       peopleConcerned: _type == TransactionType.expense ? _people : 1,
+      reimbursementDue: _type == TransactionType.expense && _reimbursementDue,
     );
     await ref.read(transactionsProvider.notifier).saveTransaction(updated);
     if (mounted) Navigator.of(context).pop();
@@ -275,7 +278,7 @@ class _TransactionDetailsDialogState
                         (id) => setState(() => _toAccountId = id),
                       ),
                     ),
-                  if (_type == TransactionType.expense)
+                  if (_type == TransactionType.expense) ...[
                     _field(
                       context,
                       label: 'People concerned',
@@ -304,6 +307,28 @@ class _TransactionDetailsDialogState
                         ],
                       ),
                     ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _reimbursementDue,
+                      activeColor: visual.textPrimary,
+                      checkColor: visual.solidSurface,
+                      title: Text(
+                        'Paid for other people',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: visual.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text(
+                        _reimbursementDue ? 'Still due' : 'Paid back',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: visual.textSecondary,
+                        ),
+                      ),
+                      onChanged: (value) =>
+                          setState(() => _reimbursementDue = value ?? false),
+                    ),
+                  ],
                 ],
               ),
             ),

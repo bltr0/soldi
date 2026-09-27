@@ -45,6 +45,11 @@ class OrganizeQueue {
 }
 
 @Riverpod(keepAlive: true)
+Future<List<Transaction>> pendingReimbursements(Ref ref) async {
+  return ref.read(transactionsRepositoryProvider).selectReimbursementDue();
+}
+
+@Riverpod(keepAlive: true)
 Future<OrganizeQueue> organizeQueue(Ref ref) async {
   final repo = ref.read(transactionsRepositoryProvider);
   final items = await repo.selectUncategorized(limit: 1);
@@ -86,6 +91,14 @@ class SelectedPeopleConcerned extends _$SelectedPeopleConcerned {
   void increment() => setValue(state + 1);
 
   void decrement() => setValue(state - 1);
+}
+
+@Riverpod(keepAlive: true)
+class SelectedReimbursementDue extends _$SelectedReimbursementDue {
+  @override
+  bool build() => false;
+
+  void setValue(bool value) => state = value;
 }
 
 // Recurring Payment
@@ -179,6 +192,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(transactionsExistsProvider);
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(organizeQueueProvider);
+    ref.invalidate(pendingReimbursementsProvider);
     ref.invalidate(accountsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -232,6 +246,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     final peopleConcerned = t == TransactionType.expense
         ? ref.read(selectedPeopleConcernedProvider)
         : 1;
+    final reimbursementDue =
+        t == TransactionType.expense &&
+        ref.read(selectedReimbursementDueProvider);
 
     Transaction transaction = Transaction(
       date: date ?? ref.read(selectedDateProvider),
@@ -249,6 +266,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           ? null
           : ref.read(selectedCategoryProvider)?.id,
       peopleConcerned: peopleConcerned,
+      reimbursementDue: reimbursementDue,
       recurring: account != null
           ? false
           : ref.read(selectedRecurringPayProvider),
@@ -306,6 +324,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       peopleConcerned: type == TransactionType.expense
           ? ref.read(selectedPeopleConcernedProvider)
           : 1,
+      reimbursementDue:
+          type == TransactionType.expense &&
+          ref.read(selectedReimbursementDueProvider),
       idRecurringTransaction: recurringTransactionId,
       recurring: recurringTransactionId != null ? true : false,
     );
@@ -340,6 +361,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       ]);
     }
     ref.invalidate(organizeQueueProvider);
+    ref.invalidate(pendingReimbursementsProvider);
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -383,6 +405,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref
         .read(selectedPeopleConcernedProvider.notifier)
         .setValue(transaction.peopleConcerned);
+    ref
+        .read(selectedReimbursementDueProvider.notifier)
+        .setValue(transaction.reimbursementDue);
   }
 
   Future<void> delete(int transactionId) async {
@@ -407,6 +432,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(bankAccountTransferProvider);
     ref.invalidate(selectedDateProvider);
     ref.invalidate(selectedPeopleConcernedProvider);
+    ref.invalidate(selectedReimbursementDueProvider);
     ref.invalidate(selectedCategoryProvider);
     ref.invalidate(selectedRecurringPayProvider);
     ref.invalidate(intervalProvider);

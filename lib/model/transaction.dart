@@ -22,6 +22,7 @@ class TransactionFields extends BaseEntityFields {
   static String idBankAccountTransfer = 'idBankAccountTransfer';
   static String bankAccountTransferName = 'bankAccountTransferName';
   static String peopleConcerned = 'peopleConcerned';
+  static String reimbursementDue = 'reimbursementDue';
   static String recurring = 'recurring';
   static String idRecurringTransaction = 'idRecurringTransaction';
   static String createdAt = BaseEntityFields.getCreatedAt;
@@ -37,6 +38,7 @@ class TransactionFields extends BaseEntityFields {
     idBankAccount,
     idBankAccountTransfer,
     peopleConcerned,
+    reimbursementDue,
     recurring,
     idRecurringTransaction,
     BaseEntityFields.createdAt,
@@ -115,6 +117,10 @@ class Transaction extends BaseEntity {
   final int? idBankAccountTransfer;
   final String? bankAccountTransferName;
   final int peopleConcerned;
+
+  /// True when this expense was paid for other people and they have not
+  /// paid it back yet.
+  final bool reimbursementDue;
   final bool recurring;
   final int? idRecurringTransaction;
 
@@ -134,6 +140,7 @@ class Transaction extends BaseEntity {
     this.idBankAccountTransfer,
     this.bankAccountTransferName,
     this.peopleConcerned = 1,
+    this.reimbursementDue = false,
     required this.recurring,
     this.idRecurringTransaction,
     super.createdAt,
@@ -143,6 +150,12 @@ class Transaction extends BaseEntity {
   /// Account reset: not cashflow. Includes legacy CSV rows still stored as IN/OUT.
   bool get isBalanceReset =>
       type == TransactionType.adjustment || note == 'Reconciliation';
+
+  /// Equal split of what the other people still owe. A 4 payment shared by
+  /// 2 people is due 2, because one share is yours.
+  num get splitDue => peopleConcerned <= 1
+      ? 0
+      : amount * (peopleConcerned - 1) / peopleConcerned;
 
   Transaction copy({
     Object? id = _unset,
@@ -154,6 +167,7 @@ class Transaction extends BaseEntity {
     int? idBankAccount,
     Object? idBankAccountTransfer = _unset,
     int? peopleConcerned,
+    bool? reimbursementDue,
     bool? recurring,
     int? idRecurringTransaction,
     DateTime? createdAt,
@@ -170,6 +184,7 @@ class Transaction extends BaseEntity {
         ? this.idBankAccountTransfer
         : idBankAccountTransfer as int?,
     peopleConcerned: peopleConcerned ?? this.peopleConcerned,
+    reimbursementDue: reimbursementDue ?? this.reimbursementDue,
     recurring: recurring ?? this.recurring,
     idRecurringTransaction:
         idRecurringTransaction ?? this.idRecurringTransaction,
@@ -196,6 +211,7 @@ class Transaction extends BaseEntity {
       bankAccountTransferName:
           json[TransactionFields.bankAccountTransferName] as String?,
       peopleConcerned: json[TransactionFields.peopleConcerned] as int? ?? 1,
+      reimbursementDue: json[TransactionFields.reimbursementDue] == 1,
       recurring: json[TransactionFields.recurring] == 1,
       idRecurringTransaction:
           json[TransactionFields.idRecurringTransaction] as int?,
@@ -219,6 +235,7 @@ class Transaction extends BaseEntity {
       TransactionFields.idBankAccount: idBankAccount,
       TransactionFields.idBankAccountTransfer: idBankAccountTransfer,
       TransactionFields.peopleConcerned: peopleConcerned,
+      TransactionFields.reimbursementDue: reimbursementDue ? 1 : 0,
       TransactionFields.recurring: recurring ? 1 : 0,
       TransactionFields.idRecurringTransaction: idRecurringTransaction,
       BaseEntityFields.createdAt: createdAtDate,

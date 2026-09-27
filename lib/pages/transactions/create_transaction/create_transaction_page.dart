@@ -44,6 +44,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   late final int? _originalAccountId;
   late final int? _originalTransferId;
   late final int _originalPeopleConcerned;
+  late final bool _originalReimbursementDue;
   late final bool _originalRecurring;
   late final Recurrence _originalInterval;
   late final DateTime? _originalEndDate;
@@ -68,6 +69,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     _originalAccountId = ref.read(selectedBankAccountProvider)?.id;
     _originalTransferId = ref.read(bankAccountTransferProvider)?.id;
     _originalPeopleConcerned = ref.read(selectedPeopleConcernedProvider);
+    _originalReimbursementDue = ref.read(selectedReimbursementDueProvider);
     _originalRecurring = ref.read(selectedRecurringPayProvider);
     _originalInterval = ref.read(intervalProvider);
     _originalEndDate = ref.read(endDateProvider);
@@ -179,6 +181,11 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
         ref.read(selectedPeopleConcernedProvider) != _originalPeopleConcerned) {
       return true;
     }
+    if (selectedType == TransactionType.expense &&
+        ref.read(selectedReimbursementDueProvider) !=
+            _originalReimbursementDue) {
+      return true;
+    }
     if (ref.read(selectedRecurringPayProvider) != _originalRecurring) {
       return true;
     }
@@ -276,6 +283,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     ref.watch(selectedCategoryProvider);
     ref.watch(selectedDateProvider);
     ref.watch(selectedPeopleConcernedProvider);
+    final paidForOthers = ref.watch(selectedReimbursementDueProvider);
     ref.watch(selectedRecurringPayProvider);
     ref.watch(intervalProvider);
     ref.watch(endDateProvider);
@@ -463,6 +471,47 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                               builder: (_) => const PeopleConcernedSelector(),
                             );
                           },
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: Sizes.lg,
+                          ),
+                          onTap: () => ref
+                              .read(selectedReimbursementDueProvider.notifier)
+                              .setValue(!paidForOthers),
+                          leading: Icon(
+                            Icons.group_outlined,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                          title: Text(
+                            'Paid for other people',
+                            style: Theme.of(context).textTheme.titleMedium!
+                                .copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                          subtitle: Text(
+                            paidForOthers ? 'Still due' : 'Paid back',
+                          ),
+                          trailing: AbsorbPointer(
+                            child: Checkbox(
+                              value: paidForOthers,
+                              activeColor:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
+                              checkColor:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.black
+                                  : Colors.white,
+                              onChanged: (_) {},
+                            ),
+                          ),
                         ),
                       ],
                       const Divider(height: 1),

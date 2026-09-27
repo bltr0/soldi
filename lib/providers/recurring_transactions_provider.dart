@@ -87,10 +87,14 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
           idBankAccount: bankAccount.id!,
           idCategory: category.id!,
           peopleConcerned: peopleConcerned,
+          reimbursementDue:
+              type == TransactionType.expense &&
+              ref.read(selectedReimbursementDueProvider),
           idRecurringTransaction: insertedTransaction!.id,
           recurring: true,
         );
         await ref.read(transactionsRepositoryProvider).insert(transaction);
+        ref.invalidate(pendingReimbursementsProvider);
       }
       return await _getRecurringTransactions();
     });
