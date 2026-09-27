@@ -18,20 +18,22 @@ class LabelListTile extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Sizes.lg,
-        Sizes.lg,
-        Sizes.xxl,
-        Sizes.lg,
+        Sizes.xs,
+        Sizes.xl,
+        Sizes.xs,
       ),
       child: Row(
         children: [
           RoundedIcon(
             icon: Icons.description,
+            size: 18,
+            padding: const EdgeInsets.all(Sizes.sm),
             backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
-          const SizedBox(width: Sizes.lg),
+          const SizedBox(width: Sizes.md),
           Text(
             "Description",
-            style: Theme.of(context).textTheme.titleLarge!.copyWith(
+            style: Theme.of(context).textTheme.titleMedium!.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -41,6 +43,7 @@ class LabelListTile extends ConsumerWidget {
               controller: labelController,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
+                isDense: true,
                 border: InputBorder.none,
                 hintText: "Add a description",
               ),

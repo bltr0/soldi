@@ -25,30 +25,41 @@ class DetailsListTile extends ConsumerWidget {
     final isDarkMode = ref.watch(appThemeStateProvider).isDarkModeEnabled;
 
     return ListTile(
-      contentPadding: const EdgeInsets.all(Sizes.lg),
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
       onTap: callback,
       leading: RoundedIcon(
         icon: icon,
+        size: 18,
+        padding: const EdgeInsets.all(Sizes.sm),
         backgroundColor: Theme.of(context).colorScheme.secondary,
       ),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+        style: Theme.of(context).textTheme.titleMedium!.copyWith(
           color: Theme.of(context).colorScheme.primary,
         ),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value ?? '',
-            style: Theme.of(context).textTheme.bodySmall!.copyWith(
-              color: isDarkMode
-                  ? grey3
-                  : Theme.of(context).colorScheme.secondary,
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.45,
+            ),
+            child: Text(
+              value ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: isDarkMode
+                    ? grey3
+                    : Theme.of(context).colorScheme.secondary,
+              ),
             ),
           ),
-          const SizedBox(width: Sizes.sm),
+          const SizedBox(width: Sizes.xs),
           Icon(
             Icons.chevron_right,
             color: isDarkMode ? grey3 : Theme.of(context).colorScheme.secondary,

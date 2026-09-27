@@ -268,6 +268,61 @@ class AccountRepository {
     }
   }
 
+  /// Every transaction touching [accountId], including transfers in both
+  /// directions, oldest first.
+  Future<List<Map<String, Object?>>> accountLedger(int accountId) async {
+    final db = await _sossoldiDB.database;
+    return db.rawQuery(
+      '''
+      SELECT t.*,
+        c.${CategoryTransactionFields.name} as ${TransactionFields.categoryName},
+        c.${CategoryTransactionFields.color} as ${TransactionFields.categoryColor},
+        c.${CategoryTransactionFields.symbol} as ${TransactionFields.categorySymbol},
+        c.${CategoryTransactionFields.parent} as ${TransactionFields.categoryParent},
+        b1.${BankAccountFields.name} as ${TransactionFields.bankAccountName},
+        b2.${BankAccountFields.name} as ${TransactionFields.bankAccountTransferName}
+      FROM "$transactionTable" as t
+      LEFT JOIN $categoryTransactionTable as c
+        ON t.${TransactionFields.idCategory} = c.${CategoryTransactionFields.id}
+      LEFT JOIN $bankAccountTable as b1
+        ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+      LEFT JOIN $bankAccountTable as b2
+        ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
+      WHERE t.${TransactionFields.idBankAccount} = ?
+         OR t.${TransactionFields.idBankAccountTransfer} = ?
+      ORDER BY t.${TransactionFields.date} ASC, t.${TransactionFields.id} ASC
+    ''',
+      [accountId, accountId],
+    );
+  }
+
+  /// Balance of [accountId] including every transaction dated up to and
+  /// including [until].
+  Future<num> balanceAt(int accountId, DateTime until) async {
+    final db = await _sossoldiDB.database;
+    final result = await db.rawQuery(
+      '''
+      SELECT b.${BankAccountFields.startingValue} + IFNULL((
+        SELECT SUM(CASE
+          WHEN t.${TransactionFields.type} = 'IN' OR t.${TransactionFields.type} = 'ADJ' THEN t.${TransactionFields.amount}
+          WHEN t.${TransactionFields.type} = 'OUT' THEN -t.${TransactionFields.amount}
+          WHEN t.${TransactionFields.type} = 'TRSF' AND t.${TransactionFields.idBankAccountTransfer} = b.${BankAccountFields.id} THEN t.${TransactionFields.amount}
+          WHEN t.${TransactionFields.type} = 'TRSF' THEN -t.${TransactionFields.amount}
+          ELSE 0 END)
+        FROM "$transactionTable" as t
+        WHERE (t.${TransactionFields.idBankAccount} = b.${BankAccountFields.id}
+            OR t.${TransactionFields.idBankAccountTransfer} = b.${BankAccountFields.id})
+          AND t.${TransactionFields.date} <= ?
+      ), 0) as balance
+      FROM $bankAccountTable as b
+      WHERE b.${BankAccountFields.id} = ?
+    ''',
+      [until.toIso8601String(), accountId],
+    );
+    if (result.isEmpty) return 0;
+    return result.first['balance'] as num? ?? 0;
+  }
+
   Future<List> getTransactions(int accountId, int numTransactions) async {
     final db = await _sossoldiDB.database;
 

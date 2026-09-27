@@ -287,7 +287,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     final isSaveEnabled = _canSave(selectedType);
 
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           ref.read(transactionsProvider.notifier).reset();
@@ -295,6 +295,11 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
       },
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const BackButtonIcon(),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
           title: Text(
             (widget.transaction != null)
                 ? "Editing transaction"
@@ -363,30 +368,17 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
           ),
         ],
         body: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: Sizes.md * 6),
+          padding: const EdgeInsets.only(bottom: Sizes.md),
           child: Column(
             children: [
               AmountSection(amountController),
-              Container(
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.only(
-                  left: Sizes.lg,
-                  top: Sizes.xxl,
-                  bottom: Sizes.sm,
-                ),
-                child: Text(
-                  "DETAILS",
-                  style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
+              const SizedBox(height: Sizes.sm),
               Container(
                 color: Theme.of(context).colorScheme.surface,
                 child: Column(
                   children: [
                     LabelListTile(noteController),
-                    const Divider(),
+                    const Divider(height: 1),
                     if (selectedType != TransactionType.transfer) ...[
                       DetailsListTile(
                         title: "Account",
@@ -417,7 +409,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                         },
                       ),
                       if (selectedType != TransactionType.adjustment) ...[
-                        const Divider(),
+                        const Divider(height: 1),
                         DetailsListTile(
                           title: "Category",
                           icon: Icons.list_alt,
@@ -451,7 +443,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                         ),
                       ],
                       if (selectedType == TransactionType.expense) ...[
-                        const Divider(),
+                        const Divider(height: 1),
                         DetailsListTile(
                           title: "People concerned",
                           icon: Icons.group_outlined,
@@ -468,7 +460,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                           },
                         ),
                       ],
-                      const Divider(),
+                      const Divider(height: 1),
                     ],
                     DetailsListTile(
                       title: "Date",

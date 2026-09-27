@@ -192,9 +192,11 @@ class TransactionTile extends ConsumerWidget {
           padding: const EdgeInsets.all(Sizes.sm),
         ),
         title: Text(
-          (transaction.note?.isEmpty ?? true)
-              ? DateFormat("dd MMMM - HH:mm").format(transaction.date)
-              : transaction.note!,
+          (transaction.note?.trim().isNotEmpty ?? false)
+              ? transaction.note!
+              : transaction.type == TransactionType.transfer
+              ? "Transfer"
+              : DateFormat("dd MMMM - HH:mm").format(transaction.date),
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium!.copyWith(
             color: visual.textPrimary,
@@ -203,7 +205,7 @@ class TransactionTile extends ConsumerWidget {
         ),
         subtitle: Text(
           switch (transaction.type) {
-            TransactionType.transfer => "",
+            TransactionType.transfer => "Transfer",
             TransactionType.adjustment => "Adjustment",
             TransactionType.income || TransactionType.expense =>
               transaction.categoryName ?? "Uncategorized",

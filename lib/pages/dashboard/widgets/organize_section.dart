@@ -15,6 +15,7 @@ import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/blur_widget.dart';
 import '../../../ui/widgets/rounded_icon.dart';
 import '../../../ui/widgets/tonal_glass_surface.dart';
+import 'transaction_details_dialog.dart';
 
 class OrganizeSection extends ConsumerWidget {
   const OrganizeSection({super.key});
@@ -169,7 +170,7 @@ class _OrganizeEmpty extends StatelessWidget {
             ),
             const SizedBox(height: Sizes.xs),
             Text(
-              'New uncategorized payments will appear here.',
+              'Uncategorized payments and untitled transfers will appear here.',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -229,19 +230,32 @@ class _OrganizeTile extends ConsumerStatefulWidget {
 }
 
 class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
+  final _noteController = TextEditingController();
   bool _busy = false;
   CategoryTransaction? _category;
 
   Transaction get transaction => widget.transaction;
+  bool get _isTransfer => transaction.type == TransactionType.transfer;
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
 
   Future<void> _confirm() async {
+    if (_busy) return;
+    final note = _noteController.text.trim();
     final category = _category;
-    if (_busy || category == null || category.id == null) return;
+    if (_isTransfer ? note.isEmpty : category?.id == null) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(transactionsProvider.notifier)
-          .assignCategory(transaction, category);
+      final notifier = ref.read(transactionsProvider.notifier);
+      if (_isTransfer) {
+        await notifier.saveTransaction(transaction.copy(note: note));
+      } else {
+        await notifier.assignCategory(transaction, category!);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -278,6 +292,41 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
     );
   }
 
+  Widget _buildNoteField(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: visual.solidSurface,
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
+        border: Border.all(color: visual.glassBorder),
+      ),
+      child: Center(
+        child: TextField(
+          controller: _noteController,
+          onChanged: (_) => setState(() {}),
+          onSubmitted: (_) => _confirm(),
+          onTapOutside: (_) => FocusScope.of(context).unfocus(),
+          textInputAction: TextInputAction.done,
+          textCapitalization: TextCapitalization.sentences,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: visual.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            border: InputBorder.none,
+            hintText: 'Name this transfer',
+            hintStyle: TextStyle(color: visual.textSecondary),
+            prefixIcon: Icon(
+              Icons.edit_note_rounded,
+              color: visual.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currency = ref.watch(currencyStateProvider);
@@ -285,13 +334,26 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
     final signedAmount = transaction.type == TransactionType.expense
         ? "-${transaction.amount.toCurrency()}"
         : transaction.amount.toCurrency();
-    final label = (transaction.note?.isEmpty ?? true)
-        ? DateFormat("dd MMM").format(transaction.date)
+    final label = (transaction.note?.trim().isEmpty ?? true)
+        ? (_isTransfer
+              ? 'Transfer'
+              : DateFormat("dd MMM").format(transaction.date))
         : transaction.note!;
-    final canConfirm = !_busy && _category?.id != null;
-    final amountColor = transaction.type == TransactionType.expense
-        ? visual.negative
-        : visual.positive;
+    final accounts = _isTransfer
+        ? "${transaction.bankAccountName ?? '?'} → ${transaction.bankAccountTransferName ?? '?'}"
+        : transaction.bankAccountName;
+    final canConfirm =
+        !_busy &&
+        (_isTransfer
+            ? _noteController.text.trim().isNotEmpty
+            : _category?.id != null);
+    final amountColor = switch (transaction.type) {
+      TransactionType.expense => visual.negative,
+      TransactionType.transfer => transaction.type.toColor(
+        brightness: Theme.of(context).brightness,
+      ),
+      TransactionType.income || TransactionType.adjustment => visual.positive,
+    };
 
     return TonalGlassSurface(
       radius: 22,
@@ -305,71 +367,97 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: amountColor.withValues(alpha: 0.13),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Icon(
-                      transaction.type == TransactionType.expense
-                          ? Icons.north_east_rounded
-                          : Icons.south_west_rounded,
-                      color: amountColor,
-                      size: 21,
-                    ),
-                  ),
-                  const SizedBox(width: Sizes.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+              Semantics(
+                button: true,
+                label: 'Edit transaction details',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () =>
+                      showTransactionDetailsDialog(context, transaction),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: amountColor.withValues(alpha: 0.13),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Icon(
+                          switch (transaction.type) {
+                            TransactionType.expense => Icons.north_east_rounded,
+                            TransactionType.transfer =>
+                              Icons.swap_horiz_rounded,
+                            TransactionType.income ||
+                            TransactionType.adjustment =>
+                              Icons.south_west_rounded,
+                          },
+                          color: amountColor,
+                          size: 21,
+                        ),
+                      ),
+                      const SizedBox(width: Sizes.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: visual.textPrimary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "${DateFormat("dd MMM yyyy").format(transaction.date)}"
+                              "${accounts != null ? " · $accounts" : ""}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(
+                                    color: visual.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: Sizes.sm),
+                      BlurWidget(
+                        sigma: 16,
+                        child: Text(
+                          "$signedAmount ${currency.symbol}",
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
-                                color: visual.textPrimary,
+                                color: amountColor,
                                 fontWeight: FontWeight.w800,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
                               ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          "${DateFormat("dd MMM yyyy").format(transaction.date)}"
-                          "${transaction.bankAccountName != null ? " · ${transaction.bankAccountName}" : ""}",
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: visual.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: Sizes.sm),
-                  BlurWidget(
-                    sigma: 16,
-                    child: Text(
-                      "$signedAmount ${currency.symbol}",
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: amountColor,
-                        fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
-                    ),
+                      const SizedBox(width: Sizes.xs),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.open_in_full_rounded,
+                          size: 16,
+                          color: visual.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: Sizes.xl),
               Text(
-                'CATEGORY',
+                _isTransfer ? 'DESCRIPTION' : 'CATEGORY',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: visual.textSecondary,
                   fontWeight: FontWeight.w800,
@@ -384,62 +472,66 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
                   children: [
                     Expanded(
                       flex: 4,
-                      child: FilledButton(
-                        onPressed: _openSheet,
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: Sizes.sm,
-                          ),
-                          backgroundColor: visual.solidSurface,
-                          foregroundColor: visual.textPrimary,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.horizontal(
-                              left: Radius.circular(18),
-                            ),
-                          ),
-                          side: BorderSide(color: visual.glassBorder),
-                          elevation: 0,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: white,
-                                shape: BoxShape.circle,
+                      child: _isTransfer
+                          ? _buildNoteField(context)
+                          : FilledButton(
+                              onPressed: _openSheet,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: Sizes.sm,
+                                ),
+                                backgroundColor: visual.solidSurface,
+                                foregroundColor: visual.textPrimary,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.horizontal(
+                                    left: Radius.circular(18),
+                                  ),
+                                ),
+                                side: BorderSide(color: visual.glassBorder),
+                                elevation: 0,
                               ),
-                              child: _category == null
-                                  ? const Icon(
-                                      Icons.category_outlined,
-                                      color: grey1,
-                                      size: 19,
-                                    )
-                                  : Icon(
-                                      iconList[_category!.symbol],
-                                      color:
-                                          categoryColorListTheme[_category!
-                                              .color],
-                                      size: 20,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 38,
+                                    height: 38,
+                                    alignment: Alignment.center,
+                                    decoration: const BoxDecoration(
+                                      color: white,
+                                      shape: BoxShape.circle,
                                     ),
-                            ),
-                            const SizedBox(width: Sizes.sm),
-                            Expanded(
-                              child: Text(
-                                _category?.name ?? "--",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      color: visual.textPrimary,
-                                      fontWeight: FontWeight.w800,
+                                    child: _category == null
+                                        ? const Icon(
+                                            Icons.category_outlined,
+                                            color: grey1,
+                                            size: 19,
+                                          )
+                                        : Icon(
+                                            iconList[_category!.symbol],
+                                            color:
+                                                categoryColorListTheme[_category!
+                                                    .color],
+                                            size: 20,
+                                          ),
+                                  ),
+                                  const SizedBox(width: Sizes.sm),
+                                  Expanded(
+                                    child: Text(
+                                      _category?.name ?? "--",
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: visual.textPrimary,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                     ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 3),
                     SizedBox(

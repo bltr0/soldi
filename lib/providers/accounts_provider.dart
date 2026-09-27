@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart' show DateUtils;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/bank_account.dart';
@@ -26,24 +26,6 @@ class SelectedAccount extends _$SelectedAccount {
   BankAccount? build() => null;
 
   void setAccount(BankAccount? account) => state = account;
-}
-
-@Riverpod(keepAlive: true)
-class SelectedAccountCurrentYearMonthlyBalance
-    extends _$SelectedAccountCurrentYearMonthlyBalance {
-  @override
-  List<FlSpot> build() => [];
-
-  void setBalanceList(List<FlSpot> balanceList) => state = balanceList;
-}
-
-@Riverpod(keepAlive: true)
-class SelectedAccountLastTransactions
-    extends _$SelectedAccountLastTransactions {
-  @override
-  List build() => [];
-
-  void setTransactions(List lastTransactions) => state = lastTransactions;
 }
 
 @Riverpod(keepAlive: true)
@@ -138,11 +120,18 @@ class Accounts extends _$Accounts {
     });
   }
 
+  /// Makes the balance of [account] at the end of [date] (today when omitted)
+  /// equal [newBalance] by inserting an adjustment on that day.
   Future<void> reconcileAccount({
     required BankAccount account,
     required num newBalance,
+    DateTime? date,
   }) async {
-    _reconcileAccount(account: account, newBalance: newBalance);
+    await _reconcileAccount(
+      account: account,
+      newBalance: newBalance,
+      date: date,
+    );
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       return _getAccounts();
@@ -152,9 +141,19 @@ class Accounts extends _$Accounts {
   Future<void> _reconcileAccount({
     required BankAccount account,
     required num newBalance,
+    DateTime? date,
   }) async {
-    final num difference = newBalance - (account.total ?? 0);
-    if (difference != 0) {
+    final now = DateTime.now();
+    final day = date ?? now;
+    final isToday = DateUtils.isSameDay(day, now);
+    final at = isToday
+        ? now
+        : DateTime(day.year, day.month, day.day, 23, 59, 59);
+    final current = await ref
+        .read(accountRepositoryProvider)
+        .balanceAt(account.id!, at);
+    final difference = newBalance - current;
+    if (difference.abs() >= 0.005) {
       await ref
           .read(transactionsProvider.notifier)
           .create(
@@ -162,7 +161,7 @@ class Accounts extends _$Accounts {
             'Reconciliation',
             account: account,
             type: TransactionType.adjustment,
-            date: DateTime.now(),
+            date: at,
           );
     }
   }
@@ -171,40 +170,7 @@ class Accounts extends _$Accounts {
     ref.invalidate(transactionsProvider);
     ref.invalidate(recurringTransactionsProvider);
     ref.read(selectedAccountProvider.notifier).state = account;
-
-    final currentMonthDailyBalance = await ref
-        .read(accountRepositoryProvider)
-        .accountMonthlyBalance(
-          account.id!,
-          dateRangeStart: DateTime(
-            DateTime.now().year,
-            1,
-            1,
-          ), // beginnig of current year
-          dateRangeEnd: DateTime(
-            DateTime.now().year + 1,
-            1,
-            1,
-          ), // beginnig of next year
-        );
-
-    ref
-        .read(selectedAccountCurrentYearMonthlyBalanceProvider.notifier)
-        .state = currentMonthDailyBalance.map((e) {
-      DateTime pointDT = DateTime.parse(e['month'] + "-01");
-      return FlSpot(
-        pointDT.month - 1,
-        double.parse(e['balance'].toStringAsFixed(2)),
-      );
-    }).toList();
-
-    ref
-        .read(selectedAccountLastTransactionsProvider.notifier)
-        .setTransactions(
-          await ref
-              .read(accountRepositoryProvider)
-              .getTransactions(account.id!, 50),
-        );
+    ref.invalidate(accountLedgerProvider(account.id!));
   }
 
   Future<void> deactivateAccount(BankAccount account) async {
@@ -254,8 +220,55 @@ class Accounts extends _$Accounts {
 
   void reset() {
     ref.invalidate(selectedAccountProvider);
-    ref.invalidate(selectedAccountCurrentYearMonthlyBalanceProvider);
   }
+}
+
+class LedgerEntry {
+  const LedgerEntry({
+    required this.transaction,
+    required this.delta,
+    required this.balanceAfter,
+  });
+
+  final Transaction transaction;
+
+  /// Signed effect of the transaction on the ledger's account.
+  final num delta;
+  final num balanceAfter;
+}
+
+/// All transactions of an account, oldest first, with the running balance
+/// after each one.
+@riverpod
+Future<List<LedgerEntry>> accountLedger(Ref ref, int accountId) async {
+  final accounts = await ref.watch(accountsProvider.future);
+  final account = accounts.firstWhereOrNull((a) => a.id == accountId);
+  final rows = await ref
+      .read(accountRepositoryProvider)
+      .accountLedger(accountId);
+  var balance = account?.startingValue ?? 0;
+  final entries = <LedgerEntry>[];
+  for (final row in rows) {
+    final transaction = Transaction.fromJson(row);
+    final delta = switch (transaction.type) {
+      TransactionType.income ||
+      TransactionType.adjustment => transaction.amount,
+      TransactionType.expense => -transaction.amount,
+      TransactionType.transfer =>
+        transaction.idBankAccountTransfer == accountId
+            ? transaction.amount
+            : -transaction.amount,
+    };
+    balance += delta;
+    entries.add(
+      LedgerEntry(
+        transaction: transaction,
+        delta: delta,
+        balanceAfter: balance,
+      ),
+    );
+  }
+  return entries;
 }
 
 @Riverpod(keepAlive: true)

@@ -319,6 +319,14 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     });
   }
 
+  Future<void> saveTransaction(Transaction transaction) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(transactionsRepositoryProvider).updateItem(transaction);
+      return await _getTransactions();
+    });
+  }
+
   Future<void> assignCategory(
     Transaction transaction,
     CategoryTransaction category,

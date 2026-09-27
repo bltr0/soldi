@@ -32,15 +32,20 @@ class RecurrenceListTile extends ConsumerWidget {
 
     return Column(
       children: [
-        const Divider(),
+        const Divider(height: 1),
         ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          contentPadding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
           leading: RoundedIcon(
             icon: Icons.autorenew,
+            size: 18,
+            padding: const EdgeInsets.all(Sizes.sm),
             backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
           title: Text(
             "Recurring payment",
-            style: Theme.of(context).textTheme.titleLarge!.copyWith(
+            style: Theme.of(context).textTheme.titleMedium!.copyWith(
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
@@ -89,7 +94,10 @@ class RecurrenceListTile extends ConsumerWidget {
                   backgroundColor: Theme.of(
                     context,
                   ).colorScheme.primaryContainer,
-                  padding: const EdgeInsets.all(Sizes.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Sizes.lg,
+                    vertical: Sizes.md,
+                  ),
                 ),
                 onPressed:
                     selectedTransaction == null || recurrencyEditingPermitted
@@ -132,7 +140,12 @@ class RecurrenceListTile extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(Sizes.lg),
+            padding: const EdgeInsets.fromLTRB(
+              Sizes.lg,
+              Sizes.sm,
+              Sizes.lg,
+              Sizes.sm,
+            ),
             child: Opacity(
               opacity: selectedTransaction == null || recurrencyEditingPermitted
                   ? 1.0
@@ -142,7 +155,10 @@ class RecurrenceListTile extends ConsumerWidget {
                   backgroundColor: Theme.of(
                     context,
                   ).colorScheme.primaryContainer,
-                  padding: const EdgeInsets.all(Sizes.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Sizes.lg,
+                    vertical: Sizes.md,
+                  ),
                 ),
                 onPressed:
                     selectedTransaction == null || recurrencyEditingPermitted

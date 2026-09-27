@@ -27,7 +27,7 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: Sizes.lg,
-        vertical: Sizes.xl,
+        vertical: Sizes.xs,
       ),
       child: TextField(
         controller: widget.amountController,
@@ -53,7 +53,7 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
         cursorColor: grey1,
         style: TextStyle(
           color: selectedType.toColor(brightness: Theme.of(context).brightness),
-          fontSize: 58,
+          fontSize: 50,
           fontWeight: FontWeight.bold,
         ),
         onTapOutside: (_) {

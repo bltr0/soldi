@@ -50,7 +50,7 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
       color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
-          const SizedBox(height: Sizes.xxl),
+          const SizedBox(height: Sizes.md),
           if (selectedType == TransactionType.adjustment)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),

@@ -96,7 +96,8 @@ class TransactionsRepository {
           .where((bankAccount) => bankAccount.value)
           .map((e) => "'${e.key}'");
       where =
-          "${where != null ? '$where and ' : ''}t.${TransactionFields.idBankAccount} IN (${bankAccountIds.join(',')}) ";
+          "${where != null ? '$where and ' : ''}(t.${TransactionFields.idBankAccount} IN (${bankAccountIds.join(',')}) "
+          "OR t.${TransactionFields.idBankAccountTransfer} IN (${bankAccountIds.join(',')})) ";
     }
 
     final orderByDESC = '${TransactionFields.date} DESC';
@@ -109,9 +110,11 @@ class TransactionsRepository {
   }
 
   String get _uncategorizedFilter =>
-      "t.${TransactionFields.idCategory} IS NULL "
+      "((t.${TransactionFields.idCategory} IS NULL "
       "AND t.${TransactionFields.type} IN ('${TransactionType.income.code}', '${TransactionType.expense.code}') "
-      "AND IFNULL(t.${TransactionFields.note}, '') != 'Reconciliation'";
+      "AND IFNULL(t.${TransactionFields.note}, '') != 'Reconciliation') "
+      "OR (t.${TransactionFields.type} = '${TransactionType.transfer.code}' "
+      "AND TRIM(IFNULL(t.${TransactionFields.note}, '')) = ''))";
 
   Future<List<Transaction>> selectUncategorized({int limit = 10}) async {
     final db = await _sossoldiDB.database;
