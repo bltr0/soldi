@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
-    style="@style/FxState"
-    android:background="@drawable/widget_bg"
-    android:paddingStart="36dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="36dp"
-    android:paddingBottom="8dp">
-
-    <TextView
-        style="@style/FxLabel"
-        android:text="@string/one_eur" />
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg">
 
     <TextView
         style="@style/FxValue"
-        android:text="₩1,562.50" />
-
-    <TextView
-        style="@style/FxFooter"
-        android:text="Updated 10:26" />
-</LinearLayout>
+        android:layout_height="match_parent"
+        android:autoSizeMaxTextSize="34sp"
+        android:gravity="center"
+        android:paddingStart="28dp"
+        android:paddingEnd="28dp"
+        android:text="₩1,544.22"
+        android:textSize="34sp" />
+</FrameLayout>

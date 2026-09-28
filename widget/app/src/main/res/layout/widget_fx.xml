@@ -8,7 +8,7 @@
         android:id="@+id/pill"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center_vertical"
+        android:layout_gravity="center"
         android:background="@drawable/widget_bg"
         android:clipToOutline="true">
 
@@ -29,16 +29,14 @@
             android:paddingBottom="8dp">
 
             <TextView
-                android:id="@+id/rate_label"
-                style="@style/FxLabel" />
-
-            <TextView
                 android:id="@+id/rate_value"
-                style="@style/FxValue" />
-
-            <TextView
-                android:id="@+id/rate_footer"
-                style="@style/FxFooter" />
+                style="@style/FxValue"
+                android:layout_height="match_parent"
+                android:autoSizeMaxTextSize="34sp"
+                android:gravity="center"
+                android:paddingStart="28dp"
+                android:paddingEnd="28dp"
+                android:textSize="34sp" />
         </LinearLayout>
 
         <LinearLayout

@@ -130,19 +130,9 @@ internal object WidgetRenderer {
         val from = WidgetStore.inCode(context, widgetId)
         val to = WidgetStore.outCode(context, widgetId)
         val perOut = RateRepository.rate(context, to, from)
-        val fetched = RateRepository.fetchedAt(context, to, from)
         val rateText = perOut?.let { formatRate(it, from) }
 
-        views.setTextViewText(R.id.rate_label, context.getString(R.string.one_unit, to))
         views.setTextViewText(R.id.rate_value, rateText ?: "—")
-        views.setTextViewText(
-            R.id.rate_footer,
-            when {
-                rateText != null && fetched != null ->
-                    context.getString(R.string.updated_at, formatStamp(fetched))
-                else -> context.getString(R.string.fetching_rate)
-            },
-        )
 
         views.setTextViewText(R.id.input_label, from)
         bindDigits(context, views, WidgetStore.digits(context, widgetId), from)
@@ -176,18 +166,15 @@ internal object WidgetRenderer {
         return views
     }
 
-    /** Samsung Weather's 2×1 pill is 0.457 × its width tall; this is 10% taller than that. */
+    /** Same pixel size as the Samsung Weather pill on this phone. */
     private fun fitPill(context: Context, views: RemoteViews, widgetId: Int) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId)
-        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT)
-        if (width <= 0 || height <= 0) return
-        val pill = minOf(height.toFloat(), width * PILL_ASPECT)
-        views.setViewLayoutHeight(R.id.pill, pill, TypedValue.COMPLEX_UNIT_DIP)
+        views.setViewLayoutWidth(R.id.pill, WEATHER_WIDTH_PX, TypedValue.COMPLEX_UNIT_PX)
+        views.setViewLayoutHeight(R.id.pill, WEATHER_HEIGHT_PX, TypedValue.COMPLEX_UNIT_PX)
     }
 
-    private const val PILL_ASPECT = 0.503f
+    private const val WEATHER_WIDTH_PX = 371f
+    private const val WEATHER_HEIGHT_PX = 171f
 
     private fun bindDigits(context: Context, views: RemoteViews, digits: String, code: String) {
         views.setTextViewText(R.id.input_value, formatTyped(digits, code))
