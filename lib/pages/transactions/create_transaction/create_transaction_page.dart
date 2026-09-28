@@ -526,6 +526,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                         const Divider(height: 1),
                         DetailsListTile(
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                           title: 'Place',
                           icon: Icons.place_outlined,
                           value: place?.name ?? 'None',
@@ -540,6 +541,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                                 .read(selectedPlaceProvider.notifier)
                                 .setPlace(choice.place);
 =======
+=======
+>>>>>>> Stashed changes
                           title: "Place",
                           icon: Icons.place_outlined,
                           value: place?.name ?? "None",
@@ -550,6 +553,9 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                             ref
                                 .read(selectedPlaceProvider.notifier)
                                 .setPlace(result.place);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                           },
                         ),

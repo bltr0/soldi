@@ -197,7 +197,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
 =======
     ref.invalidate(expensesForPlacesProvider);
 >>>>>>> Stashed changes
@@ -279,7 +283,13 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       peopleConcerned: peopleConcerned,
       reimbursementDue: reimbursementDue,
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
       idPlace: placeId,
+=======
+      idPlace: t == TransactionType.expense
+          ? ref.read(selectedPlaceProvider)?.id
+          : null,
+>>>>>>> Stashed changes
 =======
       idPlace: t == TransactionType.expense
           ? ref.read(selectedPlaceProvider)?.id
@@ -384,7 +394,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
 =======
     ref.invalidate(expensesForPlacesProvider);
 >>>>>>> Stashed changes
@@ -435,6 +449,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
         .read(selectedReimbursementDueProvider.notifier)
         .setValue(transaction.reimbursementDue);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     Place? place;
     final placeId = transaction.idPlace;
     if (placeId != null) {
@@ -442,6 +457,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     }
     ref.read(selectedPlaceProvider.notifier).setPlace(place);
 =======
+=======
+>>>>>>> Stashed changes
     final placeId = transaction.idPlace;
     ref
         .read(selectedPlaceProvider.notifier)
@@ -450,6 +467,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
               ? null
               : await ref.read(placeRepositoryProvider).selectById(placeId),
         );
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   }
 
