@@ -28,6 +28,28 @@ class PlaceRepository {
     return Place.fromJson(rows.first);
   }
 
+  Future<List<Place>> selectAll() async {
+    final db = await _database.database;
+    final rows = await db.query(
+      placeTable,
+      orderBy: '${PlaceFields.name} COLLATE NOCASE',
+    );
+    return [for (final row in rows) Place.fromJson(row)];
+  }
+
+  /// Changes the label only. Coordinates stay as they were saved.
+  Future<Place> rename(Place place, String name) async {
+    final db = await _database.database;
+    final now = DateTime.now();
+    await db.update(
+      placeTable,
+      {PlaceFields.name: name, PlaceFields.updatedAt: now.toIso8601String()},
+      where: '${PlaceFields.id} = ?',
+      whereArgs: [place.id],
+    );
+    return place.copy(name: name, updatedAt: now);
+  }
+
   /// Reuses a place already saved from the same search result.
   Future<Place> saveHit(PlaceHit hit) async {
     final db = await _database.database;

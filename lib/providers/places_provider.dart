@@ -14,6 +14,11 @@ class SelectedPlace extends _$SelectedPlace {
 }
 
 @Riverpod(keepAlive: true)
+Future<List<Place>> savedPlaces(Ref ref) {
+  return ref.read(placeRepositoryProvider).selectAll();
+}
+
+@Riverpod(keepAlive: true)
 Future<List<PlaceSpend>> placeSpending(Ref ref) {
   return ref.read(placeRepositoryProvider).spending();
 }

@@ -48,16 +48,16 @@ class Place extends BaseEntity {
     super.updatedAt,
   });
 
-  Place copy({int? id}) => Place(
+  Place copy({int? id, String? name, DateTime? updatedAt}) => Place(
     id: id ?? this.id,
-    name: name,
+    name: name ?? this.name,
     address: address,
     latitude: latitude,
     longitude: longitude,
     provider: provider,
     providerPlaceId: providerPlaceId,
     createdAt: createdAt,
-    updatedAt: updatedAt,
+    updatedAt: updatedAt ?? this.updatedAt,
   );
 
   static Place fromJson(Map<String, Object?> json) => Place(
