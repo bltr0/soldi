@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- One UI reads this name from the provider XML. Small (2) is the 2×1 weather pill. -->
+    <attr name="widgetSize" format="integer" />
+</resources>
