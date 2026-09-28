@@ -74,13 +74,11 @@ class _NetWorthHero extends ConsumerWidget {
     final isVisible = ref.watch(visibilityAmountProvider);
 
     final netWorth = monthly.isNotEmpty ? monthly.last.y : 0.0;
-    double change = 0;
-    if (monthly.length > 1) {
-      final previous = monthly[monthly.length - 2].y;
-      if (previous != 0) {
-        change = (monthly.last.y - previous) / previous.abs() * 100;
-      }
-    }
+    final previous = monthly.length > 1 ? monthly[monthly.length - 2].y : 0.0;
+    final showChange = previous.abs() >= 0.005;
+    final change = showChange
+        ? (monthly.last.y - previous) / previous.abs() * 100
+        : 0.0;
     final changeColor = change > 0
         ? visual.positive
         : change < 0
@@ -106,7 +104,7 @@ class _NetWorthHero extends ConsumerWidget {
                   ),
                 ),
               ),
-              _ChangePill(change: change, color: changeColor),
+              if (showChange) _ChangePill(change: change, color: changeColor),
             ],
           ),
           const SizedBox(height: Sizes.md),

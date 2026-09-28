@@ -99,7 +99,11 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
         );
         await ref.read(transactionsRepositoryProvider).insert(transaction);
         ref.invalidate(pendingReimbursementsProvider);
+<<<<<<< Updated upstream
         ref.invalidate(placeSpendingProvider);
+=======
+        ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
       }
       return await _getRecurringTransactions();
     });

@@ -38,7 +38,7 @@ class LinearProgressBar extends StatelessWidget {
       tween: Tween(begin: 0, end: value),
       duration: MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
-          : const Duration(milliseconds: 700),
+          : const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
       builder: (context, current, _) => LinearProgressIndicator(
         value: current,

@@ -22,10 +22,13 @@ class LineChartWidget extends StatefulWidget {
 
   // Used to decide the bottom label
   final Period period;
+  final int? daysInMonth;
   final int currentMonthDays = DateUtils.getDaysInMonth(
     DateTime.now().year,
     DateTime.now().month,
   );
+
+  int get axisDayCount => daysInMonth ?? currentMonthDays;
   final int nXLabel;
   final double minY;
 
@@ -46,6 +49,7 @@ class LineChartWidget extends StatefulWidget {
     this.dashboardStyle = false,
     this.height,
     this.period = Period.month,
+    this.daysInMonth,
     this.nXLabel = 10,
     double? minY,
   }) : lineData = enableGapFilling ? fillGaps(lineData) : lineData,
@@ -200,14 +204,14 @@ class _LineChartSample2State extends State<LineChartWidget> {
         }
         break;
       case Period.month:
-        int step = (widget.currentMonthDays / widget.nXLabel).round();
+        int step = (widget.axisDayCount / widget.nXLabel).round();
         final day = value.toInt() + 1;
         final showDashboardLabel =
-            day == 1 || day % step == 0 || day == widget.currentMonthDays;
+            day == 1 || day % step == 0 || day == widget.axisDayCount;
         if ((widget.dashboardStyle && showDashboardLabel) ||
             (!widget.dashboardStyle &&
                 value.toInt() % step == 1 &&
-                value.toInt() != widget.currentMonthDays)) {
+                value.toInt() != widget.axisDayCount)) {
           text = Text((value + 1).toStringAsFixed(0), style: style);
         } else {
           text = Text('', style: style);
@@ -344,7 +348,7 @@ class _LineChartSample2State extends State<LineChartWidget> {
       ),
       minX: 0,
       // if year display 12 month, if month display the number of days in it
-      maxX: widget.period == Period.year ? 11 : widget.currentMonthDays - 1,
+      maxX: widget.period == Period.year ? 11 : widget.axisDayCount - 1,
       minY: widget.minY,
       lineBarsData: [
         LineChartBarData(

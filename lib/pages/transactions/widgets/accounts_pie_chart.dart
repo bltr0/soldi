@@ -45,6 +45,7 @@ class AccountsPieChart extends ConsumerWidget {
                   value: 360 * amounts[accounts[i].id]!,
                   radius: radius,
                   showTitle: false,
+                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
                 );
               }),
               pieTouchData: PieTouchData(

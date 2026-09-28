@@ -9,6 +9,7 @@ import '../../../model/recurring_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/categories_provider.dart';
+import '../../../providers/places_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
 import '../../../providers/places_provider.dart';
 import '../../../providers/transactions_provider.dart';
@@ -524,6 +525,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                         ),
                         const Divider(height: 1),
                         DetailsListTile(
+<<<<<<< Updated upstream
                           title: 'Place',
                           icon: Icons.place_outlined,
                           value: place?.name ?? 'None',
@@ -537,6 +539,18 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                             ref
                                 .read(selectedPlaceProvider.notifier)
                                 .setPlace(choice.place);
+=======
+                          title: "Place",
+                          icon: Icons.place_outlined,
+                          value: place?.name ?? "None",
+                          callback: () async {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            final result = await showPlaceSearchSheet(context);
+                            if (result == null) return;
+                            ref
+                                .read(selectedPlaceProvider.notifier)
+                                .setPlace(result.place);
+>>>>>>> Stashed changes
                           },
                         ),
                       ],

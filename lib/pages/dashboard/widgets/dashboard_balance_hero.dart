@@ -55,6 +55,12 @@ class _HeroContent extends ConsumerWidget {
     final visual = context.dashboardTheme;
     final currency = ref.watch(currencyStateProvider);
     final isVisible = ref.watch(visibilityAmountProvider);
+    final month = ref.watch(dashboardMonthProvider);
+    final previous = DateTime(month.year, month.month - 1);
+    final axisDays = [
+      DateUtils.getDaysInMonth(month.year, month.month),
+      DateUtils.getDaysInMonth(previous.year, previous.month),
+    ].reduce((a, b) => a > b ? a : b);
     final titleStyle = Theme.of(context).textTheme.displayLarge?.copyWith(
       color: visual.textPrimary,
       fontSize: 40,
@@ -77,16 +83,19 @@ class _HeroContent extends ConsumerWidget {
               Expanded(
                 child: Text(
                   'Monthly balance',
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                    applyHeightToLastDescent: false,
+                  ),
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: visual.textSecondary,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.4,
+                    height: 1,
                   ),
                 ),
               ),
-              _PeriodCapsule(
-                label: DateFormat('MMMM yyyy').format(DateTime.now()),
-              ),
+              const _MonthBox(),
             ],
           ),
           const SizedBox(height: Sizes.sm),
@@ -147,7 +156,7 @@ class _HeroContent extends ConsumerWidget {
                   ? _EmptyChart(key: const ValueKey('empty'), visual: visual)
                   : isVisible
                   ? LineChartWidget(
-                      key: const ValueKey('chart'),
+                      key: ValueKey('chart-${month.year}-${month.month}'),
                       lineData: snapshot.currentMonth,
                       line2Data: snapshot.previousMonth,
                       lineColor: visual.chartPrimary,
@@ -156,6 +165,7 @@ class _HeroContent extends ConsumerWidget {
                       ignoreBlur: true,
                       dashboardStyle: true,
                       height: _chartHeight,
+                      daysInMonth: axisDays,
                     )
                   : _PrivateChart(
                       key: const ValueKey('private'),
@@ -170,12 +180,12 @@ class _HeroContent extends ConsumerWidget {
             children: [
               _LegendItem(
                 color: visual.chartPrimary,
-                label: 'Current month',
+                label: DateFormat.MMMM().format(month),
                 solid: true,
               ),
               _LegendItem(
                 color: visual.chartSecondary,
-                label: 'Previous month',
+                label: DateFormat.MMMM().format(previous),
                 solid: false,
               ),
             ],
@@ -186,43 +196,71 @@ class _HeroContent extends ConsumerWidget {
   }
 }
 
-class _PeriodCapsule extends StatelessWidget {
-  const _PeriodCapsule({required this.label});
-
-  final String label;
+class _MonthBox extends ConsumerWidget {
+  const _MonthBox();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
+    final month = ref.watch(dashboardMonthProvider);
+    final now = DateTime.now();
+    final atCurrent = month.year == now.year && month.month == now.month;
+    final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: visual.textPrimary,
+      fontWeight: FontWeight.w700,
+      height: 1,
+    );
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: visual.glassFill,
         border: Border.all(color: visual.glassBorder),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Sizes.md,
-          vertical: Sizes.sm,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.calendar_month_outlined,
-              size: 17,
-              color: visual.textSecondary,
-            ),
-            const SizedBox(width: Sizes.xs),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: visual.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MonthStep(
+            icon: Icons.chevron_left_rounded,
+            tooltip: 'Previous month',
+            onTap: () => ref.read(dashboardMonthProvider.notifier).previous(),
+          ),
+          Text(DateFormat('MMMM yyyy').format(month), style: labelStyle),
+          _MonthStep(
+            icon: Icons.chevron_right_rounded,
+            tooltip: 'Next month',
+            onTap: atCurrent
+                ? null
+                : () => ref.read(dashboardMonthProvider.notifier).next(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthStep extends StatelessWidget {
+  const _MonthStep({required this.icon, required this.tooltip, this.onTap});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.all(2),
+      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+      icon: Icon(
+        icon,
+        size: 18,
+        color: onTap == null
+            ? visual.textSecondary.withValues(alpha: 0.35)
+            : visual.textSecondary,
       ),
     );
   }

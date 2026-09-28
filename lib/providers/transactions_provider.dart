@@ -196,7 +196,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
+<<<<<<< Updated upstream
     ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
     ref.invalidate(accountsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -274,7 +278,13 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           : ref.read(selectedCategoryProvider)?.id,
       peopleConcerned: peopleConcerned,
       reimbursementDue: reimbursementDue,
+<<<<<<< Updated upstream
       idPlace: placeId,
+=======
+      idPlace: t == TransactionType.expense
+          ? ref.read(selectedPlaceProvider)?.id
+          : null,
+>>>>>>> Stashed changes
       recurring: account != null
           ? false
           : ref.read(selectedRecurringPayProvider),
@@ -373,7 +383,11 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     }
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
+<<<<<<< Updated upstream
     ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -420,12 +434,23 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref
         .read(selectedReimbursementDueProvider.notifier)
         .setValue(transaction.reimbursementDue);
+<<<<<<< Updated upstream
     Place? place;
     final placeId = transaction.idPlace;
     if (placeId != null) {
       place = await ref.read(placeRepositoryProvider).selectById(placeId);
     }
     ref.read(selectedPlaceProvider.notifier).setPlace(place);
+=======
+    final placeId = transaction.idPlace;
+    ref
+        .read(selectedPlaceProvider.notifier)
+        .setPlace(
+          placeId == null
+              ? null
+              : await ref.read(placeRepositoryProvider).selectById(placeId),
+        );
+>>>>>>> Stashed changes
   }
 
   Future<void> delete(int transactionId) async {

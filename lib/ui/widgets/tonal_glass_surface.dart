@@ -74,16 +74,32 @@ class TonalGlassSurface extends StatelessWidget {
           ),
           Material(
             color: Colors.transparent,
-            child: onTap == null
-                ? Padding(padding: padding ?? EdgeInsets.zero, child: child)
-                : InkWell(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                Widget body = Padding(
+                  padding: padding ?? EdgeInsets.zero,
+                  child: child,
+                );
+                if (onTap != null) {
+                  body = InkWell(
                     onTap: onTap,
                     borderRadius: borderRadius,
-                    child: Padding(
-                      padding: padding ?? EdgeInsets.zero,
-                      child: child,
-                    ),
-                  ),
+                    child: body,
+                  );
+                }
+                // A tight parent (an account tile) sizes the glass to the
+                // box, while the ink used to hug the text. Fill the box.
+                if (!constraints.hasBoundedWidth ||
+                    !constraints.hasBoundedHeight) {
+                  return body;
+                }
+                return SizedBox(
+                  width: constraints.maxWidth,
+                  height: constraints.maxHeight,
+                  child: body,
+                );
+              },
+            ),
           ),
         ],
       ),
