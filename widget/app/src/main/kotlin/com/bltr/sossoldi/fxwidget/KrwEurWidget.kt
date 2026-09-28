@@ -166,15 +166,15 @@ internal object WidgetRenderer {
         return views
     }
 
-    /** Same pixel size as the Samsung Weather pill on this phone. */
+    /** Weather 2×1 on this phone reports 141.71428×65.52381 dp. */
     private fun fitPill(context: Context, views: RemoteViews, widgetId: Int) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        views.setViewLayoutWidth(R.id.pill, WEATHER_WIDTH_PX, TypedValue.COMPLEX_UNIT_PX)
-        views.setViewLayoutHeight(R.id.pill, WEATHER_HEIGHT_PX, TypedValue.COMPLEX_UNIT_PX)
+        views.setViewLayoutWidth(R.id.pill, WEATHER_WIDTH_DP, TypedValue.COMPLEX_UNIT_DIP)
+        views.setViewLayoutHeight(R.id.pill, WEATHER_HEIGHT_DP, TypedValue.COMPLEX_UNIT_DIP)
     }
 
-    private const val WEATHER_WIDTH_PX = 371f
-    private const val WEATHER_HEIGHT_PX = 171f
+    private const val WEATHER_WIDTH_DP = 141.71428f
+    private const val WEATHER_HEIGHT_DP = 65.52381f
 
     private fun bindDigits(context: Context, views: RemoteViews, digits: String, code: String) {
         views.setTextViewText(R.id.input_value, formatTyped(digits, code))
