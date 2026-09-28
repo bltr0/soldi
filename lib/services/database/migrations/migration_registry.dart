@@ -22,6 +22,7 @@ import '0008_reconciliation_adjustments.dart';
 import '0009_reconciliation_adjustments_reapply.dart';
 import '0010_add_people_concerned.dart';
 import '0011_add_reimbursement_due.dart';
+import '0012_add_places.dart';
 
 import '../migration_base.dart';
 
@@ -44,6 +45,7 @@ List<Migration> getMigrations() {
     ReapplyReconciliationAdjustments(),
     AddPeopleConcerned(),
     AddReimbursementDue(),
+    AddPlaces(),
   ];
 }
 

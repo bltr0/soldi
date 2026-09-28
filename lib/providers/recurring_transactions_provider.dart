@@ -7,6 +7,7 @@ import '../services/database/repositories/recurring_transactions_repository.dart
 import '../services/database/repositories/transactions_repository.dart';
 import 'accounts_provider.dart';
 import 'categories_provider.dart';
+import 'places_provider.dart';
 import 'transactions_provider.dart';
 
 part 'recurring_transactions_provider.g.dart';
@@ -90,11 +91,15 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
           reimbursementDue:
               type == TransactionType.expense &&
               ref.read(selectedReimbursementDueProvider),
+          idPlace: type == TransactionType.expense
+              ? ref.read(selectedPlaceProvider)?.id
+              : null,
           idRecurringTransaction: insertedTransaction!.id,
           recurring: true,
         );
         await ref.read(transactionsRepositoryProvider).insert(transaction);
         ref.invalidate(pendingReimbursementsProvider);
+        ref.invalidate(placeSpendingProvider);
       }
       return await _getRecurringTransactions();
     });

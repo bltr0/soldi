@@ -10,6 +10,7 @@ import 'widgets/account_section.dart';
 import 'widgets/dashboard_balance_hero.dart';
 import 'widgets/due_section.dart';
 import 'widgets/organize_section.dart';
+import 'widgets/places_section.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -80,6 +81,7 @@ class DashboardPage extends ConsumerWidget {
                         );
                       },
                     ),
+                    const PlacesSection(),
                   ],
                 ),
               ),

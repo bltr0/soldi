@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../model/bank_account.dart';
+import '../../../model/place.dart';
+import '../../../services/database/repositories/place_repository.dart';
+import '../../transactions/create_transaction/widgets/place_search_sheet.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/currency_provider.dart';
@@ -46,6 +49,8 @@ class _TransactionDetailsDialogState
   int? _toAccountId;
   late int _people;
   late bool _reimbursementDue;
+  int? _placeId;
+  Place? _place;
   bool _saving = false;
 
   Transaction get _original => widget.transaction;
@@ -63,6 +68,16 @@ class _TransactionDetailsDialogState
     _toAccountId = _original.idBankAccountTransfer;
     _people = _original.peopleConcerned;
     _reimbursementDue = _original.reimbursementDue;
+    _placeId = _original.idPlace;
+    final placeId = _placeId;
+    if (placeId != null) {
+      Future.microtask(() async {
+        final place = await ref
+            .read(placeRepositoryProvider)
+            .selectById(placeId);
+        if (mounted) setState(() => _place = place);
+      });
+    }
   }
 
   @override
@@ -124,6 +139,7 @@ class _TransactionDetailsDialogState
       idCategory: keepCategory ? _original.idCategory : null,
       peopleConcerned: _type == TransactionType.expense ? _people : 1,
       reimbursementDue: _type == TransactionType.expense && _reimbursementDue,
+      idPlace: _type == TransactionType.expense ? _placeId : null,
     );
     await ref.read(transactionsProvider.notifier).saveTransaction(updated);
     if (mounted) Navigator.of(context).pop();
@@ -327,6 +343,29 @@ class _TransactionDetailsDialogState
                       ),
                       onChanged: (value) =>
                           setState(() => _reimbursementDue = value ?? false),
+                    ),
+                    _field(
+                      context,
+                      label: 'Place',
+                      child: _Tappable(
+                        icon: Icons.place_outlined,
+                        text:
+                            _place?.name ??
+                            (_placeId == null ? 'Add a place' : 'Saved place'),
+                        onTap: () async {
+                          final choice = await showPlaceSearchSheet(
+                            context,
+                            canClear: _placeId != null,
+                          );
+                          if (choice == null || !choice.apply || !mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _place = choice.place;
+                            _placeId = choice.place?.id;
+                          });
+                        },
+                      ),
                     ),
                   ],
                 ],
