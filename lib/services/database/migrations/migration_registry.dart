@@ -22,6 +22,15 @@ import '0008_reconciliation_adjustments.dart';
 import '0009_reconciliation_adjustments_reapply.dart';
 import '0010_add_people_concerned.dart';
 import '0011_add_reimbursement_due.dart';
+import '0012_add_places.dart';
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+import '0013_place_city_country.dart';
+>>>>>>> Stashed changes
+=======
+import '0013_place_city_country.dart';
+>>>>>>> Stashed changes
 
 import '../migration_base.dart';
 
@@ -44,6 +53,15 @@ List<Migration> getMigrations() {
     ReapplyReconciliationAdjustments(),
     AddPeopleConcerned(),
     AddReimbursementDue(),
+    AddPlaces(),
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+    AddPlaceCityCountry(),
+>>>>>>> Stashed changes
+=======
+    AddPlaceCityCountry(),
+>>>>>>> Stashed changes
   ];
 }
 

@@ -216,10 +216,13 @@ class TransactionsRepository {
     return (result).map((x) => x["note"] as String).toList();
   }
 
-  Future<List> currentMonthDailyTransactions({int? accountId}) async {
-    final today = DateTime.now();
-    final currentMonth = today.month;
-    final currentYear = today.year;
+  Future<List> currentMonthDailyTransactions({
+    int? accountId,
+    DateTime? month,
+  }) async {
+    final anchor = month ?? DateTime.now();
+    final currentMonth = anchor.month;
+    final currentYear = anchor.year;
 
     final beginningCurrentMonth = DateTime(currentYear, currentMonth, 1);
     final beginningNextMonth = DateTime(currentYear, currentMonth + 1, 1);
@@ -232,10 +235,10 @@ class TransactionsRepository {
     );
   }
 
-  Future<List> lastMonthDailyTransactions() async {
-    final today = DateTime.now();
-    final currentMonth = today.month;
-    final currentYear = today.year;
+  Future<List> lastMonthDailyTransactions({DateTime? month}) async {
+    final anchor = month ?? DateTime.now();
+    final currentMonth = anchor.month;
+    final currentYear = anchor.year;
 
     final beginningCurrentMonth = DateTime(currentYear, currentMonth, 1);
     final beginningLastMonth = DateTime(currentYear, currentMonth - 1, 1);

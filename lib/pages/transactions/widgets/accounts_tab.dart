@@ -29,8 +29,14 @@ class AccountsTab extends ConsumerWidget {
     double totalIncome = 0, totalExpense = 0;
 
     for (Transaction transaction in transactions.value ?? []) {
-      if (transaction.isBalanceReset) continue;
       final accountId = transaction.idBankAccount;
+      if (transaction.isBalanceReset) {
+        (accountToTransactionsIncome[accountId] ??= []).add(transaction);
+        (accountToTransactionsExpense[accountId] ??= []).add(transaction);
+        accountToAmountIncome.putIfAbsent(accountId, () => 0);
+        accountToAmountExpense.putIfAbsent(accountId, () => 0);
+        continue;
+      }
       if (transaction.type == TransactionType.income) {
         if (accountToTransactionsIncome.containsKey(accountId)) {
           accountToTransactionsIncome[accountId]?.add(transaction);
@@ -159,10 +165,19 @@ class AccountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pieAccounts = [
+      for (final account in accountList)
+        if ((amounts[account.id] ?? 0) != 0) account,
+    ];
     return Column(
       spacing: Sizes.lg,
       children: [
-        AccountsPieChart(accounts: accountList, amounts: amounts, total: total),
+        if (pieAccounts.isNotEmpty)
+          AccountsPieChart(
+            accounts: pieAccounts,
+            amounts: amounts,
+            total: total,
+          ),
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -177,7 +192,9 @@ class AccountSection extends StatelessWidget {
               icon: accountIconList[account.symbol],
               transactions: transactions[account.id] ?? [],
               amount: amounts[account.id] ?? 0,
-              percent: (amounts[account.id] ?? 0) / total * 100,
+              percent: total == 0
+                  ? 0
+                  : (amounts[account.id] ?? 0) / total * 100,
               index: index,
             );
           },

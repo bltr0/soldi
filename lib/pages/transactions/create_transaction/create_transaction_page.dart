@@ -9,7 +9,9 @@ import '../../../model/recurring_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/categories_provider.dart';
+import '../../../providers/places_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
+import '../../../providers/places_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
@@ -20,6 +22,7 @@ import 'widgets/details_list_tile.dart';
 import 'widgets/duplicate_transaction_dialog.dart';
 import 'widgets/label_list_tile.dart';
 import 'widgets/people_concerned_selector.dart';
+import 'widgets/place_search_sheet.dart';
 import 'widgets/recurrence_list_tile.dart';
 
 class CreateTransactionPage extends ConsumerStatefulWidget {
@@ -45,6 +48,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   late final int? _originalTransferId;
   late final int _originalPeopleConcerned;
   late final bool _originalReimbursementDue;
+  late final int? _originalPlaceId;
   late final bool _originalRecurring;
   late final Recurrence _originalInterval;
   late final DateTime? _originalEndDate;
@@ -70,6 +74,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     _originalTransferId = ref.read(bankAccountTransferProvider)?.id;
     _originalPeopleConcerned = ref.read(selectedPeopleConcernedProvider);
     _originalReimbursementDue = ref.read(selectedReimbursementDueProvider);
+    _originalPlaceId = ref.read(selectedPlaceProvider)?.id;
     _originalRecurring = ref.read(selectedRecurringPayProvider);
     _originalInterval = ref.read(intervalProvider);
     _originalEndDate = ref.read(endDateProvider);
@@ -186,6 +191,10 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
             _originalReimbursementDue) {
       return true;
     }
+    if (selectedType == TransactionType.expense &&
+        ref.read(selectedPlaceProvider)?.id != _originalPlaceId) {
+      return true;
+    }
     if (ref.read(selectedRecurringPayProvider) != _originalRecurring) {
       return true;
     }
@@ -284,6 +293,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     ref.watch(selectedDateProvider);
     ref.watch(selectedPeopleConcernedProvider);
     final paidForOthers = ref.watch(selectedReimbursementDueProvider);
+    final place = ref.watch(selectedPlaceProvider);
     ref.watch(selectedRecurringPayProvider);
     ref.watch(intervalProvider);
     ref.watch(endDateProvider);
@@ -512,6 +522,42 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                               onChanged: (_) {},
                             ),
                           ),
+                        ),
+                        const Divider(height: 1),
+                        DetailsListTile(
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+                          title: 'Place',
+                          icon: Icons.place_outlined,
+                          value: place?.name ?? 'None',
+                          callback: () async {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            final choice = await showPlaceSearchSheet(
+                              context,
+                              canClear: place != null,
+                            );
+                            if (choice == null || !choice.apply) return;
+                            ref
+                                .read(selectedPlaceProvider.notifier)
+                                .setPlace(choice.place);
+=======
+=======
+>>>>>>> Stashed changes
+                          title: "Place",
+                          icon: Icons.place_outlined,
+                          value: place?.name ?? "None",
+                          callback: () async {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            final result = await showPlaceSearchSheet(context);
+                            if (result == null) return;
+                            ref
+                                .read(selectedPlaceProvider.notifier)
+                                .setPlace(result.place);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
+                          },
                         ),
                       ],
                       const Divider(height: 1),

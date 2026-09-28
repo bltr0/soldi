@@ -5,6 +5,25 @@ import '../services/database/repositories/transactions_repository.dart';
 
 part 'dashboard_provider.g.dart';
 
+@Riverpod(keepAlive: true)
+class DashboardMonth extends _$DashboardMonth {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  void previous() => state = DateTime(state.year, state.month - 1);
+
+  void next() {
+    final now = DateTime.now();
+    final current = DateTime(now.year, now.month);
+    final candidate = DateTime(state.year, state.month + 1);
+    if (candidate.isAfter(current)) return;
+    state = candidate;
+  }
+}
+
 class DashboardSnapshot {
   const DashboardSnapshot({
     required this.income,
@@ -19,15 +38,16 @@ class DashboardSnapshot {
   final List<FlSpot> previousMonth;
 
   num get balance => income - expense;
-  bool get hasCashFlow => income != 0 || expense != 0;
+  bool get hasCashFlow => currentMonth.isNotEmpty || previousMonth.isNotEmpty;
 }
 
 @Riverpod(keepAlive: true)
 Future<DashboardSnapshot> dashboard(Ref ref) async {
   final repository = ref.read(transactionsRepositoryProvider);
+  final month = ref.watch(dashboardMonthProvider);
   final results = await Future.wait([
-    repository.currentMonthDailyTransactions(),
-    repository.lastMonthDailyTransactions(),
+    repository.currentMonthDailyTransactions(month: month),
+    repository.lastMonthDailyTransactions(month: month),
   ]);
   final currentMonth = results[0];
   final previousMonth = results[1];

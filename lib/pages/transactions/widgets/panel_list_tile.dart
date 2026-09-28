@@ -225,7 +225,7 @@ class PanelListTile extends ConsumerWidget {
   }
 }
 
-class TransactionsList extends StatelessWidget {
+class TransactionsList extends ConsumerWidget {
   const TransactionsList({
     super.key,
     required this.currency,
@@ -236,7 +236,7 @@ class TransactionsList extends StatelessWidget {
   final List<Transaction> transactions;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -250,53 +250,71 @@ class TransactionsList extends StatelessWidget {
             : transaction.type == TransactionType.income
             ? transaction.amount
             : -transaction.amount;
-        return Container(
-          padding: const EdgeInsets.all(Sizes.lg),
-          child: Row(
-            children: [
-              const SizedBox(width: Sizes.lg * 2),
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              await ref
+                  .read(transactionsProvider.notifier)
+                  .transactionSelect(transaction);
+              if (context.mounted) {
+                Navigator.of(context).pushNamed(
+                  '/add-page',
+                  arguments: {'transaction': transaction},
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(Sizes.lg),
+              child: Row(
+                children: [
+                  const SizedBox(width: Sizes.lg * 2),
+                  Expanded(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Text(
-                            (transaction.note?.isEmpty ?? true)
-                                ? DateFormat(
-                                    "dd MMMM - HH:mm",
-                                  ).format(transaction.date)
-                                : transaction.note!,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                (transaction.note?.isEmpty ?? true)
+                                    ? DateFormat(
+                                        "dd MMMM - HH:mm",
+                                      ).format(transaction.date)
+                                    : transaction.note!,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            Text(
+                              "${amount.toCurrency()} ${currency.symbol}",
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: amount.toColor()),
+                            ),
+                          ],
                         ),
-                        Text(
-                          "${amount.toCurrency()} ${currency.symbol}",
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: amount.toColor()),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              transaction.isBalanceReset
+                                  ? 'Adjustment'
+                                  : transaction.categoryName?.toUpperCase() ??
+                                        'Uncategorized',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            Text(
+                              transaction.bankAccountName?.toUpperCase() ?? "",
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          transaction.categoryName?.toUpperCase() ??
-                              "Uncategorized",
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        Text(
-                          transaction.bankAccountName?.toUpperCase() ?? "",
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },

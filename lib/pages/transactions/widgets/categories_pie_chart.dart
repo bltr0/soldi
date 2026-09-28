@@ -48,6 +48,7 @@ class CategoriesPieChart extends ConsumerWidget {
                   value: 360 * amounts[categories[i].id]!,
                   radius: radius,
                   showTitle: false,
+                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
                 );
               }),
               pieTouchData: PieTouchData(

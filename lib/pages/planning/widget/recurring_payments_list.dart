@@ -7,8 +7,9 @@ import '../../../model/recurring_transaction.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
-import '../../../ui/widgets/default_container.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
 
 class RecurringPaymentSection extends ConsumerWidget {
   const RecurringPaymentSection({super.key});
@@ -35,24 +36,33 @@ class RecurringPaymentSection extends ConsumerWidget {
       child: recurringTransactionsAsync.when(
         data: (transactions) {
           if (transactions.isEmpty) {
-            return SizedBox(
-              width: double.infinity,
-              child: DefaultContainer(
-                margin: EdgeInsets.zero,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: Sizes.lg,
-                  children: [
-                    Text(
-                      "All recurring payments will be displayed here",
-                      style: Theme.of(context).textTheme.bodySmall,
+            final visual = context.dashboardTheme;
+            return TonalGlassSurface(
+              radius: 28,
+              padding: const EdgeInsets.all(Sizes.lg),
+              child: Column(
+                children: [
+                  Text(
+                    'No recurring payments yet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: visual.textPrimary,
+                      fontWeight: FontWeight.w800,
                     ),
-                    AccentButton(
-                      label: "Add recurring payment",
-                      onPressed: addRecurringPayment,
+                  ),
+                  const SizedBox(height: Sizes.xs),
+                  Text(
+                    'Scheduled incomes and expenses will show up here.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: visual.textSecondary,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: Sizes.lg),
+                  AccentButton(
+                    label: 'Add recurring payment',
+                    onPressed: addRecurringPayment,
+                  ),
+                ],
               ),
             );
           }
@@ -63,8 +73,8 @@ class RecurringPaymentSection extends ConsumerWidget {
                 itemCount: transactions.length,
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                itemBuilder: (context, index) => InkWell(
-                  borderRadius: BorderRadius.circular(DefaultContainer.radius),
+                itemBuilder: (context, index) => RecurringPaymentCard(
+                  transaction: transactions[index],
                   onTap: () {
                     ref
                         .read(recurringTransactionsProvider.notifier)
@@ -77,7 +87,6 @@ class RecurringPaymentSection extends ConsumerWidget {
                           }
                         });
                   },
-                  child: RecurringPaymentCard(transaction: transactions[index]),
                 ),
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: Sizes.lg),

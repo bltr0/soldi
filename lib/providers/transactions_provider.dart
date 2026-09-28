@@ -1,14 +1,17 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/bank_account.dart';
+import '../model/place.dart';
 import '../model/category_transaction.dart';
 import '../model/recurring_transaction.dart';
 import '../model/transaction.dart';
+import '../services/database/repositories/place_repository.dart';
 import '../services/database/repositories/transactions_repository.dart';
 import 'accounts_provider.dart';
 import 'budgets_provider.dart';
 import 'categories_provider.dart';
 import 'dashboard_provider.dart';
+import 'places_provider.dart';
 import 'statistics_provider.dart';
 
 part 'transactions_provider.g.dart';
@@ -193,6 +196,15 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+    ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
     ref.invalidate(accountsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -249,6 +261,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     final reimbursementDue =
         t == TransactionType.expense &&
         ref.read(selectedReimbursementDueProvider);
+    final placeId = t == TransactionType.expense
+        ? ref.read(selectedPlaceProvider)?.id
+        : null;
 
     Transaction transaction = Transaction(
       date: date ?? ref.read(selectedDateProvider),
@@ -267,6 +282,19 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           : ref.read(selectedCategoryProvider)?.id,
       peopleConcerned: peopleConcerned,
       reimbursementDue: reimbursementDue,
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+      idPlace: placeId,
+=======
+      idPlace: t == TransactionType.expense
+          ? ref.read(selectedPlaceProvider)?.id
+          : null,
+>>>>>>> Stashed changes
+=======
+      idPlace: t == TransactionType.expense
+          ? ref.read(selectedPlaceProvider)?.id
+          : null,
+>>>>>>> Stashed changes
       recurring: account != null
           ? false
           : ref.read(selectedRecurringPayProvider),
@@ -327,6 +355,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       reimbursementDue:
           type == TransactionType.expense &&
           ref.read(selectedReimbursementDueProvider),
+      idPlace: type == TransactionType.expense
+          ? ref.read(selectedPlaceProvider)?.id
+          : null,
       idRecurringTransaction: recurringTransactionId,
       recurring: recurringTransactionId != null ? true : false,
     );
@@ -362,6 +393,15 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     }
     ref.invalidate(organizeQueueProvider);
     ref.invalidate(pendingReimbursementsProvider);
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+    ref.invalidate(placeSpendingProvider);
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
+=======
+    ref.invalidate(expensesForPlacesProvider);
+>>>>>>> Stashed changes
     ref.invalidate(lastTransactionsProvider);
     ref.invalidate(monthlyBudgetsStatsProvider);
     ref.invalidate(monthlyTransactionsProvider);
@@ -408,6 +448,29 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref
         .read(selectedReimbursementDueProvider.notifier)
         .setValue(transaction.reimbursementDue);
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+    Place? place;
+    final placeId = transaction.idPlace;
+    if (placeId != null) {
+      place = await ref.read(placeRepositoryProvider).selectById(placeId);
+    }
+    ref.read(selectedPlaceProvider.notifier).setPlace(place);
+=======
+=======
+>>>>>>> Stashed changes
+    final placeId = transaction.idPlace;
+    ref
+        .read(selectedPlaceProvider.notifier)
+        .setPlace(
+          placeId == null
+              ? null
+              : await ref.read(placeRepositoryProvider).selectById(placeId),
+        );
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
   }
 
   Future<void> delete(int transactionId) async {
@@ -433,6 +496,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(selectedDateProvider);
     ref.invalidate(selectedPeopleConcernedProvider);
     ref.invalidate(selectedReimbursementDueProvider);
+    ref.invalidate(selectedPlaceProvider);
     ref.invalidate(selectedCategoryProvider);
     ref.invalidate(selectedRecurringPayProvider);
     ref.invalidate(intervalProvider);

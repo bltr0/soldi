@@ -23,6 +23,7 @@ class TransactionFields extends BaseEntityFields {
   static String bankAccountTransferName = 'bankAccountTransferName';
   static String peopleConcerned = 'peopleConcerned';
   static String reimbursementDue = 'reimbursementDue';
+  static String idPlace = 'idPlace';
   static String recurring = 'recurring';
   static String idRecurringTransaction = 'idRecurringTransaction';
   static String createdAt = BaseEntityFields.getCreatedAt;
@@ -39,6 +40,7 @@ class TransactionFields extends BaseEntityFields {
     idBankAccountTransfer,
     peopleConcerned,
     reimbursementDue,
+    idPlace,
     recurring,
     idRecurringTransaction,
     BaseEntityFields.createdAt,
@@ -121,6 +123,7 @@ class Transaction extends BaseEntity {
   /// True when this expense was paid for other people and they have not
   /// paid it back yet.
   final bool reimbursementDue;
+  final int? idPlace;
   final bool recurring;
   final int? idRecurringTransaction;
 
@@ -141,6 +144,7 @@ class Transaction extends BaseEntity {
     this.bankAccountTransferName,
     this.peopleConcerned = 1,
     this.reimbursementDue = false,
+    this.idPlace,
     required this.recurring,
     this.idRecurringTransaction,
     super.createdAt,
@@ -157,6 +161,18 @@ class Transaction extends BaseEntity {
       ? 0
       : amount * (peopleConcerned - 1) / peopleConcerned;
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+  /// The part of the bill that is yours when it is split across people.
+=======
+  /// Your part of a bill that was split across people.
+>>>>>>> Stashed changes
+=======
+  /// Your part of a bill that was split across people.
+>>>>>>> Stashed changes
+  num get personalShare =>
+      peopleConcerned <= 1 ? amount : amount / peopleConcerned;
+
   Transaction copy({
     Object? id = _unset,
     DateTime? date,
@@ -168,6 +184,7 @@ class Transaction extends BaseEntity {
     Object? idBankAccountTransfer = _unset,
     int? peopleConcerned,
     bool? reimbursementDue,
+    Object? idPlace = _unset,
     bool? recurring,
     int? idRecurringTransaction,
     DateTime? createdAt,
@@ -185,6 +202,7 @@ class Transaction extends BaseEntity {
         : idBankAccountTransfer as int?,
     peopleConcerned: peopleConcerned ?? this.peopleConcerned,
     reimbursementDue: reimbursementDue ?? this.reimbursementDue,
+    idPlace: idPlace == _unset ? this.idPlace : idPlace as int?,
     recurring: recurring ?? this.recurring,
     idRecurringTransaction:
         idRecurringTransaction ?? this.idRecurringTransaction,
@@ -212,6 +230,7 @@ class Transaction extends BaseEntity {
           json[TransactionFields.bankAccountTransferName] as String?,
       peopleConcerned: json[TransactionFields.peopleConcerned] as int? ?? 1,
       reimbursementDue: json[TransactionFields.reimbursementDue] == 1,
+      idPlace: json[TransactionFields.idPlace] as int?,
       recurring: json[TransactionFields.recurring] == 1,
       idRecurringTransaction:
           json[TransactionFields.idRecurringTransaction] as int?,
@@ -236,6 +255,7 @@ class Transaction extends BaseEntity {
       TransactionFields.idBankAccountTransfer: idBankAccountTransfer,
       TransactionFields.peopleConcerned: peopleConcerned,
       TransactionFields.reimbursementDue: reimbursementDue ? 1 : 0,
+      TransactionFields.idPlace: idPlace,
       TransactionFields.recurring: recurring ? 1 : 0,
       TransactionFields.idRecurringTransaction: idRecurringTransaction,
       BaseEntityFields.createdAt: createdAtDate,
