@@ -161,15 +161,7 @@ class Transaction extends BaseEntity {
       ? 0
       : amount * (peopleConcerned - 1) / peopleConcerned;
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
   /// The part of the bill that is yours when it is split across people.
-=======
-  /// Your part of a bill that was split across people.
->>>>>>> Stashed changes
-=======
-  /// Your part of a bill that was split across people.
->>>>>>> Stashed changes
   num get personalShare =>
       peopleConcerned <= 1 ? amount : amount / peopleConcerned;
 

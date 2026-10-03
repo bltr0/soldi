@@ -1,40 +1,52 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import "dart:math";
+import 'package:sossoldi/providers/settings_provider.dart';
 import 'package:sossoldi/ui/widgets/line_chart.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 void main() {
   testWidgets('Properly Render Accounts Widget', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'visibility_amount': true});
+    final sharedPreferences = await SharedPreferences.getInstance();
+
     final random = Random(42); // Set fixed seed for reproducible tests
     double lower = -5;
     double upper = 8;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: SizedBox(
-            height: 400, // Explicit size to ensure proper rendering
-            width: 600,
-            child: LineChartWidget(
-              lineData: List.generate(
-                17,
-                (i) => FlSpot(
-                  i.toDouble(),
-                  lower + random.nextDouble() * (upper - lower),
+      ProviderScope(
+        overrides: [
+          sharedPrefProvider.overrideWithValue(sharedPreferences),
+        ],
+        child: MaterialApp(
+          home: Material(
+            child: SizedBox(
+              height: 400, // Explicit size to ensure proper rendering
+              width: 600,
+              child: LineChartWidget(
+                lineData: List.generate(
+                  17,
+                  (i) => FlSpot(
+                    i.toDouble(),
+                    lower + random.nextDouble() * (upper - lower),
+                  ),
                 ),
-              ),
-              lineColor: const Color(0xffffffff),
-              line2Data: List.generate(
-                30,
-                (i) => FlSpot(
-                  i.toDouble(),
-                  lower + random.nextDouble() * (upper - lower),
+                lineColor: const Color(0xffffffff),
+                line2Data: List.generate(
+                  30,
+                  (i) => FlSpot(
+                    i.toDouble(),
+                    lower + random.nextDouble() * (upper - lower),
+                  ),
                 ),
+                line2Color: const Color(0xffffffff),
+                colorBackground: const Color(0xff356CA3),
+                period: Period.month,
+                daysInMonth: 30,
               ),
-              line2Color: const Color(0xffffffff),
-              colorBackground: const Color(0xff356CA3),
-              period: Period.month,
             ),
           ),
         ),

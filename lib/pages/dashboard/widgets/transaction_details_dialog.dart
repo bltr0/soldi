@@ -5,14 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../model/bank_account.dart';
 import '../../../model/place.dart';
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-import '../../../services/database/repositories/place_repository.dart';
-import '../../transactions/create_transaction/widgets/place_search_sheet.dart';
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/currency_provider.dart';
@@ -357,8 +349,6 @@ class _TransactionDetailsDialogState
                       label: 'Place',
                       child: _Tappable(
                         icon: Icons.place_outlined,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                         text:
                             _place?.name ??
                             (_placeId == null ? 'Add a place' : 'Saved place'),
@@ -373,20 +363,6 @@ class _TransactionDetailsDialogState
                           setState(() {
                             _place = choice.place;
                             _placeId = choice.place?.id;
-=======
-=======
->>>>>>> Stashed changes
-                        text: _place?.name ?? 'None',
-                        onTap: () async {
-                          final result = await showPlaceSearchSheet(context);
-                          if (result == null || !mounted) return;
-                          setState(() {
-                            _place = result.place;
-                            _placeId = result.place?.id;
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                           });
                         },
                       ),

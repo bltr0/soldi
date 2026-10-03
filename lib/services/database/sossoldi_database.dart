@@ -13,6 +13,7 @@ import '../../model/bank_account.dart';
 import '../../model/budget.dart';
 import '../../model/category_transaction.dart';
 import '../../model/currency.dart';
+import '../../model/place.dart';
 import '../../model/recurring_transaction.dart';
 import '../../model/transaction.dart';
 import 'migration_manager.dart';
@@ -552,6 +553,7 @@ class SossoldiDatabase {
         batch.execute('DROP TABLE IF EXISTS $categoryTransactionTable');
         batch.execute('DROP TABLE IF EXISTS $budgetTable');
         batch.execute('DROP TABLE IF EXISTS $currencyTable');
+        batch.execute('DROP TABLE IF EXISTS `$placeTable`');
         await batch.commit();
       });
     } catch (error) {
@@ -570,6 +572,7 @@ class SossoldiDatabase {
         batch.delete(categoryTransactionTable);
         batch.delete(budgetTable);
         batch.delete(currencyTable);
+        batch.delete(placeTable);
         await batch.commit();
       });
     } catch (error) {

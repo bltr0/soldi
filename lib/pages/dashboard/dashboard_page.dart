@@ -81,14 +81,7 @@ class DashboardPage extends ConsumerWidget {
                         );
                       },
                     ),
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
                     const SizedBox(height: Sizes.lg),
->>>>>>> Stashed changes
-=======
-                    const SizedBox(height: Sizes.lg),
->>>>>>> Stashed changes
                     const PlacesSection(),
                   ],
                 ),

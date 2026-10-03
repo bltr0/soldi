@@ -10,6 +10,8 @@ class PlaceFields extends BaseEntityFields {
   static String longitude = 'longitude';
   static String provider = 'provider';
   static String providerPlaceId = 'providerPlaceId';
+  static String city = 'city';
+  static String country = 'country';
   static String createdAt = BaseEntityFields.getCreatedAt;
   static String updatedAt = BaseEntityFields.getUpdatedAt;
 
