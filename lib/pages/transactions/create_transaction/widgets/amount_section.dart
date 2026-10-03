@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import '../../../../constants/constants.dart';
-import "../../../../constants/style.dart";
 import '../../../../ui/widgets/rounded_icon.dart';
 import '../../../../model/transaction.dart';
 import '../../../../providers/transactions_provider.dart';
 import 'amount_widget.dart';
 import '../../../../ui/device.dart';
 import 'account_selector.dart';
-import 'type_tab.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../../ui/widgets/segmented_pill.dart';
 
 class AmountSection extends ConsumerStatefulWidget {
   const AmountSection(this.amountController, {super.key});
@@ -21,99 +21,48 @@ class AmountSection extends ConsumerStatefulWidget {
 }
 
 class _AmountSectionState extends ConsumerState<AmountSection> {
-  static const List<String> _titleList = ['Income', 'Expense', 'Transfer'];
-  static const List<TransactionType> _selectableTypes =
-      TransactionType.userSelectable;
-
-  List<bool> _typeToggleState = [false, true, false];
-
-  @override
-  void initState() {
-    final selectedType = ref.read(selectedTransactionTypeProvider);
-    setState(() {
-      if (selectedType == TransactionType.income) {
-        _typeToggleState = [true, false, false];
-      } else if (selectedType == TransactionType.transfer) {
-        _typeToggleState = [false, false, true];
-      } else if (selectedType == TransactionType.adjustment) {
-        _typeToggleState = [false, false, false];
-      }
-    });
-    super.initState();
-  }
-
   @override
   Widget build(BuildContext context) {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
 
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
+    final visual = context.dashboardTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Sizes.md),
       child: Column(
         children: [
           const SizedBox(height: Sizes.md),
           if (selectedType == TransactionType.adjustment)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-              child: Container(
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-                ),
-                child: Text(
-                  "Balance adjustment",
-                  style: Theme.of(context).textTheme.bodyLarge,
+            Container(
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: visual.textPrimary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "Balance adjustment",
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: visual.textPrimary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             )
           else
-            Container(
-              height: 30,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.xxs * 0.5),
-              child: ToggleButtons(
-                direction: Axis.horizontal,
-                onPressed: (int index) {
-                  List<bool> newSelection = [];
-                  for (TransactionType type in _selectableTypes) {
-                    if (type == _selectableTypes[index]) {
-                      newSelection.add(true);
-                      ref
-                          .read(selectedTransactionTypeProvider.notifier)
-                          .setType(type);
-                    } else {
-                      newSelection.add(false);
-                    }
-                  }
-                  ref.invalidate(bankAccountTransferProvider);
-                  setState(() => _typeToggleState = newSelection);
-                },
-                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-                renderBorder: false,
-                selectedColor: Colors.transparent,
-                fillColor: Colors.transparent,
-                constraints: BoxConstraints(
-                  minHeight: 26,
-                  maxHeight: 26,
-                  minWidth: (MediaQuery.of(context).size.width - 36) / 3,
-                  maxWidth: (MediaQuery.of(context).size.width - 36) / 3,
-                ),
-                isSelected: _typeToggleState,
-                children: List.generate(
-                  _typeToggleState.length,
-                  (index) => TypeTab(
-                    _typeToggleState[index],
-                    _titleList[index],
-                    _selectableTypes[index].toColor(
-                      brightness: Theme.of(context).brightness,
-                    ),
-                  ),
-                ),
-              ),
+            SegmentedPill<TransactionType>(
+              height: 40,
+              selected: selectedType,
+              options: const {
+                TransactionType.income: 'Income',
+                TransactionType.expense: 'Expense',
+                TransactionType.transfer: 'Transfer',
+              },
+              onChanged: (type) {
+                ref
+                    .read(selectedTransactionTypeProvider.notifier)
+                    .setType(type);
+                ref.invalidate(bankAccountTransferProvider);
+              },
             ),
           if (selectedType == TransactionType.transfer)
             Padding(
@@ -136,16 +85,16 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                             "FROM:",
                             style: Theme.of(context).textTheme.labelMedium!
                                 .copyWith(
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.light
-                                      ? grey1
-                                      : darkGrey1,
+                                  color: visual.textSecondary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
                                 ),
                           ),
                           const SizedBox(height: Sizes.xxs * 0.5),
                           Material(
+                            color: Colors.transparent,
                             child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
                               onTap: () {
                                 FocusManager.instance.primaryFocus?.unfocus();
                                 showModalBottomSheet(
@@ -176,15 +125,11 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                                 );
                               },
                               child: Container(
-                                height: 35,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(
-                                    Sizes.borderRadiusSmall,
-                                  ),
-                                  boxShadow: [defaultShadow],
+                                  color: visual.raisedSurface,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: visual.glassBorder),
                                 ),
                                 padding: const EdgeInsets.all(Sizes.xxs),
                                 child: Row(
@@ -231,11 +176,8 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                                           .textTheme
                                           .bodySmall!
                                           .copyWith(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                    Brightness.light
-                                                ? grey1
-                                                : darkGrey1,
+                                            color: visual.textPrimary,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                     ),
                                     const Spacer(),
@@ -251,25 +193,31 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                       onTap: () => ref
                           .read(transactionsProvider.notifier)
                           .switchAccount(),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Expanded(
-                            child: VerticalDivider(width: 1, color: grey2),
+                            child: VerticalDivider(
+                              width: 1,
+                              color: visual.hairline,
+                            ),
                           ),
                           Padding(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               vertical: Sizes.xxs * 0.5,
                               horizontal: Sizes.xl,
                             ),
                             child: Icon(
                               Icons.change_circle,
                               size: 32,
-                              color: grey2,
+                              color: visual.textSecondary,
                             ),
                           ),
                           Expanded(
-                            child: VerticalDivider(width: 1, color: grey2),
+                            child: VerticalDivider(
+                              width: 1,
+                              color: visual.hairline,
+                            ),
                           ),
                         ],
                       ),
@@ -283,16 +231,16 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                             "TO:",
                             style: Theme.of(context).textTheme.labelMedium!
                                 .copyWith(
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.light
-                                      ? grey1
-                                      : darkGrey1,
+                                  color: visual.textSecondary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
                                 ),
                           ),
                           const SizedBox(height: Sizes.xxs * 0.5),
                           Material(
+                            color: Colors.transparent,
                             child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
                               onTap: () {
                                 FocusManager.instance.primaryFocus?.unfocus();
                                 showModalBottomSheet(
@@ -324,15 +272,11 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                                 );
                               },
                               child: Container(
-                                height: 35,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(
-                                    Sizes.borderRadiusSmall,
-                                  ),
-                                  boxShadow: [defaultShadow],
+                                  color: visual.raisedSurface,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: visual.glassBorder),
                                 ),
                                 padding: const EdgeInsets.all(Sizes.xs),
                                 child: Row(
@@ -370,11 +314,8 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                                           .textTheme
                                           .bodySmall!
                                           .copyWith(
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                    Brightness.light
-                                                ? grey1
-                                                : darkGrey1,
+                                            color: visual.textPrimary,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                     ),
                                     const Spacer(),

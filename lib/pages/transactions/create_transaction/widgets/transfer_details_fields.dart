@@ -261,12 +261,7 @@ class TransferDetailsFields extends StatelessWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Sizes.xs,
-              Sizes.xs,
-              Sizes.xs,
-              0,
-            ),
+            padding: const EdgeInsets.fromLTRB(Sizes.xs, Sizes.xs, Sizes.xs, 0),
             child: Text(
               fee > 0
                   ? 'Fee ${fee.toCurrency(senderCode)} $senderSymbol · '

@@ -143,7 +143,8 @@ class _GeneralSettingsPageState extends ConsumerState<GeneralSettingsPage> {
                 ),
                 Switch(
                   value:
-                      ref.watch(fxSourceSettingProvider) == FxSource.frankfurter,
+                      ref.watch(fxSourceSettingProvider) ==
+                      FxSource.frankfurter,
                   onChanged: (on) => ref
                       .read(fxSourceSettingProvider.notifier)
                       .set(on ? FxSource.frankfurter : FxSource.offline),

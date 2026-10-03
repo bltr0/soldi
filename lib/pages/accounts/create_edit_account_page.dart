@@ -41,7 +41,8 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
     final selectedAccount = ref.read(selectedAccountProvider);
     if (selectedAccount != null) {
       nameController.text = selectedAccount.name;
-      balanceController.text = selectedAccount.total?.toCurrency(
+      balanceController.text =
+          selectedAccount.total?.toCurrency(
             selectedAccount.currencyCode(ref.read(currencyStateProvider).code),
           ) ??
           "";
@@ -134,7 +135,9 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                 }
                 if (accountCurrency != null &&
                     accountCurrency != currencyState.code) {
-                  unawaited(ref.read(fxSyncProvider.notifier).sync(force: true));
+                  unawaited(
+                    ref.read(fxSyncProvider.notifier).sync(force: true),
+                  );
                 }
                 if (context.mounted) Navigator.of(context).pop();
               },
@@ -424,12 +427,11 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                     mainLabel:
                         "${currencyState.name} (${currencyState.code} ${currencyState.symbol})",
                   );
-                  if (choice != null && mounted) {
-                    setState(() => accountCurrency = choice.code);
-                    if (choice.code != null &&
-                        choice.code != currencyState.code) {
-                      await askFxSourceIfUnset(context, ref);
-                    }
+                  if (choice == null || !context.mounted) return;
+                  setState(() => accountCurrency = choice.code);
+                  if (choice.code != null &&
+                      choice.code != currencyState.code) {
+                    await askFxSourceIfUnset(context, ref);
                   }
                 },
               ),

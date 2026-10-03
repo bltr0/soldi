@@ -113,7 +113,9 @@ class CollaboratorsPage extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
               child: TextButton(
                 onPressed: () => launchUrl(Uri.parse(upstreamUrl)),
-                child: const Text('Original project: github.com/RIP-Comm/sossoldi'),
+                child: const Text(
+                  'Original project: github.com/RIP-Comm/sossoldi',
+                ),
               ),
             ),
 

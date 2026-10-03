@@ -25,8 +25,8 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
     final currencyState = ref.watch(currencyStateProvider);
     final account = ref.watch(selectedBankAccountProvider);
-    final symbol = account?.currencySymbol(currencyState.symbol) ??
-        currencyState.symbol;
+    final symbol =
+        account?.currencySymbol(currencyState.symbol) ?? currencyState.symbol;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -51,11 +51,13 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
           // Leaving the default behaviour on Android which seems to be working as expeceted.
           signed: Platform.isAndroid,
         ),
-        inputFormatters: [DecimalTextInputFormatter(
+        inputFormatters: [
+          DecimalTextInputFormatter(
             decimalDigits: CurrencyCatalog.decimalsFor(
               account?.currencyCode(currencyState.code) ?? currencyState.code,
             ),
-          )],
+          ),
+        ],
         autofocus: false,
         textAlign: TextAlign.center,
         cursorColor: grey1,

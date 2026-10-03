@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/style.dart';
 import '../../../model/recurring_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
@@ -26,6 +25,8 @@ import 'widgets/people_concerned_selector.dart';
 import 'widgets/place_search_sheet.dart';
 import 'widgets/recurrence_list_tile.dart';
 import 'widgets/transfer_details_fields.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
 
 class CreateTransactionPage extends ConsumerStatefulWidget {
   const CreateTransactionPage({super.key, this.transaction});
@@ -65,10 +66,10 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
       recurrencyEditingPermitted = !widget.transaction!.recurring;
       amountController.text = widget.transaction!.amount.toCurrency(
         ref
-          .read(accountsProvider)
-          .value
-          ?.firstWhereOrNull((a) => a.id == widget.transaction!.idBankAccount)
-          ?.currencyCode(ref.read(currencyStateProvider).code),
+            .read(accountsProvider)
+            .value
+            ?.firstWhereOrNull((a) => a.id == widget.transaction!.idBankAccount)
+            ?.currencyCode(ref.read(currencyStateProvider).code),
       );
       noteController.text = widget.transaction?.note ?? '';
     }
@@ -361,9 +362,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
 
     final isSaveEnabled = _canSave(selectedType);
 
-    final arrowColor = Theme.of(context).brightness == Brightness.dark
-        ? Colors.white
-        : Colors.black;
+    final visual = context.dashboardTheme;
+    final arrowColor = visual.textPrimary;
 
     return PopScope(
       canPop: true,
@@ -410,17 +410,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
             ],
           ],
         ),
-        persistentFooterDecoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.15),
-              blurRadius: 5.0,
-              offset: const Offset(0, -1.0),
-            ),
-          ],
+        persistentFooterDecoration: const BoxDecoration(
+          color: Colors.transparent,
         ),
         persistentFooterButtons: [
           Padding(
@@ -430,13 +421,25 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
               Sizes.sm,
               Sizes.sm,
             ),
-            child: Container(
+            child: SizedBox(
               width: double.infinity,
-              decoration: BoxDecoration(
-                boxShadow: [defaultShadow],
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
-              ),
-              child: ElevatedButton(
+              height: 56,
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: visual.navigationSelected,
+                  foregroundColor: visual.navigationFill.withValues(alpha: 1),
+                  disabledBackgroundColor: visual.textPrimary.withValues(
+                    alpha: 0.12,
+                  ),
+                  disabledForegroundColor: visual.textSecondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                  ),
+                ),
                 onPressed: isSaveEnabled ? _createOrUpdateTransaction : null,
                 child: Text(
                   widget.transaction != null
@@ -451,74 +454,62 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
           padding: const EdgeInsets.only(bottom: Sizes.md),
           child: Column(
             children: [
-              AmountSection(amountController),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
+                child: TonalGlassSurface(
+                  tone: GlassTone.hero,
+                  radius: 28,
+                  pressScale: 1,
+                  child: AmountSection(amountController),
+                ),
+              ),
               if (selectedType == TransactionType.transfer)
-                Container(
-                  color: Theme.of(context).colorScheme.surface,
-                  padding: const EdgeInsets.only(
-                    top: Sizes.sm,
-                    bottom: Sizes.lg,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Sizes.lg,
+                    Sizes.md,
+                    Sizes.lg,
+                    0,
                   ),
-                  child: TransferDetailsFields(
-                    controller: _transfer,
-                    amount: _parsedAmount(),
-                    senderSymbol:
-                        fromAccount?.currencySymbol(mainCurrency.symbol) ??
-                        mainCurrency.symbol,
-                    receiverSymbol:
-                        toAccount?.currencySymbol(mainCurrency.symbol) ??
-                        mainCurrency.symbol,
-                    senderCode: fromAccount?.currencyCode(mainCurrency.code),
-                    receiverCode: toAccount?.currencyCode(mainCurrency.code),
-                    crossCurrency: _isCrossCurrency,
-                    senderName: fromAccount?.name,
-                    receiverName: toAccount?.name,
+                  child: TonalGlassSurface(
+                    radius: 24,
+                    pressScale: 1,
+                    padding: const EdgeInsets.only(
+                      top: Sizes.sm,
+                      bottom: Sizes.lg,
+                    ),
+                    child: TransferDetailsFields(
+                      controller: _transfer,
+                      amount: _parsedAmount(),
+                      senderSymbol:
+                          fromAccount?.currencySymbol(mainCurrency.symbol) ??
+                          mainCurrency.symbol,
+                      receiverSymbol:
+                          toAccount?.currencySymbol(mainCurrency.symbol) ??
+                          mainCurrency.symbol,
+                      senderCode: fromAccount?.currencyCode(mainCurrency.code),
+                      receiverCode: toAccount?.currencyCode(mainCurrency.code),
+                      crossCurrency: _isCrossCurrency,
+                      senderName: fromAccount?.name,
+                      receiverName: toAccount?.name,
+                    ),
                   ),
                 ),
-              const SizedBox(height: Sizes.sm),
-              Container(
-                color: Theme.of(context).colorScheme.surface,
-                child: Column(
-                  children: [
-                    LabelListTile(noteController),
-                    const Divider(height: 1),
-                    if (selectedType != TransactionType.transfer) ...[
-                      DetailsListTile(
-                        title: "Account",
-                        icon: Icons.account_balance_wallet,
-                        value: ref.watch(selectedBankAccountProvider)?.name,
-                        callback: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          showModalBottomSheet(
-                            context: context,
-                            clipBehavior: Clip.antiAliasWithSaveLayer,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(Sizes.borderRadius),
-                                topRight: Radius.circular(Sizes.borderRadius),
-                              ),
-                            ),
-                            builder: (_) => DraggableScrollableSheet(
-                              expand: false,
-                              minChildSize: 0.5,
-                              initialChildSize: 0.7,
-                              maxChildSize: 0.9,
-                              builder: (_, controller) =>
-                                  AccountSelector(scrollController: controller),
-                            ),
-                          );
-                        },
-                      ),
-                      if (selectedType != TransactionType.adjustment) ...[
-                        const Divider(height: 1),
+              const SizedBox(height: Sizes.md),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
+                child: TonalGlassSurface(
+                  radius: 24,
+                  pressScale: 1,
+                  child: Column(
+                    children: [
+                      LabelListTile(noteController),
+                      const Divider(height: 1),
+                      if (selectedType != TransactionType.transfer) ...[
                         DetailsListTile(
-                          title: "Category",
-                          icon: Icons.list_alt,
-                          value:
-                              ref.watch(selectedCategoryProvider)?.name ??
-                              "Uncategorized",
+                          title: "Account",
+                          icon: Icons.account_balance_wallet,
+                          value: ref.watch(selectedBankAccountProvider)?.name,
                           callback: () {
                             FocusManager.instance.primaryFocus?.unfocus();
                             showModalBottomSheet(
@@ -537,139 +528,174 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                                 minChildSize: 0.5,
                                 initialChildSize: 0.7,
                                 maxChildSize: 0.9,
-                                builder: (_, controller) => CategorySelector(
+                                builder: (_, controller) => AccountSelector(
                                   scrollController: controller,
                                 ),
                               ),
                             );
                           },
                         ),
-                      ],
-                      if (selectedType == TransactionType.expense) ...[
-                        const Divider(height: 1),
-                        DetailsListTile(
-                          title: "People concerned",
-                          icon: Icons.group_outlined,
-                          value:
-                              "${ref.watch(selectedPeopleConcernedProvider)}",
-                          callback: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            showModalBottomSheet<void>(
-                              context: context,
-                              useSafeArea: true,
-                              showDragHandle: true,
-                              builder: (_) => const PeopleConcernedSelector(),
-                            );
-                          },
-                        ),
-                        const Divider(height: 1),
-                        ListTile(
-                          dense: true,
-                          visualDensity: VisualDensity.compact,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: Sizes.lg,
-                          ),
-                          onTap: () => ref
-                              .read(selectedReimbursementDueProvider.notifier)
-                              .setValue(!paidForOthers),
-                          leading: Icon(
-                            Icons.group_outlined,
-                            color: Theme.of(context).colorScheme.secondary,
-                          ),
-                          title: Text(
-                            'Paid for other people',
-                            style: Theme.of(context).textTheme.titleMedium!
-                                .copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
+                        if (selectedType != TransactionType.adjustment) ...[
+                          const Divider(height: 1),
+                          DetailsListTile(
+                            title: "Category",
+                            icon: Icons.list_alt,
+                            value:
+                                ref.watch(selectedCategoryProvider)?.name ??
+                                "Uncategorized",
+                            callback: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              showModalBottomSheet(
+                                context: context,
+                                clipBehavior: Clip.antiAliasWithSaveLayer,
+                                isScrollControlled: true,
+                                useSafeArea: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(
+                                      Sizes.borderRadius,
+                                    ),
+                                    topRight: Radius.circular(
+                                      Sizes.borderRadius,
+                                    ),
+                                  ),
                                 ),
+                                builder: (_) => DraggableScrollableSheet(
+                                  expand: false,
+                                  minChildSize: 0.5,
+                                  initialChildSize: 0.7,
+                                  maxChildSize: 0.9,
+                                  builder: (_, controller) => CategorySelector(
+                                    scrollController: controller,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          subtitle: Text(
-                            paidForOthers ? 'Still due' : 'Paid back',
+                        ],
+                        if (selectedType == TransactionType.expense) ...[
+                          const Divider(height: 1),
+                          DetailsListTile(
+                            title: "People concerned",
+                            icon: Icons.group_outlined,
+                            value:
+                                "${ref.watch(selectedPeopleConcernedProvider)}",
+                            callback: () {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              showModalBottomSheet<void>(
+                                context: context,
+                                useSafeArea: true,
+                                showDragHandle: true,
+                                builder: (_) => const PeopleConcernedSelector(),
+                              );
+                            },
                           ),
-                          trailing: AbsorbPointer(
-                            child: Checkbox(
-                              value: paidForOthers,
-                              activeColor:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : Colors.black,
-                              checkColor:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.black
-                                  : Colors.white,
-                              onChanged: (_) {},
+                          const Divider(height: 1),
+                          ListTile(
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: Sizes.lg,
+                            ),
+                            onTap: () => ref
+                                .read(selectedReimbursementDueProvider.notifier)
+                                .setValue(!paidForOthers),
+                            leading: Icon(
+                              Icons.group_outlined,
+                              color: visual.accent,
+                            ),
+                            title: Text(
+                              'Paid for other people',
+                              style: Theme.of(context).textTheme.titleMedium!
+                                  .copyWith(
+                                    color: visual.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            subtitle: Text(
+                              paidForOthers ? 'Still due' : 'Paid back',
+                              style: TextStyle(color: visual.textSecondary),
+                            ),
+                            trailing: AbsorbPointer(
+                              child: Checkbox(
+                                value: paidForOthers,
+                                activeColor: visual.textPrimary,
+                                checkColor: visual.solidSurface,
+                                onChanged: (_) {},
+                              ),
                             ),
                           ),
-                        ),
-                        const Divider(height: 1),
-                        DetailsListTile(
-                          title: 'Place',
-                          icon: Icons.place_outlined,
-                          value: place?.name ?? 'None',
-                          callback: () async {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            final choice = await showPlaceSearchSheet(
-                              context,
-                              canClear: place != null,
-                            );
-                            if (choice == null || !choice.apply) return;
-                            ref
-                                .read(selectedPlaceProvider.notifier)
-                                .setPlace(choice.place);
-                          },
-                        ),
-                      ],
-                      const Divider(height: 1),
-                    ],
-                    DetailsListTile(
-                      title: "Date",
-                      icon: Icons.calendar_month,
-                      value: ref.watch(selectedDateProvider).formatEDMY(),
-                      callback: () async {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        if (Platform.isIOS) {
-                          showCupertinoModalPopup(
-                            context: context,
-                            builder: (_) => Container(
-                              height: 300,
-                              color: CupertinoDynamicColor.resolve(
-                                CupertinoColors.secondarySystemBackground,
+                          const Divider(height: 1),
+                          DetailsListTile(
+                            title: 'Place',
+                            icon: Icons.place_outlined,
+                            value: place?.name ?? 'None',
+                            callback: () async {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              final choice = await showPlaceSearchSheet(
                                 context,
+                                canClear: place != null,
+                              );
+                              if (choice == null || !choice.apply) return;
+                              ref
+                                  .read(selectedPlaceProvider.notifier)
+                                  .setPlace(choice.place);
+                            },
+                          ),
+                        ],
+                        const Divider(height: 1),
+                      ],
+                      DetailsListTile(
+                        title: "Date",
+                        icon: Icons.calendar_month,
+                        value: ref.watch(selectedDateProvider).formatEDMY(),
+                        callback: () async {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          if (Platform.isIOS) {
+                            showCupertinoModalPopup(
+                              context: context,
+                              builder: (_) => Container(
+                                height: 300,
+                                color: CupertinoDynamicColor.resolve(
+                                  CupertinoColors.secondarySystemBackground,
+                                  context,
+                                ),
+                                child: CupertinoDatePicker(
+                                  initialDateTime: ref.read(
+                                    selectedDateProvider,
+                                  ),
+                                  minimumYear: 2015,
+                                  maximumYear: 2050,
+                                  mode: CupertinoDatePickerMode.date,
+                                  onDateTimeChanged: (date) => ref
+                                      .read(selectedDateProvider.notifier)
+                                      .setDate(date),
+                                ),
                               ),
-                              child: CupertinoDatePicker(
-                                initialDateTime: ref.read(selectedDateProvider),
-                                minimumYear: 2015,
-                                maximumYear: 2050,
-                                mode: CupertinoDatePickerMode.date,
-                                onDateTimeChanged: (date) => ref
-                                    .read(selectedDateProvider.notifier)
-                                    .setDate(date),
-                              ),
-                            ),
-                          );
-                        } else {
-                          final DateTime? pickedDate = await showDatePicker(
-                            context: context,
-                            initialDate: ref.read(selectedDateProvider),
-                            firstDate: DateTime(2015),
-                            lastDate: DateTime(2050),
-                          );
-                          if (pickedDate != null) {
-                            ref
-                                .read(selectedDateProvider.notifier)
-                                .setDate(pickedDate);
+                            );
+                          } else {
+                            final DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: ref.read(selectedDateProvider),
+                              firstDate: DateTime(2015),
+                              lastDate: DateTime(2050),
+                            );
+                            if (pickedDate != null) {
+                              ref
+                                  .read(selectedDateProvider.notifier)
+                                  .setDate(pickedDate);
+                            }
                           }
-                        }
-                      },
-                    ),
-                    if (selectedType != TransactionType.adjustment)
-                      RecurrenceListTile(
-                        recurrencyEditingPermitted: recurrencyEditingPermitted,
-                        selectedTransaction: widget.transaction,
+                        },
                       ),
-                  ],
+                      if (selectedType != TransactionType.adjustment)
+                        RecurrenceListTile(
+                          recurrencyEditingPermitted:
+                              recurrencyEditingPermitted,
+                          selectedTransaction: widget.transaction,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],

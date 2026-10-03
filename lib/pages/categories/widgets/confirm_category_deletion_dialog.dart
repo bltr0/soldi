@@ -4,47 +4,64 @@ import '../../../model/category_transaction.dart';
 import '../../../ui/device.dart';
 import '../../../ui/widgets/native_alert_dialog.dart';
 
+/// Asks how to delete a category: on its own, keeping its transactions
+/// (they become uncategorized), or together with all of them.
 class ConfirmCategoryDeletionDialog extends StatelessWidget {
   final CategoryTransaction category;
-  final VoidCallback onPressed;
+
+  /// Number of transactions filed under the category (and its subcategories).
+  final int transactionCount;
+
+  /// Called with `true` to also delete the transactions.
+  final void Function(bool deleteTransactions) onPressed;
 
   const ConfirmCategoryDeletionDialog({
     required this.category,
     required this.onPressed,
+    this.transactionCount = 0,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
+    final noun = category.parent == null ? 'category' : 'subcategory';
     return AdaptiveDialog(
-      title: const Text('Delete category'),
+      title: Text('Delete $noun'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: Sizes.md,
         children: [
+          Text('What should happen to "${category.name}"?'),
           Text(
-            'Are you sure you want to delete the category named "${category.name}"?',
+            transactionCount == 0
+                ? 'No transactions are filed under it.'
+                : '$transactionCount transaction${transactionCount == 1 ? '' : 's'} '
+                      'filed under it can be kept, as uncategorized, or deleted '
+                      'with it.',
           ),
           const Text(
-            'All recurring transactions and budgets linked to this category will be deleted.',
+            'Recurring transactions and budgets linked to it are always deleted.',
           ),
-          const SizedBox(height: Sizes.md),
           const Text('This action cannot be undone.'),
         ],
       ),
       actions: [
         AdaptiveDialogAction(
           child: const Text('Cancel'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         AdaptiveDialogAction(
-          child: const Text('Delete'),
+          child: Text('Delete $noun only'),
           isDestructiveAction: true,
-          onPressed: onPressed,
+          onPressed: () => onPressed(false),
         ),
+        if (transactionCount > 0)
+          AdaptiveDialogAction(
+            child: const Text('Delete with transactions'),
+            isDestructiveAction: true,
+            onPressed: () => onPressed(true),
+          ),
       ],
     );
   }

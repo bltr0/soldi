@@ -141,9 +141,43 @@ class Categories extends _$Categories {
     });
   }
 
-  Future<void> removeCategory(CategoryTransaction category) async {
+  /// Transactions filed under [category] and its subcategories.
+  Future<int> transactionCount(CategoryTransaction category) async {
+    final id = category.id;
+    if (id == null) return 0;
+    final subs = await ref
+        .read(categoryRepositoryProvider)
+        .selectSubCategory(id);
+    return ref.read(transactionsRepositoryProvider).countByCategories([
+      id,
+      for (final sub in subs)
+        if (sub.id != null) sub.id!,
+    ]);
+  }
+
+  /// Deletes [category] and its subcategories. Their transactions are either
+  /// deleted too ([deleteTransactions]) or kept, uncategorized.
+  Future<void> removeCategory(
+    CategoryTransaction category, {
+    bool deleteTransactions = false,
+  }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final transactions = ref.read(transactionsRepositoryProvider);
+      final categoryIds = <int>[
+        if (category.id != null) category.id!,
+        if (category.id != null)
+          for (final sub
+              in await ref
+                  .read(categoryRepositoryProvider)
+                  .selectSubCategory(category.id!))
+            if (sub.id != null) sub.id!,
+      ];
+      if (deleteTransactions) {
+        await transactions.deleteByCategories(categoryIds);
+      } else {
+        await transactions.clearCategories(categoryIds);
+      }
       // delete budgets and recurring transactions tied to this category and its subcategories
       final cid = category.id;
       if (cid != null) {
@@ -167,6 +201,7 @@ class Categories extends _$Categories {
       }
 
       await ref.read(categoryRepositoryProvider).deleteById(category);
+      ref.invalidate(transactionsProvider);
       ref.invalidate(recurringTransactionsProvider);
       ref.invalidate(budgetsProvider);
       ref.invalidate(monthlyBudgetsStatsProvider);

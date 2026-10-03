@@ -243,15 +243,23 @@ class _CreateEditCategoryPage extends ConsumerState<CreateEditCategoryPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(Sizes.lg),
                 child: TextButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
+                    final count = await ref
+                        .read(categoriesProvider.notifier)
+                        .transactionCount(selectedCategory);
+                    if (!context.mounted) return;
                     showDialog(
                       context: context,
                       builder: (context) {
                         return ConfirmCategoryDeletionDialog(
                           category: selectedCategory,
-                          onPressed: () => ref
+                          transactionCount: count,
+                          onPressed: (deleteTransactions) => ref
                               .read(categoriesProvider.notifier)
-                              .removeCategory(selectedCategory)
+                              .removeCategory(
+                                selectedCategory,
+                                deleteTransactions: deleteTransactions,
+                              )
                               .whenComplete(() {
                                 if (context.mounted) {
                                   Navigator.popUntil(

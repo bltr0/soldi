@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../device.dart';
 import 'default_container.dart';
+import 'tonal_glass_surface.dart';
 
 class DefaultCard extends StatelessWidget {
   const DefaultCard({required this.child, required this.onTap, super.key});
@@ -11,18 +12,13 @@ class DefaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(DefaultContainer.radius);
-    return DefaultContainer(
-      padding: EdgeInsets.zero,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: borderRadius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: onTap,
-          child: Padding(padding: const EdgeInsets.all(Sizes.md), child: child),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
+      child: TonalGlassSurface(
+        radius: DefaultContainer.radius,
+        padding: const EdgeInsets.all(Sizes.md),
+        onTap: onTap,
+        child: child,
       ),
     );
   }
