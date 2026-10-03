@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/fx_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/transactions_provider.dart';
 import '../ui/device.dart';
@@ -24,6 +25,15 @@ class Structure extends ConsumerStatefulWidget {
 
 class _StructureState extends ConsumerState<Structure> {
   AppDestination _selected = AppDestination.dashboard;
+
+  @override
+  void initState() {
+    super.initState();
+    // Once a day when the app opens, and only if the user allowed it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(fxSyncProvider.notifier).sync();
+    });
+  }
 
   Widget get _selectedPage => switch (_selected) {
     AppDestination.dashboard => const DashboardPage(),

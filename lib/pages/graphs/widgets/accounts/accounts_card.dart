@@ -11,6 +11,7 @@ import '../../../../providers/accounts_provider.dart';
 import '../../../../providers/currency_provider.dart';
 import '../../../../model/bank_account.dart';
 import '../card_label.dart';
+import '../../../../ui/widgets/main_equivalent.dart';
 
 class AccountsCard extends ConsumerWidget {
   const AccountsCard({super.key});
@@ -64,10 +65,13 @@ class AccountsCard extends ConsumerWidget {
                                   ),
                             ),
                           ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
                           BlurWidget(
                             sigma: 12,
                             child: Text(
-                              "${account.total?.toCurrency()} ${account.currencySymbol(currencyState.symbol)}",
+                              "${account.total?.toCurrency(account.currencyCode(currencyState.code))} ${account.currencySymbol(currencyState.symbol)}",
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(
                                     color: visual.textPrimary,
@@ -77,6 +81,15 @@ class AccountsCard extends ConsumerWidget {
                                     ],
                                   ),
                             ),
+                          ),
+                              MainEquivalent(
+                                amount: account.total ?? 0,
+                                code: account.currencyCode(currencyState.code),
+                                date: DateTime.now(),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: visual.textSecondary),
+                              ),
+                            ],
                           ),
                         ],
                       ),

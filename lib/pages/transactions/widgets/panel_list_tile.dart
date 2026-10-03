@@ -81,7 +81,7 @@ class PanelListTile extends ConsumerWidget {
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               Text(
-                                "${amount.toCurrency()} ${currency.symbol}",
+                                "${amount.toCurrency(currency.code)} ${currency.symbol}",
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(color: amount.toColor()),
                               ),
@@ -191,7 +191,7 @@ class PanelListTile extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          "${sum.toCurrency()} ${currency.symbol}",
+                          "${sum.toCurrency(currency.code)} ${currency.symbol}",
                           style: Theme.of(
                             context,
                           ).textTheme.bodyLarge?.copyWith(color: sum.toColor()),
@@ -288,7 +288,7 @@ class TransactionsList extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              "${amount.toCurrency()} ${ref.accountSymbol(transaction.idBankAccount)}",
+                              "${amount.toCurrency(ref.accountCode(transaction.idBankAccount))} ${ref.accountSymbol(transaction.idBankAccount)}",
                               style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(color: amount.toColor()),
                             ),

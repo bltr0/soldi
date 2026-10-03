@@ -55,6 +55,7 @@ class _PlacesSectionState extends ConsumerState<PlacesSection> {
     final saved = ref.watch(savedPlacesProvider);
     final spending = ref.watch(placeSpendingProvider);
     final symbol = ref.watch(currencyStateProvider).symbol;
+    final code = ref.watch(currencyStateProvider).code;
 
     ref.listen(savedPlacesProvider, (_, next) {
       final id = _selected?.id;
@@ -109,19 +110,37 @@ class _PlacesSectionState extends ConsumerState<PlacesSection> {
           children: [
             Padding(
               padding: const EdgeInsets.only(left: Sizes.sm),
-              child: Text(
-                'Places',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: visual.textPrimary,
-                  fontWeight: FontWeight.w800,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Places',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: visual.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Sizes.sm,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB0305C),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'BETA',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Text(
-              'Beta · pick a saved place',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: visual.textSecondary),
             ),
             const SizedBox(height: Sizes.md),
             Row(
@@ -274,12 +293,12 @@ class _PlacesSectionState extends ConsumerState<PlacesSection> {
                 children: [
                   _Stat(value: '$paymentCount', label: 'Payments'),
                   _Stat(
-                    value: '${spent.toCurrency()}$symbol',
+                    value: '${spent.toCurrency(code)}$symbol',
                     label: 'Spent',
                     blur: true,
                   ),
                   _Stat(
-                    value: '${average.toCurrency()}$symbol',
+                    value: '${average.toCurrency(code)}$symbol',
                     label: 'Per payment',
                     blur: true,
                   ),
@@ -308,7 +327,7 @@ class _PlacesSectionState extends ConsumerState<PlacesSection> {
                     ),
                     trailing: BlurWidget(
                       child: Text(
-                        '${payment.personalShare.toCurrency()}$symbol',
+                        '${payment.personalShare.toCurrency(code)}$symbol',
                         style: TextStyle(
                           color: visual.textPrimary,
                           fontWeight: FontWeight.w800,

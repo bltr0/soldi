@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../constants/style.dart';
+import '../model/currency_catalog.dart';
 
 /// Adds extensions to num  to make creating durations more succint:
 ///
@@ -49,9 +50,13 @@ extension StringExtension on String {
 ///
 /// ```
 /// 1234.56.toCurrency(); // '1234.56'
+/// 1234.56.toCurrency('KRW'); // '1235'
 /// ```
 extension NumExtension on num {
-  String toCurrency() => toStringAsFixed(2);
+  /// Fixed-point amount; [code] drops the decimals of currencies without
+  /// cents (KRW, JPY, ...).
+  String toCurrency([String? code]) =>
+      toStringAsFixed(CurrencyCatalog.decimalsFor(code));
 
   Color toColor() => this >= 0 ? green : red;
 }

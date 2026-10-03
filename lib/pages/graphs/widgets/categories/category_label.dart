@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../providers/currency_provider.dart';
 
 import '../../../../model/category_transaction.dart';
+import '../../../../ui/extensions.dart';
 
 class CategoryLabel extends ConsumerWidget {
   const CategoryLabel({
@@ -33,7 +34,7 @@ class CategoryLabel extends ConsumerWidget {
           text: TextSpan(
             children: [
               TextSpan(
-                text: "${amount.toStringAsFixed(2)}${currencyState.symbol}    ",
+                text: "${amount.toCurrency(currencyState.code)}${currencyState.symbol}    ",
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),

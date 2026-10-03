@@ -188,6 +188,16 @@ class CurrencyCatalog {
   static CurrencyInfo? byCode(String? code) =>
       code == null ? null : _byCode[code.toUpperCase()];
 
+  /// Currencies without a minor unit in everyday use (no cents).
+  static const Set<String> _zeroDecimal = {
+    'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG', 'RWF',
+    'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF',
+  };
+
+  /// Number of decimals amounts in [code] are shown with.
+  static int decimalsFor(String? code) =>
+      code != null && _zeroDecimal.contains(code.toUpperCase()) ? 0 : 2;
+
   /// Symbol for [code]; unknown codes are shown as the code itself.
   static String symbolFor(String code) => byCode(code)?.symbol ?? code;
 

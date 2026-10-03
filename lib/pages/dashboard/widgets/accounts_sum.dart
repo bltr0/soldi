@@ -10,6 +10,7 @@ import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/blur_widget.dart';
 import '../../../ui/widgets/tonal_glass_surface.dart';
+import '../../../ui/widgets/main_equivalent.dart';
 
 class AccountsSum extends ConsumerWidget {
   const AccountsSum({required this.account, this.width, super.key});
@@ -67,7 +68,7 @@ class AccountsSum extends ConsumerWidget {
             BlurWidget(
               sigma: 16,
               child: Text(
-                '${(account.total ?? 0).toCurrency()}${account.currencySymbol(currency.symbol)}',
+                '${(account.total ?? 0).toCurrency(account.currencyCode(currency.code))}${account.currencySymbol(currency.symbol)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -75,6 +76,15 @@ class AccountsSum extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
+              ),
+            ),
+            MainEquivalent(
+              amount: account.total ?? 0,
+              code: account.currencyCode(currency.code),
+              date: DateTime.now(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: visual.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

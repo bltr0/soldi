@@ -54,6 +54,12 @@ List<List<Object?>> get settingsOptions => [
     "Manage your notifications settings",
     "/notifications-settings",
   ],
+  [
+    Icons.groups,
+    "Credits",
+    "The people behind Sossoldi and its MIT license",
+    "/collaborators",
+  ],
 ];
 
 class SettingsPage extends ConsumerStatefulWidget {

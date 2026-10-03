@@ -119,6 +119,7 @@ class OlderRecurringPayments extends ConsumerWidget {
                                           context,
                                           totalyearlyAmt,
                                           currencyState.symbol,
+                                          currencyState.code,
                                         ),
                                       ],
                                     ),
@@ -163,6 +164,7 @@ class OlderRecurringPayments extends ConsumerWidget {
                                                         context,
                                                         montlyAmt,
                                                         currencyState.symbol,
+                                                        currencyState.code,
                                                       ),
                                                     ],
                                                   ),
@@ -251,11 +253,12 @@ class OlderRecurringPayments extends ConsumerWidget {
     BuildContext context,
     num? amount,
     String currencySymbol,
+    String currencyCode,
   ) {
     return Row(
       children: [
         Text(
-          '${transaction.type.prefix}${(amount ?? 0).toCurrency()}',
+          '${transaction.type.prefix}${(amount ?? 0).toCurrency(currencyCode)}',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
             color: transaction.type.toColor(
               brightness: Theme.of(context).brightness,

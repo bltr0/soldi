@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import '../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
 import '../../../ui/widgets/segmented_pill.dart';
+import '../../../model/currency_catalog.dart';
 
 Future<void> showTransactionDetailsDialog(
   BuildContext context,
@@ -62,7 +64,13 @@ class _TransactionDetailsDialogState
     super.initState();
     _noteController = TextEditingController(text: _original.note ?? '');
     _amountController = TextEditingController(
-      text: _original.amount.toCurrency(),
+      text: _original.amount.toCurrency(
+        ref
+          .read(accountsProvider)
+          .value
+          ?.firstWhereOrNull((a) => a.id == _original.idBankAccount)
+          ?.currencyCode(ref.read(currencyStateProvider).code),
+      ),
     );
     _type = _original.type;
     _date = _original.date;
@@ -283,7 +291,12 @@ class _TransactionDetailsDialogState
                         decimal: true,
                       ),
                       inputFormatters: [
-                        DecimalTextInputFormatter(decimalDigits: 2),
+                        DecimalTextInputFormatter(
+                          decimalDigits: CurrencyCatalog.decimalsFor(
+                            _account(_accountId)?.currencyCode(currency.code) ??
+                                currency.code,
+                          ),
+                        ),
                       ],
                       style: textTheme.titleMedium?.copyWith(
                         color: _type.toColor(
@@ -352,6 +365,12 @@ class _TransactionDetailsDialogState
                               currency.symbol,
                             ) ??
                             currency.symbol,
+                        senderCode: _account(
+                          _accountId,
+                        )?.currencyCode(currency.code),
+                        receiverCode: _account(
+                          _toAccountId,
+                        )?.currencyCode(currency.code),
                         crossCurrency: _isCrossCurrency,
                         senderName: _account(_accountId)?.name,
                         receiverName: _account(_toAccountId)?.name,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../constants/style.dart";
+import '../../../../model/currency_catalog.dart';
 import '../../../../providers/currency_provider.dart';
 import '../../../../providers/transactions_provider.dart';
 import '../../../../ui/formatters/decimal_text_input_formatter.dart';
@@ -50,7 +51,11 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
           // Leaving the default behaviour on Android which seems to be working as expeceted.
           signed: Platform.isAndroid,
         ),
-        inputFormatters: [DecimalTextInputFormatter(decimalDigits: 2)],
+        inputFormatters: [DecimalTextInputFormatter(
+            decimalDigits: CurrencyCatalog.decimalsFor(
+              account?.currencyCode(currencyState.code) ?? currencyState.code,
+            ),
+          )],
         autofocus: false,
         textAlign: TextAlign.center,
         cursorColor: grey1,

@@ -13,6 +13,7 @@ import '../theme/dashboard_visual_theme.dart';
 import 'blur_widget.dart';
 import 'default_container.dart';
 import 'rounded_icon.dart';
+import 'main_equivalent.dart';
 
 class TransactionsList extends StatefulWidget {
   const TransactionsList({
@@ -159,11 +160,14 @@ class TransactionTile extends ConsumerWidget {
         transaction,
         senderSymbol,
         ref.accountSymbol(transaction.idBankAccountTransfer),
+        ref.accountCode(transaction.idBankAccount),
+        ref.accountCode(transaction.idBankAccountTransfer),
       );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.accountSymbol(transaction.idBankAccount);
+    final code = ref.accountCode(transaction.idBankAccount);
     final visual = context.dashboardTheme;
     return Material(
       color: Colors.transparent,
@@ -235,11 +239,11 @@ class TransactionTile extends ConsumerWidget {
                   Text(
                     switch (transaction.type) {
                       TransactionType.expense =>
-                        "-${transaction.amount.toCurrency()}",
+                        "-${transaction.amount.toCurrency(code)}",
                       TransactionType.adjustment =>
-                        transaction.amount.toCurrency(),
+                        transaction.amount.toCurrency(code),
                       TransactionType.income || TransactionType.transfer =>
-                        transaction.amount.toCurrency(),
+                        transaction.amount.toCurrency(code),
                     },
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -265,6 +269,14 @@ class TransactionTile extends ConsumerWidget {
                 ],
               ),
             ),
+            MainEquivalent(
+              amount: transaction.amount,
+              code: code,
+              date: transaction.date,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: visual.textSecondary,
+              ),
+            ),
             Text(
               transaction.type == TransactionType.transfer
                   ? "${transaction.bankAccountName ?? ''}→${transaction.bankAccountTransferName ?? ''}"
@@ -285,15 +297,17 @@ String _transferSubtitleFor(
   Transaction transaction,
   String senderSymbol,
   String receiverSymbol,
+  String senderCode,
+  String receiverCode,
 ) {
   final parts = <String>['Transfer'];
   if (transaction.amountTransfer != null) {
     parts.add(
-      'receives ${transaction.amountIn.toCurrency()} $receiverSymbol',
+      'receives ${transaction.amountIn.toCurrency(receiverCode)} $receiverSymbol',
     );
   }
   if (transaction.transferFee > 0) {
-    parts.add('fee ${transaction.transferFee.toCurrency()} $senderSymbol');
+    parts.add('fee ${transaction.transferFee.toCurrency(senderCode)} $senderSymbol');
   }
   return parts.join(' · ');
 }
@@ -332,7 +346,7 @@ class TransactionTitle extends ConsumerWidget {
           BlurWidget(
             ignore: ignoreBlur,
             child: Text(
-              total.toCurrency(),
+              total.toCurrency(currencyState.code),
               style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                 color: color,
                 fontWeight: FontWeight.w800,

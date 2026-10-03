@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/accounts_provider.dart';
@@ -8,7 +10,9 @@ import '../../providers/currency_provider.dart';
 import '../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../ui/device.dart';
 import '../../ui/extensions.dart';
+import '../../providers/fx_provider.dart';
 import '../../ui/widgets/currency_picker_sheet.dart';
+import '../../ui/widgets/fx_source_dialog.dart';
 import 'widgets/confirm_account_deletion_dialog.dart';
 
 class CreateEditAccountPage extends ConsumerStatefulWidget {
@@ -37,7 +41,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
     final selectedAccount = ref.read(selectedAccountProvider);
     if (selectedAccount != null) {
       nameController.text = selectedAccount.name;
-      balanceController.text = selectedAccount.total?.toCurrency() ?? "";
+      balanceController.text = selectedAccount.total?.toCurrency(
+            selectedAccount.currencyCode(ref.read(currencyStateProvider).code),
+          ) ??
+          "";
       accountIcon = selectedAccount.symbol;
       accountColor = selectedAccount.color;
       countNetWorth = selectedAccount.countNetWorth;
@@ -124,6 +131,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                         startingValue: balanceController.text.toNum(),
                         currency: accountCurrency,
                       );
+                }
+                if (accountCurrency != null &&
+                    accountCurrency != currencyState.code) {
+                  unawaited(ref.read(fxSyncProvider.notifier).sync(force: true));
                 }
                 if (context.mounted) Navigator.of(context).pop();
               },
@@ -367,7 +378,11 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                       decimal: true,
                     ),
                     inputFormatters: [
-                      DecimalTextInputFormatter(decimalDigits: 2),
+                      DecimalTextInputFormatter(
+                        decimalDigits: CurrencyCatalog.decimalsFor(
+                          accountCurrency ?? currencyState.code,
+                        ),
+                      ),
                     ],
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
@@ -411,6 +426,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                   );
                   if (choice != null && mounted) {
                     setState(() => accountCurrency = choice.code);
+                    if (choice.code != null &&
+                        choice.code != currencyState.code) {
+                      await askFxSourceIfUnset(context, ref);
+                    }
                   }
                 },
               ),

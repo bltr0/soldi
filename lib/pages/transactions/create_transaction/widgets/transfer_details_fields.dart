@@ -6,6 +6,7 @@ import '../../../../ui/extensions.dart';
 import '../../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../../ui/widgets/segmented_pill.dart';
+import '../../../../model/currency_catalog.dart';
 
 enum TransferFeeMode { amount, percent }
 
@@ -119,6 +120,8 @@ class TransferDetailsFields extends StatelessWidget {
     required this.amount,
     required this.senderSymbol,
     required this.receiverSymbol,
+    this.senderCode,
+    this.receiverCode,
     required this.crossCurrency,
     this.senderName,
     this.receiverName,
@@ -132,6 +135,8 @@ class TransferDetailsFields extends StatelessWidget {
   final num? amount;
   final String senderSymbol;
   final String receiverSymbol;
+  final String? senderCode;
+  final String? receiverCode;
   final bool crossCurrency;
   final String? senderName;
   final String? receiverName;
@@ -195,7 +200,11 @@ class TransferDetailsFields extends StatelessWidget {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              inputFormatters: [DecimalTextInputFormatter(decimalDigits: 2)],
+              inputFormatters: [
+                DecimalTextInputFormatter(
+                  decimalDigits: CurrencyCatalog.decimalsFor(receiverCode),
+                ),
+              ],
               decoration: decoration(
                 hint: 'Amount that arrived',
                 suffix: receiverSymbol,
@@ -260,8 +269,8 @@ class TransferDetailsFields extends StatelessWidget {
             ),
             child: Text(
               fee > 0
-                  ? 'Fee ${fee.toCurrency()} $senderSymbol · '
-                        '$from pays ${total.toCurrency()} $senderSymbol in total'
+                  ? 'Fee ${fee.toCurrency(senderCode)} $senderSymbol · '
+                        '$from pays ${total.toCurrency(senderCode)} $senderSymbol in total'
                   : 'Optional. Charged to $from, in $senderSymbol.',
               style: hintStyle,
             ),

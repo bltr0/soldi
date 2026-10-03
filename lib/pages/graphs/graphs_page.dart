@@ -110,7 +110,7 @@ class _NetWorthHero extends ConsumerWidget {
           const SizedBox(height: Sizes.md),
           Semantics(
             label: isVisible
-                ? 'Net worth ${netWorth.toCurrency()} ${currency.code}'
+                ? 'Net worth ${netWorth.toCurrency(currency.code)} ${currency.code}'
                 : 'Net worth hidden',
             excludeSemantics: true,
             child: BlurWidget(
@@ -121,6 +121,7 @@ class _NetWorthHero extends ConsumerWidget {
                 child: AnimatedAmount(
                   value: netWorth,
                   suffix: ' ${currency.symbol}',
+                  code: currency.code,
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     color: visual.textPrimary,
                     fontSize: 42,

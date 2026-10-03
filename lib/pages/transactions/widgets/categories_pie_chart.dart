@@ -9,6 +9,7 @@ import '../../../ui/widgets/rounded_icon.dart';
 import '../../../model/category_transaction.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../ui/device.dart';
+import '../../../ui/extensions.dart';
 
 class CategoriesPieChart extends ConsumerWidget {
   const CategoriesPieChart({
@@ -81,8 +82,8 @@ class CategoriesPieChart extends ConsumerWidget {
                 ),
               Text(
                 (selectedCategory != null)
-                    ? "${amounts[selectedCategory.id]!.toStringAsFixed(2)} ${currencyState.symbol}"
-                    : "${total.toStringAsFixed(2)} ${currencyState.symbol}",
+                    ? "${amounts[selectedCategory.id]!.toCurrency(currencyState.code)} ${currencyState.symbol}"
+                    : "${total.toCurrency(currencyState.code)} ${currencyState.symbol}",
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color:
                       ((selectedCategory != null &&

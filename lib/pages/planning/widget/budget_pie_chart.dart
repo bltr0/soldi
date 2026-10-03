@@ -69,7 +69,7 @@ class BudgetPieChart extends ConsumerWidget {
           spacing: Sizes.xs,
           children: [
             Text(
-              "${totalBudget.toCurrency()}${currencyState.symbol}",
+              "${totalBudget.toCurrency(currencyState.code)}${currencyState.symbol}",
               style: const TextStyle(fontSize: 25),
             ),
             const Text(

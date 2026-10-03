@@ -9,6 +9,7 @@ import '../../../ui/extensions.dart';
 import '../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
+import '../../../model/currency_catalog.dart';
 
 class ReconcileResult {
   const ReconcileResult({required this.date, required this.balance});
@@ -87,6 +88,9 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
     final visual = context.dashboardTheme;
     final symbol = widget.account.currencySymbol(
       ref.watch(currencyStateProvider).symbol,
+    );
+    final code = widget.account.currencyCode(
+      ref.watch(currencyStateProvider).code,
     );
     final textTheme = Theme.of(context).textTheme;
     final target = _target;
@@ -176,7 +180,9 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                inputFormatters: [DecimalTextInputFormatter(decimalDigits: 2)],
+                inputFormatters: [DecimalTextInputFormatter(
+                  decimalDigits: CurrencyCatalog.decimalsFor(code),
+                )],
                 style: textTheme.headlineSmall?.copyWith(
                   color: visual.textPrimary,
                   fontWeight: FontWeight.w800,
@@ -204,9 +210,9 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
               const SizedBox(height: Sizes.md),
               Text(
                 difference == null
-                    ? 'Recorded on that day: ${recorded.toCurrency()} $symbol'
-                    : 'Recorded ${recorded.toCurrency()} $symbol → '
-                          'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency()} $symbol',
+                    ? 'Recorded on that day: ${recorded.toCurrency(code)} $symbol'
+                    : 'Recorded ${recorded.toCurrency(code)} $symbol → '
+                          'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency(code)} $symbol',
                 style: textTheme.bodySmall?.copyWith(
                   color: visual.textSecondary,
                   fontWeight: FontWeight.w600,

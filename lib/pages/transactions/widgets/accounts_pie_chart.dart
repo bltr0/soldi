@@ -9,6 +9,7 @@ import '../../../ui/widgets/rounded_icon.dart';
 import '../../../model/bank_account.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../ui/device.dart';
+import '../../../ui/extensions.dart';
 
 class AccountsPieChart extends ConsumerWidget {
   const AccountsPieChart({
@@ -79,8 +80,8 @@ class AccountsPieChart extends ConsumerWidget {
                 ),
               Text(
                 (selectedIndex != -1)
-                    ? "${amounts[accounts[selectedIndex].id]!.toStringAsFixed(2)} ${accounts[selectedIndex].currencySymbol(currencyState.symbol)}"
-                    : "${total.toStringAsFixed(2)} ${currencyState.symbol}",
+                    ? "${amounts[accounts[selectedIndex].id]!.toCurrency(accounts[selectedIndex].currencyCode(currencyState.code))} ${accounts[selectedIndex].currencySymbol(currencyState.symbol)}"
+                    : "${total.toCurrency(currencyState.code)} ${currencyState.symbol}",
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color:
                       ((selectedIndex != -1 &&

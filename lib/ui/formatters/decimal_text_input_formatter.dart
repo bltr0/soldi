@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 class DecimalTextInputFormatter extends TextInputFormatter {
   DecimalTextInputFormatter({this.decimalDigits})
-    : assert(decimalDigits == null || decimalDigits > 0);
+    : assert(decimalDigits == null || decimalDigits >= 0);
 
   final int? decimalDigits;
   final String decimalSeparator = ".";
@@ -38,6 +38,11 @@ class DecimalTextInputFormatter extends TextInputFormatter {
     if (value == decimalSeparator) {
       // Allow for .x decimal notation
       value = "0$decimalSeparator";
+    }
+
+    if (decimalDigits == 0 && value.contains(decimalSeparator)) {
+      // Whole-unit currency: drop the separator and anything after it.
+      value = value.substring(0, value.indexOf(decimalSeparator));
     }
 
     if (decimalDigits != null &&

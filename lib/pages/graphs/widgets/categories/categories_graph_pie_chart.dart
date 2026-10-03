@@ -9,6 +9,7 @@ import '../../../../model/category_transaction.dart';
 import '../../../../providers/categories_provider.dart';
 import '../../../../providers/currency_provider.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/extensions.dart';
 
 class CategoriesGraphPieChart extends ConsumerWidget {
   const CategoriesGraphPieChart({
@@ -109,8 +110,8 @@ class PieChartCategoryInfo extends ConsumerWidget {
           ),
         Text(
           categoryValue != null
-              ? "${categoryValue.toStringAsFixed(2)} ${currencyState.symbol}"
-              : "${total.toStringAsFixed(2)} ${currencyState.symbol}",
+              ? "${categoryValue.toCurrency(currencyState.code)} ${currencyState.symbol}"
+              : "${total.toCurrency(currencyState.code)} ${currencyState.symbol}",
           style: Theme.of(context).textTheme.headlineLarge?.copyWith(
             color:
                 (categoryValue != null && categoryValue >= 0) ||

@@ -77,6 +77,10 @@ The pages that will be implemented are:
 -   Basic settings
 -   Basic onboarding
 
+## Credits & license
+
+This app is a fork of [Sossoldi](https://github.com/RIP-Comm/sossoldi), created by the RIPsters and its contributors (see the in-app **Settings → Credits** page and the git history). Sossoldi is released under the MIT License, Copyright (c) 2022 RIPsters; the original copyright and permission notice are kept in [LICENSE](./LICENSE) and must stay with any copy or distribution of this app.
+
 ## Contributing
 
 If you want to help with this project you are more than welcome! Sossoldi is completely free and open source, the best place to start is from the issue tab and look for something that seems interesting to you. If you are unsure on where to start feel free to reach out to us on [Discord](https://discord.sossoldi.com), we will be more than happy to help you find what's best for you!

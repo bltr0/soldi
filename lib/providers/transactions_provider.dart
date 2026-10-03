@@ -12,6 +12,7 @@ import 'budgets_provider.dart';
 import 'categories_provider.dart';
 import 'dashboard_provider.dart';
 import 'places_provider.dart';
+import 'fx_provider.dart';
 import 'statistics_provider.dart';
 
 part 'transactions_provider.g.dart';
@@ -52,11 +53,26 @@ Future<List<Transaction>> pendingReimbursements(Ref ref) async {
   return ref.read(transactionsRepositoryProvider).selectReimbursementDue();
 }
 
+/// Ids the user skipped in Organize this session, oldest skip first.
+/// Skipped items stay in the queue but are shown after everything else.
+@Riverpod(keepAlive: true)
+class OrganizeSkips extends _$OrganizeSkips {
+  @override
+  List<int> build() => const [];
+
+  void skip(int id) => state = [...state.where((e) => e != id), id];
+}
+
 @Riverpod(keepAlive: true)
 Future<OrganizeQueue> organizeQueue(Ref ref) async {
   final repo = ref.read(transactionsRepositoryProvider);
-  final items = await repo.selectUncategorized(limit: 1);
+  final skipped = ref.watch(organizeSkipsProvider);
   final total = await repo.countUncategorized();
+  var items = await repo.selectUncategorized(limit: skipped.length + 1);
+  items = [
+    ...items.where((t) => !skipped.contains(t.id)),
+    for (final id in skipped) ...items.where((t) => t.id == id),
+  ];
   return OrganizeQueue(total: total, items: items);
 }
 
@@ -202,6 +218,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(monthlyTransactionsProvider);
     ref.invalidate(dashboardProvider);
     ref.invalidate(statisticsProvider);
+    ref.invalidate(fxTableProvider);
     ref.invalidate(categoryMapProvider);
     ref.invalidate(categoryTotalAmountProvider);
     ref.invalidate(monthlyTotalsProvider);
@@ -391,6 +408,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(monthlyTransactionsProvider);
     ref.invalidate(dashboardProvider);
     ref.invalidate(statisticsProvider);
+    ref.invalidate(fxTableProvider);
     ref.invalidate(categoryMapProvider);
     ref.invalidate(categoryTotalAmountProvider);
     ref.invalidate(monthlyTotalsProvider);

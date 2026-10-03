@@ -39,7 +39,7 @@ class BudgetCircularIndicator extends ConsumerWidget {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: amount.toCurrency(),
+                      text: amount.toCurrency(currencyState.code),
                       style: Theme.of(context).textTheme.titleMedium!.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                       ),

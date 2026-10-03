@@ -7,6 +7,7 @@ class AnimatedAmount extends StatelessWidget {
   const AnimatedAmount({
     required this.value,
     this.suffix = '',
+    this.code,
     this.style,
     this.maxLines = 1,
     this.duration = const Duration(milliseconds: 420),
@@ -15,6 +16,9 @@ class AnimatedAmount extends StatelessWidget {
 
   final num value;
   final String suffix;
+
+  /// Currency code, for the right number of decimals.
+  final String? code;
   final TextStyle? style;
   final int maxLines;
   final Duration duration;
@@ -27,7 +31,7 @@ class AnimatedAmount extends StatelessWidget {
       duration: reduceMotion ? Duration.zero : duration,
       curve: Curves.easeOutExpo,
       builder: (context, current, _) => Text(
-        '${current.toCurrency()}$suffix',
+        '${current.toCurrency(code)}$suffix',
         maxLines: maxLines,
         style: style,
       ),

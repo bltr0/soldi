@@ -127,7 +127,7 @@ class MonthSelector extends ConsumerWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: totalAmount.toCurrency(),
+                            text: totalAmount.toCurrency(currencyState.code),
                             style: Theme.of(context).textTheme.bodyLarge!
                                 .copyWith(color: totalAmount.toColor()),
                           ),

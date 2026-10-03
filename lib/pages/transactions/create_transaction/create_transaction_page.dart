@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
@@ -12,7 +13,6 @@ import '../../../providers/categories_provider.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../providers/places_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
-import '../../../providers/places_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
@@ -63,7 +63,13 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
       ..addListener(_onTransferChanged);
     if (widget.transaction != null) {
       recurrencyEditingPermitted = !widget.transaction!.recurring;
-      amountController.text = widget.transaction?.amount.toCurrency() ?? '';
+      amountController.text = widget.transaction!.amount.toCurrency(
+        ref
+          .read(accountsProvider)
+          .value
+          ?.firstWhereOrNull((a) => a.id == widget.transaction!.idBankAccount)
+          ?.currencyCode(ref.read(currencyStateProvider).code),
+      );
       noteController.text = widget.transaction?.note ?? '';
     }
     _syncExpensePrefix(ref.read(selectedTransactionTypeProvider));
@@ -462,6 +468,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                     receiverSymbol:
                         toAccount?.currencySymbol(mainCurrency.symbol) ??
                         mainCurrency.symbol,
+                    senderCode: fromAccount?.currencyCode(mainCurrency.code),
+                    receiverCode: toAccount?.currencyCode(mainCurrency.code),
                     crossCurrency: _isCrossCurrency,
                     senderName: fromAccount?.name,
                     receiverName: toAccount?.name,

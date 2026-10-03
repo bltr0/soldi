@@ -107,7 +107,7 @@ class RecurringPaymentCard extends ConsumerWidget {
               BlurWidget(
                 sigma: 12,
                 child: Text(
-                  '${transaction.type.prefix}${transaction.amount.toCurrency()}${currencyState.symbol}',
+                  '${transaction.type.prefix}${transaction.amount.toCurrency(currencyState.code)}${currencyState.symbol}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: amountColor,
                     fontWeight: FontWeight.w800,

@@ -111,6 +111,7 @@ class _DueTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
     final symbol = ref.accountSymbol(transaction.idBankAccount);
+    final code = ref.accountCode(transaction.idBankAccount);
     final title = transaction.note?.trim().isNotEmpty == true
         ? transaction.note!.trim()
         : (transaction.categoryName ?? 'Payment');
@@ -162,7 +163,7 @@ class _DueTile extends ConsumerWidget {
                       children: [
                         BlurWidget(
                           child: Text(
-                            '${transaction.amount.toCurrency()}$symbol',
+                            '${transaction.amount.toCurrency(code)}$symbol',
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
                                   color: visual.textPrimary,
@@ -176,7 +177,7 @@ class _DueTile extends ConsumerWidget {
                         if (showDue)
                           BlurWidget(
                             child: Text(
-                              'Due: ${transaction.splitDue.toCurrency()}$symbol',
+                              'Due: ${transaction.splitDue.toCurrency(code)}$symbol',
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(
                                     color: visual.negative,
@@ -198,7 +199,7 @@ class _DueTile extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Checkbox(
-                value: transaction.reimbursementDue,
+                value: !transaction.reimbursementDue,
                 visualDensity: VisualDensity.compact,
                 activeColor: visual.textPrimary,
                 checkColor: visual.solidSurface,
@@ -206,12 +207,12 @@ class _DueTile extends ConsumerWidget {
                   ref
                       .read(transactionsProvider.notifier)
                       .saveTransaction(
-                        transaction.copy(reimbursementDue: due ?? false),
+                        transaction.copy(reimbursementDue: !(due ?? false)),
                       );
                 },
               ),
               Text(
-                transaction.reimbursementDue ? 'Still due' : 'Paid back',
+                transaction.reimbursementDue ? 'Still due' : 'Paid',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: visual.textSecondary,
                   fontWeight: FontWeight.w700,

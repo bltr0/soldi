@@ -271,6 +271,9 @@ class TransactionsRepository {
   /// balance that was already wrong, so they are not money earned or spent
   /// in that month. Transfers count only where they cross into or out of
   /// counted accounts, and their fee always counts as money lost.
+  /// Net worth change per month and per account currency (`currency` is null
+  /// for accounts in the main currency), so callers can convert each part at
+  /// the right rate.
   Future<List<Map<String, Object?>>> monthlyNetWorthChange({
     required DateTime from,
     required DateTime to,
@@ -279,41 +282,48 @@ class TransactionsRepository {
     String counted(String alias) =>
         "($alias.${BankAccountFields.countNetWorth} = 1 "
         "AND $alias.${BankAccountFields.deletedAt} IS NULL)";
-    const notReconciliation =
-        "IFNULL(t.note, '') != 'Reconciliation'";
+    const notReconciliation = "IFNULL(t.note, '') != 'Reconciliation'";
+    final inRange =
+        "strftime('%Y-%m-%d', t.${TransactionFields.date}) >= ? "
+        "AND strftime('%Y-%m-%d', t.${TransactionFields.date}) < ?";
+    final month = "strftime('%Y-%m', t.${TransactionFields.date})";
+    final range = [
+      from.toIso8601String().substring(0, 10),
+      to.toIso8601String().substring(0, 10),
+    ];
 
-    return db.rawQuery(
-      '''
-      SELECT
-        strftime('%Y-%m', t.${TransactionFields.date}) as month,
-        SUM(CASE
-          WHEN t.${TransactionFields.type} = 'IN' AND $notReconciliation AND ${counted('b1')}
-            THEN t.${TransactionFields.amount}
-          WHEN t.${TransactionFields.type} = 'OUT' AND $notReconciliation AND ${counted('b1')}
-            THEN -t.${TransactionFields.amount}
-          WHEN t.${TransactionFields.type} = 'TRSF' AND ${counted('b1')} AND IFNULL(${counted('b2')}, 0)
-            THEN IFNULL(t.${TransactionFields.amountTransfer}, t.${TransactionFields.amount})
-                 - t.${TransactionFields.amount} - IFNULL(t.${TransactionFields.fee}, 0)
-          WHEN t.${TransactionFields.type} = 'TRSF' AND ${counted('b1')}
-            THEN -(t.${TransactionFields.amount} + IFNULL(t.${TransactionFields.fee}, 0))
-          WHEN t.${TransactionFields.type} = 'TRSF' AND IFNULL(${counted('b2')}, 0)
-            THEN IFNULL(t.${TransactionFields.amountTransfer}, t.${TransactionFields.amount})
-          ELSE 0
-        END) as change
-      FROM "$transactionTable" t
-      JOIN $bankAccountTable b1
-        ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
-      LEFT JOIN $bankAccountTable b2
-        ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
-      WHERE strftime('%Y-%m-%d', t.${TransactionFields.date}) >= ?
-        AND strftime('%Y-%m-%d', t.${TransactionFields.date}) < ?
-      GROUP BY month
-    ''',
-      [
-        from.toIso8601String().substring(0, 10),
-        to.toIso8601String().substring(0, 10),
-      ],
-    );
+    return db.rawQuery('''
+      SELECT month, currency, SUM(change) as change FROM (
+        SELECT $month as month, b1.${BankAccountFields.currency} as currency,
+          CASE
+            WHEN t.${TransactionFields.type} = 'IN' THEN t.${TransactionFields.amount}
+            WHEN t.${TransactionFields.type} = 'OUT' THEN -t.${TransactionFields.amount}
+            ELSE 0
+          END as change
+        FROM "$transactionTable" t
+        JOIN $bankAccountTable b1
+          ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+        WHERE t.${TransactionFields.type} IN ('IN', 'OUT')
+          AND $notReconciliation AND ${counted('b1')} AND $inRange
+        UNION ALL
+        SELECT $month, b1.${BankAccountFields.currency},
+          -(t.${TransactionFields.amount} + IFNULL(t.${TransactionFields.fee}, 0))
+        FROM "$transactionTable" t
+        JOIN $bankAccountTable b1
+          ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+        WHERE t.${TransactionFields.type} = 'TRSF'
+          AND ${counted('b1')} AND $inRange
+        UNION ALL
+        SELECT $month, b2.${BankAccountFields.currency},
+          IFNULL(t.${TransactionFields.amountTransfer}, t.${TransactionFields.amount})
+        FROM "$transactionTable" t
+        JOIN $bankAccountTable b2
+          ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
+        WHERE t.${TransactionFields.type} = 'TRSF'
+          AND ${counted('b2')} AND $inRange
+      )
+      GROUP BY month, currency
+    ''', [...range, ...range, ...range]);
   }
 
   Future<List> _transactionByFrequencyAndPeriod({
@@ -357,6 +367,7 @@ class TransactionsRepository {
     final result = await db.rawQuery('''
       SELECT
         strftime('$frequencyDateParser', t.${TransactionFields.date}) as $freqencyString,
+        b.${BankAccountFields.currency} as currency,
         SUM(CASE WHEN t.${TransactionFields.type} = 'IN' AND IFNULL(t.${TransactionFields.note}, '') != 'Reconciliation' THEN t.${TransactionFields.amount} ELSE 0 END) as income,
         SUM(CASE WHEN t.${TransactionFields.type} = 'OUT' AND IFNULL(t.${TransactionFields.note}, '') != 'Reconciliation' THEN t.${TransactionFields.amount} ELSE 0 END) as expense,
         SUM(CASE
@@ -368,7 +379,7 @@ class TransactionsRepository {
       FROM "$transactionTable" t
       JOIN $bankAccountTable b ON t.${TransactionFields.idBankAccount} = b.${BankAccountFields.id}
       WHERE $sqlFilters AND b.${BankAccountFields.countNetWorth} = 1 AND b.${BankAccountFields.active} = 1
-      GROUP BY $freqencyString
+      GROUP BY $freqencyString, b.${BankAccountFields.currency}
     ''');
 
     return result;

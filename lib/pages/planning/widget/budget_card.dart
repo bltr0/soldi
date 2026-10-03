@@ -100,6 +100,7 @@ class _BudgetBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
     final symbol = ref.watch(currencyStateProvider).symbol;
+    final code = ref.watch(currencyStateProvider).code;
     final rows = <_BudgetRow>[];
     num spentTotal = 0;
     num limitTotal = 0;
@@ -135,7 +136,7 @@ class _BudgetBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${spentTotal.toCurrency()}$symbol',
+                    '${spentTotal.toCurrency(code)}$symbol',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       color: visual.textPrimary,
                       fontWeight: FontWeight.w800,
@@ -145,8 +146,8 @@ class _BudgetBody extends ConsumerWidget {
                   ),
                   Text(
                     over
-                        ? '${left.abs().toCurrency()}$symbol over ${limitTotal.toCurrency()}$symbol'
-                        : '${left.toCurrency()}$symbol left of ${limitTotal.toCurrency()}$symbol',
+                        ? '${left.abs().toCurrency(code)}$symbol over ${limitTotal.toCurrency(code)}$symbol'
+                        : '${left.toCurrency(code)}$symbol left of ${limitTotal.toCurrency(code)}$symbol',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: over ? visual.negative : visual.textSecondary,
                       fontWeight: FontWeight.w700,
@@ -168,7 +169,7 @@ class _BudgetBody extends ConsumerWidget {
         const SizedBox(height: Sizes.lg),
         for (var i = 0; i < rows.length; i++) ...[
           if (i > 0) const SizedBox(height: Sizes.md),
-          _CategoryBudget(row: rows[i], symbol: symbol),
+          _CategoryBudget(row: rows[i], symbol: symbol, code: code),
         ],
       ],
     );
@@ -188,10 +189,15 @@ class _BudgetRow {
 }
 
 class _CategoryBudget extends StatelessWidget {
-  const _CategoryBudget({required this.row, required this.symbol});
+  const _CategoryBudget({
+    required this.row,
+    required this.symbol,
+    required this.code,
+  });
 
   final _BudgetRow row;
   final String symbol;
+  final String code;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +222,7 @@ class _CategoryBudget extends StatelessWidget {
               ),
             ),
             Text(
-              '${spent.toCurrency()} / ${limit.toCurrency()}$symbol',
+              '${spent.toCurrency(code)} / ${limit.toCurrency(code)}$symbol',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: tight ? visual.negative : visual.textSecondary,
                 fontWeight: FontWeight.w700,

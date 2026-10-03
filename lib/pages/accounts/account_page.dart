@@ -20,6 +20,7 @@ import '../../ui/widgets/segmented_pill.dart';
 import '../../ui/widgets/tonal_glass_surface.dart';
 import 'widgets/ledger_day_group.dart';
 import 'widgets/reconcile_dialog.dart';
+import '../../ui/widgets/main_equivalent.dart';
 
 enum _TypeFilter { all, income, expense, transfer, adjustment }
 
@@ -362,6 +363,7 @@ class _AccountHero extends ConsumerWidget {
     final symbol = account.currencySymbol(
       ref.watch(currencyStateProvider).symbol,
     );
+    final code = account.currencyCode(ref.watch(currencyStateProvider).code);
     final accent =
         accountColorListTheme[account.color.clamp(
           0,
@@ -413,6 +415,7 @@ class _AccountHero extends ConsumerWidget {
               child: AnimatedAmount(
                 value: balance,
                 suffix: ' $symbol',
+                code: code,
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: visual.textPrimary,
                   fontSize: 40,
@@ -424,6 +427,15 @@ class _AccountHero extends ConsumerWidget {
               ),
             ),
           ),
+          MainEquivalent(
+            amount: balance,
+            code: code,
+            date: DateTime.now(),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: visual.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: Sizes.lg),
           Row(
             children: [
@@ -432,6 +444,7 @@ class _AccountHero extends ConsumerWidget {
                   label: 'In',
                   value: moneyIn,
                   symbol: symbol,
+                  code: code,
                   color: visual.positive,
                   icon: Icons.south_west_rounded,
                 ),
@@ -442,6 +455,7 @@ class _AccountHero extends ConsumerWidget {
                   label: 'Out',
                   value: moneyOut,
                   symbol: symbol,
+                  code: code,
                   color: visual.negative,
                   icon: Icons.north_east_rounded,
                 ),
@@ -459,6 +473,7 @@ class _FlowStat extends StatelessWidget {
     required this.label,
     required this.value,
     required this.symbol,
+    required this.code,
     required this.color,
     required this.icon,
   });
@@ -466,6 +481,7 @@ class _FlowStat extends StatelessWidget {
   final String label;
   final num value;
   final String symbol;
+  final String code;
   final Color color;
   final IconData icon;
 
@@ -499,7 +515,7 @@ class _FlowStat extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '${value.toCurrency()} $symbol',
+                  '${value.toCurrency(code)} $symbol',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: color,
                     fontWeight: FontWeight.w800,

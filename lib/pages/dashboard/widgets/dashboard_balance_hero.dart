@@ -105,7 +105,7 @@ class _HeroContent extends ConsumerWidget {
               Expanded(
                 child: Semantics(
                   label: isVisible
-                      ? 'Monthly balance ${snapshot.balance.toCurrency()} ${currency.code}'
+                      ? 'Monthly balance ${snapshot.balance.toCurrency(currency.code)} ${currency.code}'
                       : 'Monthly balance hidden',
                   excludeSemantics: true,
                   child: BlurWidget(
@@ -116,6 +116,7 @@ class _HeroContent extends ConsumerWidget {
                       child: AnimatedAmount(
                         value: snapshot.balance,
                         suffix: ' ${currency.symbol}',
+                        code: currency.code,
                         style: titleStyle,
                       ),
                     ),
@@ -130,6 +131,7 @@ class _HeroContent extends ConsumerWidget {
                     label: 'Income',
                     amount: snapshot.income,
                     symbol: currency.symbol,
+                    code: currency.code,
                     color: visual.positive,
                   ),
                   const SizedBox(height: Sizes.xs),
@@ -137,6 +139,7 @@ class _HeroContent extends ConsumerWidget {
                     label: 'Expenses',
                     amount: -snapshot.expense,
                     symbol: currency.symbol,
+                    code: currency.code,
                     color: visual.negative,
                   ),
                 ],
@@ -272,24 +275,27 @@ class _SideAmount extends StatelessWidget {
     required this.label,
     required this.amount,
     required this.symbol,
+    required this.code,
     required this.color,
   });
 
   final String label;
   final num amount;
   final String symbol;
+  final String code;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '$label ${amount.toCurrency()} $symbol',
+      label: '$label ${amount.toCurrency(code)} $symbol',
       excludeSemantics: true,
       child: BlurWidget(
         sigma: 14,
         child: AnimatedAmount(
           value: amount,
           suffix: symbol,
+          code: code,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: color,
             fontWeight: FontWeight.w800,

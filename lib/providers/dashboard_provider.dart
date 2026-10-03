@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' show DateUtils;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/database/repositories/transactions_repository.dart';
+import '../services/fx/fx_table.dart';
+import 'fx_provider.dart';
 
 part 'dashboard_provider.g.dart';
 
@@ -50,8 +52,9 @@ Future<DashboardSnapshot> dashboard(Ref ref) async {
     repository.currentMonthDailyTransactions(month: month),
     repository.lastMonthDailyTransactions(month: month),
   ]);
-  final currentMonth = results[0];
-  final previousMonth = results[1];
+  final fx = await ref.watch(fxTableProvider.future);
+  final currentMonth = _inMainCurrency(results[0], fx);
+  final previousMonth = _inMainCurrency(results[1], fx);
 
   final income = currentMonth.fold<num>(
     0,
@@ -82,6 +85,22 @@ Future<DashboardSnapshot> dashboard(Ref ref) async {
       lastDay: DateUtils.getDaysInMonth(previous.year, previous.month),
     ),
   );
+}
+
+/// Daily rows converted into the main currency at each day's rate; accounts
+/// in other currencies would otherwise be added up as if they were the same.
+List<Map<String, Object?>> _inMainCurrency(List<dynamic> rows, FxTable fx) {
+  return [
+    for (final raw in rows)
+      () {
+        final row = Map<String, Object?>.from(raw as Map);
+        final day = DateTime.tryParse('${row['day']}') ?? DateTime.now();
+        final currency = row['currency'] as String?;
+        row['income'] = fx.toMain(_number(row['income']), currency, day);
+        row['expense'] = fx.toMain(_number(row['expense']), currency, day);
+        return row;
+      }(),
+  ];
 }
 
 num _number(Object? value) =>

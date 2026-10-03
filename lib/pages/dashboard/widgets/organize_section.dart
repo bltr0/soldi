@@ -60,7 +60,25 @@ class OrganizeSection extends ConsumerWidget {
               queue.when(
                 data: (data) => data.total == 0
                     ? const SizedBox.shrink()
-                    : _QueueBadge(count: data.total),
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _QueueBadge(count: data.total),
+                          if (data.total > 1)
+                            IconButton(
+                              tooltip: 'Skip for now',
+                              visualDensity: VisualDensity.compact,
+                              color: visual.textSecondary,
+                              icon: const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 18,
+                              ),
+                              onPressed: () => ref
+                                  .read(organizeSkipsProvider.notifier)
+                                  .skip(data.items.first.id!),
+                            ),
+                        ],
+                      ),
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
               ),
@@ -330,10 +348,11 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
   @override
   Widget build(BuildContext context) {
     final symbol = ref.accountSymbol(transaction.idBankAccount);
+    final code = ref.accountCode(transaction.idBankAccount);
     final visual = context.dashboardTheme;
     final signedAmount = transaction.type == TransactionType.expense
-        ? "-${transaction.amount.toCurrency()}"
-        : transaction.amount.toCurrency();
+        ? "-${transaction.amount.toCurrency(code)}"
+        : transaction.amount.toCurrency(code);
     final label = (transaction.note?.trim().isEmpty ?? true)
         ? (_isTransfer
               ? 'Transfer'

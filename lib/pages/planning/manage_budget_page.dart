@@ -113,7 +113,7 @@ class _ManageBudgetPageState extends ConsumerState<ManageBudgetPage> {
                   Text.rich(
                     TextSpan(
                       text:
-                          "${(budgets.isEmpty ? 0 : budgets.fold<num>(0, (sum, e) => sum + e.amountLimit)).toCurrency()} ",
+                          "${(budgets.isEmpty ? 0 : budgets.fold<num>(0, (sum, e) => sum + e.amountLimit)).toCurrency(currencyState.code)} ",
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
