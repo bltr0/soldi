@@ -359,7 +359,9 @@ class _AccountHero extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
-    final currency = ref.watch(currencyStateProvider);
+    final symbol = account.currencySymbol(
+      ref.watch(currencyStateProvider).symbol,
+    );
     final accent =
         accountColorListTheme[account.color.clamp(
           0,
@@ -410,7 +412,7 @@ class _AccountHero extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: AnimatedAmount(
                 value: balance,
-                suffix: ' ${currency.symbol}',
+                suffix: ' $symbol',
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: visual.textPrimary,
                   fontSize: 40,
@@ -429,6 +431,7 @@ class _AccountHero extends ConsumerWidget {
                 child: _FlowStat(
                   label: 'In',
                   value: moneyIn,
+                  symbol: symbol,
                   color: visual.positive,
                   icon: Icons.south_west_rounded,
                 ),
@@ -438,6 +441,7 @@ class _AccountHero extends ConsumerWidget {
                 child: _FlowStat(
                   label: 'Out',
                   value: moneyOut,
+                  symbol: symbol,
                   color: visual.negative,
                   icon: Icons.north_east_rounded,
                 ),
@@ -450,23 +454,24 @@ class _AccountHero extends ConsumerWidget {
   }
 }
 
-class _FlowStat extends ConsumerWidget {
+class _FlowStat extends StatelessWidget {
   const _FlowStat({
     required this.label,
     required this.value,
+    required this.symbol,
     required this.color,
     required this.icon,
   });
 
   final String label;
   final num value;
+  final String symbol;
   final Color color;
   final IconData icon;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
-    final currency = ref.watch(currencyStateProvider);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: Sizes.md,
@@ -494,7 +499,7 @@ class _FlowStat extends ConsumerWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '${value.toCurrency()} ${currency.symbol}',
+                  '${value.toCurrency()} $symbol',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: color,
                     fontWeight: FontWeight.w800,

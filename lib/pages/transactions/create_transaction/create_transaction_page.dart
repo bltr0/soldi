@@ -9,6 +9,7 @@ import '../../../model/recurring_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/categories_provider.dart';
+import '../../../providers/currency_provider.dart';
 import '../../../providers/places_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
 import '../../../providers/places_provider.dart';
@@ -24,6 +25,7 @@ import 'widgets/label_list_tile.dart';
 import 'widgets/people_concerned_selector.dart';
 import 'widgets/place_search_sheet.dart';
 import 'widgets/recurrence_list_tile.dart';
+import 'widgets/transfer_details_fields.dart';
 
 class CreateTransactionPage extends ConsumerStatefulWidget {
   const CreateTransactionPage({super.key, this.transaction});
@@ -38,6 +40,7 @@ class CreateTransactionPage extends ConsumerStatefulWidget {
 class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
+  late final TransferDetailsController _transfer;
   bool recurrencyEditingPermitted = true;
   late final String _originalAmount;
   late final String _originalNote;
@@ -56,6 +59,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   @override
   void initState() {
     super.initState();
+    _transfer = TransferDetailsController(initial: widget.transaction)
+      ..addListener(_onTransferChanged);
     if (widget.transaction != null) {
       recurrencyEditingPermitted = !widget.transaction!.recurring;
       amountController.text = widget.transaction?.amount.toCurrency() ?? '';
@@ -84,6 +89,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   void dispose() {
     amountController.dispose();
     noteController.dispose();
+    _transfer.dispose();
     super.dispose();
   }
 
@@ -125,6 +131,26 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     if (mounted) setState(() {});
   }
 
+  void _onTransferChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// True when the two accounts of a transfer hold different currencies, so
+  /// the amount received has to be typed separately.
+  bool get _isCrossCurrency {
+    final main = ref.read(currencyStateProvider).code;
+    final from = ref.read(selectedBankAccountProvider);
+    final to = ref.read(bankAccountTransferProvider);
+    if (from == null || to == null) return false;
+    return from.currencyCode(main) != to.currencyCode(main);
+  }
+
+  ({num? fee, num? feePercent, num? amountTransfer}) _transferValues() =>
+      _transfer.values(
+        amount: _parsedAmount(),
+        crossCurrency: _isCrossCurrency,
+      );
+
   void _onAmountChanged() {
     _syncExpensePrefix(ref.read(selectedTransactionTypeProvider));
     if (mounted) setState(() {});
@@ -152,7 +178,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     if (ref.read(selectedBankAccountProvider) == null) return false;
     switch (selectedType) {
       case TransactionType.transfer:
-        return ref.read(bankAccountTransferProvider) != null;
+        return ref.read(bankAccountTransferProvider) != null &&
+            _transfer.isValid(crossCurrency: _isCrossCurrency);
       case TransactionType.income:
       case TransactionType.expense:
         if (ref.read(selectedRecurringPayProvider)) {
@@ -181,6 +208,15 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     }
     if (ref.read(bankAccountTransferProvider)?.id != _originalTransferId) {
       return true;
+    }
+    if (selectedType == TransactionType.transfer) {
+      final original = widget.transaction;
+      final values = _transferValues();
+      if (values.fee != original?.fee ||
+          values.feePercent != original?.feePercent ||
+          values.amountTransfer != original?.amountTransfer) {
+        return true;
+      }
     }
     if (selectedType == TransactionType.expense &&
         ref.read(selectedPeopleConcernedProvider) != _originalPeopleConcerned) {
@@ -221,6 +257,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     final selectedType = ref.read(selectedTransactionTypeProvider);
 
     final amount = _parsedAmount();
+    final transfer = _transferValues();
 
     if (amount != null) {
       if (widget.transaction != null) {
@@ -237,7 +274,10 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                         widget.transaction!,
                         amount,
                         noteController.text,
-                        value.id,
+                        recurringTransactionId: value.id,
+                        fee: transfer.fee,
+                        feePercent: transfer.feePercent,
+                        amountTransfer: transfer.amountTransfer,
                       )
                       .whenComplete(() => _refreshAccountAndNavigateBack());
                 }
@@ -249,7 +289,11 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                 widget.transaction!,
                 amount,
                 noteController.text,
-                widget.transaction!.idRecurringTransaction,
+                recurringTransactionId:
+                    widget.transaction!.idRecurringTransaction,
+                fee: transfer.fee,
+                feePercent: transfer.feePercent,
+                amountTransfer: transfer.amountTransfer,
               )
               .whenComplete(() => _refreshAccountAndNavigateBack());
         }
@@ -258,7 +302,13 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
           if (ref.read(bankAccountTransferProvider) != null) {
             await ref
                 .read(transactionsProvider.notifier)
-                .create(amount, noteController.text)
+                .create(
+                  amount,
+                  noteController.text,
+                  fee: transfer.fee,
+                  feePercent: transfer.feePercent,
+                  amountTransfer: transfer.amountTransfer,
+                )
                 .whenComplete(() => _refreshAccountAndNavigateBack());
           }
         } else {
@@ -287,8 +337,9 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   @override
   Widget build(BuildContext context) {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
-    ref.watch(selectedBankAccountProvider);
-    ref.watch(bankAccountTransferProvider);
+    final mainCurrency = ref.watch(currencyStateProvider);
+    final fromAccount = ref.watch(selectedBankAccountProvider);
+    final toAccount = ref.watch(bankAccountTransferProvider);
     ref.watch(selectedCategoryProvider);
     ref.watch(selectedDateProvider);
     ref.watch(selectedPeopleConcernedProvider);
@@ -395,6 +446,27 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
           child: Column(
             children: [
               AmountSection(amountController),
+              if (selectedType == TransactionType.transfer)
+                Container(
+                  color: Theme.of(context).colorScheme.surface,
+                  padding: const EdgeInsets.only(
+                    top: Sizes.sm,
+                    bottom: Sizes.lg,
+                  ),
+                  child: TransferDetailsFields(
+                    controller: _transfer,
+                    amount: _parsedAmount(),
+                    senderSymbol:
+                        fromAccount?.currencySymbol(mainCurrency.symbol) ??
+                        mainCurrency.symbol,
+                    receiverSymbol:
+                        toAccount?.currencySymbol(mainCurrency.symbol) ??
+                        mainCurrency.symbol,
+                    crossCurrency: _isCrossCurrency,
+                    senderName: fromAccount?.name,
+                    receiverName: toAccount?.name,
+                  ),
+                ),
               const SizedBox(height: Sizes.sm),
               Container(
                 color: Theme.of(context).colorScheme.surface,

@@ -166,6 +166,7 @@ class _HeroContent extends ConsumerWidget {
                       dashboardStyle: true,
                       height: _chartHeight,
                       daysInMonth: axisDays,
+                      referenceMonth: month,
                     )
                   : _PrivateChart(
                       key: const ValueKey('private'),

@@ -67,7 +67,7 @@ class AccountsSum extends ConsumerWidget {
             BlurWidget(
               sigma: 16,
               child: Text(
-                '${(account.total ?? 0).toCurrency()}${currency.symbol}',
+                '${(account.total ?? 0).toCurrency()}${account.currencySymbol(currency.symbol)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(

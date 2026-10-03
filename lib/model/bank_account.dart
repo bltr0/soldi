@@ -1,5 +1,6 @@
 import '../ui/extensions.dart';
 import 'base_entity.dart';
+import 'currency_catalog.dart';
 
 const String bankAccountTable = 'bankAccount';
 
@@ -14,6 +15,7 @@ class BankAccountFields extends BaseEntityFields {
   static String mainAccount = 'mainAccount';
   static String total = 'total';
   static String order = 'position';
+  static String currency = 'currency';
   static String createdAt = BaseEntityFields.getCreatedAt;
   static String updatedAt = BaseEntityFields.getUpdatedAt;
   static String deletedAt = BaseEntityFields.getDeletedAt;
@@ -28,6 +30,7 @@ class BankAccountFields extends BaseEntityFields {
     countNetWorth,
     mainAccount,
     order,
+    currency,
     BaseEntityFields.createdAt,
     BaseEntityFields.updatedAt,
     BaseEntityFields.deletedAt,
@@ -35,6 +38,8 @@ class BankAccountFields extends BaseEntityFields {
 }
 
 class BankAccount extends BaseEntity {
+  static const _unset = Object();
+
   final String name;
   final String symbol;
   final int color;
@@ -44,6 +49,10 @@ class BankAccount extends BaseEntity {
   final bool mainAccount;
   final int order;
   final num? total;
+
+  /// ISO code of the currency this account is held in, or null to use the
+  /// app's main currency. Display only: amounts are never converted.
+  final String? currency;
 
   const BankAccount({
     super.id,
@@ -56,6 +65,7 @@ class BankAccount extends BaseEntity {
     required this.mainAccount,
     required this.order,
     this.total,
+    this.currency,
     super.createdAt,
     super.updatedAt,
     super.deletedAt,
@@ -71,6 +81,7 @@ class BankAccount extends BaseEntity {
     bool? countNetWorth,
     bool? mainAccount,
     int? order,
+    Object? currency = _unset,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -84,6 +95,7 @@ class BankAccount extends BaseEntity {
     countNetWorth: countNetWorth ?? this.countNetWorth,
     mainAccount: mainAccount ?? this.mainAccount,
     order: order ?? this.order,
+    currency: currency == _unset ? this.currency : currency as String?,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt ?? this.deletedAt,
@@ -101,12 +113,18 @@ class BankAccount extends BaseEntity {
     mainAccount: json[BankAccountFields.mainAccount] == 1 ? true : false,
     order: json[BankAccountFields.order] as int,
     total: json[BankAccountFields.total] as num?,
+    currency: _currencyFromJson(json[BankAccountFields.currency]),
     createdAt: DateTime.parse(json[BaseEntityFields.createdAt] as String),
     updatedAt: DateTime.parse(json[BaseEntityFields.updatedAt] as String),
     deletedAt: json[BaseEntityFields.deletedAt] != null
         ? DateTime.parse(json[BaseEntityFields.deletedAt] as String)
         : null,
   );
+
+  static String? _currencyFromJson(Object? value) {
+    final code = value?.toString().trim().toUpperCase();
+    return code == null || code.isEmpty ? null : code;
+  }
 
   Map<String, Object?> toJson({bool update = false, bool delete = false}) => {
     BaseEntityFields.id: id,
@@ -118,10 +136,19 @@ class BankAccount extends BaseEntity {
     BankAccountFields.countNetWorth: countNetWorth && !delete ? 1 : 0,
     BankAccountFields.mainAccount: mainAccount && !delete ? 1 : 0,
     BankAccountFields.order: delete ? 0 : order,
+    BankAccountFields.currency: currency,
     BaseEntityFields.createdAt: update || delete
         ? createdAt?.toIso8601String()
         : DateTime.now().toIso8601String(),
     BaseEntityFields.updatedAt: DateTime.now().toIso8601String(),
     if (delete) BaseEntityFields.deletedAt: DateTime.now().toIso8601String(),
   };
+
+  /// Symbol of this account's own currency, or [fallback] (the app's main
+  /// currency symbol) when the account has none set.
+  String currencySymbol(String fallback) =>
+      currency == null ? fallback : CurrencyCatalog.symbolFor(currency!);
+
+  /// Code of this account's own currency, or [fallback] when none is set.
+  String currencyCode(String fallback) => currency ?? fallback;
 }

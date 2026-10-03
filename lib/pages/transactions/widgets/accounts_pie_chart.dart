@@ -79,7 +79,7 @@ class AccountsPieChart extends ConsumerWidget {
                 ),
               Text(
                 (selectedIndex != -1)
-                    ? "${amounts[accounts[selectedIndex].id]!.toStringAsFixed(2)} ${currencyState.symbol}"
+                    ? "${amounts[accounts[selectedIndex].id]!.toStringAsFixed(2)} ${accounts[selectedIndex].currencySymbol(currencyState.symbol)}"
                     : "${total.toStringAsFixed(2)} ${currencyState.symbol}",
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color:

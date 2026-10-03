@@ -85,7 +85,9 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
   @override
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
-    final currency = ref.watch(currencyStateProvider);
+    final symbol = widget.account.currencySymbol(
+      ref.watch(currencyStateProvider).symbol,
+    );
     final textTheme = Theme.of(context).textTheme;
     final target = _target;
     final recorded = _recordedBalance;
@@ -193,7 +195,7 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
                       ),
                     ),
                   ),
-                  suffixText: currency.symbol,
+                  suffixText: symbol,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
                   ),
@@ -202,9 +204,9 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
               const SizedBox(height: Sizes.md),
               Text(
                 difference == null
-                    ? 'Recorded on that day: ${recorded.toCurrency()} ${currency.symbol}'
-                    : 'Recorded ${recorded.toCurrency()} ${currency.symbol} → '
-                          'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency()} ${currency.symbol}',
+                    ? 'Recorded on that day: ${recorded.toCurrency()} $symbol'
+                    : 'Recorded ${recorded.toCurrency()} $symbol → '
+                          'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency()} $symbol',
                 style: textTheme.bodySmall?.copyWith(
                   color: visual.textSecondary,
                   fontWeight: FontWeight.w600,

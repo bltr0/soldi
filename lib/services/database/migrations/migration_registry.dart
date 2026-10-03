@@ -24,6 +24,7 @@ import '0010_add_people_concerned.dart';
 import '0011_add_reimbursement_due.dart';
 import '0012_add_places.dart';
 import '0013_place_city_country.dart';
+import '0014_account_currency_transfer_fees.dart';
 
 import '../migration_base.dart';
 
@@ -48,6 +49,7 @@ List<Migration> getMigrations() {
     AddReimbursementDue(),
     AddPlaces(),
     AddPlaceCityCountry(),
+    AccountCurrencyAndTransferFees(),
   ];
 }
 

@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../model/transaction.dart';
-import '../../../providers/currency_provider.dart';
 import '../../../providers/transactions_provider.dart';
+import '../../../ui/account_currency.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
@@ -110,7 +110,7 @@ class _DueTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
-    final symbol = ref.watch(currencyStateProvider).symbol;
+    final symbol = ref.accountSymbol(transaction.idBankAccount);
     final title = transaction.note?.trim().isNotEmpty == true
         ? transaction.note!.trim()
         : (transaction.categoryName ?? 'Payment');

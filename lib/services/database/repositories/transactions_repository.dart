@@ -264,6 +264,58 @@ class TransactionsRepository {
     );
   }
 
+  /// Net change of net worth per month (`month`, `change`) between [from]
+  /// (inclusive) and [to] (exclusive), over accounts that count for net worth.
+  ///
+  /// Balance adjustments (reconciliations) are left out: they correct a
+  /// balance that was already wrong, so they are not money earned or spent
+  /// in that month. Transfers count only where they cross into or out of
+  /// counted accounts, and their fee always counts as money lost.
+  Future<List<Map<String, Object?>>> monthlyNetWorthChange({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final db = await _sossoldiDB.database;
+    String counted(String alias) =>
+        "($alias.${BankAccountFields.countNetWorth} = 1 "
+        "AND $alias.${BankAccountFields.deletedAt} IS NULL)";
+    const notReconciliation =
+        "IFNULL(t.note, '') != 'Reconciliation'";
+
+    return db.rawQuery(
+      '''
+      SELECT
+        strftime('%Y-%m', t.${TransactionFields.date}) as month,
+        SUM(CASE
+          WHEN t.${TransactionFields.type} = 'IN' AND $notReconciliation AND ${counted('b1')}
+            THEN t.${TransactionFields.amount}
+          WHEN t.${TransactionFields.type} = 'OUT' AND $notReconciliation AND ${counted('b1')}
+            THEN -t.${TransactionFields.amount}
+          WHEN t.${TransactionFields.type} = 'TRSF' AND ${counted('b1')} AND IFNULL(${counted('b2')}, 0)
+            THEN IFNULL(t.${TransactionFields.amountTransfer}, t.${TransactionFields.amount})
+                 - t.${TransactionFields.amount} - IFNULL(t.${TransactionFields.fee}, 0)
+          WHEN t.${TransactionFields.type} = 'TRSF' AND ${counted('b1')}
+            THEN -(t.${TransactionFields.amount} + IFNULL(t.${TransactionFields.fee}, 0))
+          WHEN t.${TransactionFields.type} = 'TRSF' AND IFNULL(${counted('b2')}, 0)
+            THEN IFNULL(t.${TransactionFields.amountTransfer}, t.${TransactionFields.amount})
+          ELSE 0
+        END) as change
+      FROM "$transactionTable" t
+      JOIN $bankAccountTable b1
+        ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+      LEFT JOIN $bankAccountTable b2
+        ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
+      WHERE strftime('%Y-%m-%d', t.${TransactionFields.date}) >= ?
+        AND strftime('%Y-%m-%d', t.${TransactionFields.date}) < ?
+      GROUP BY month
+    ''',
+      [
+        from.toIso8601String().substring(0, 10),
+        to.toIso8601String().substring(0, 10),
+      ],
+    );
+  }
+
   Future<List> _transactionByFrequencyAndPeriod({
     int? accountId,
     Recurrence recurrence = Recurrence.daily,

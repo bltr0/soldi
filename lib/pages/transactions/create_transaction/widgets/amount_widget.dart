@@ -23,6 +23,9 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
   Widget build(BuildContext context) {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
     final currencyState = ref.watch(currencyStateProvider);
+    final account = ref.watch(selectedBankAccountProvider);
+    final symbol = account?.currencySymbol(currencyState.symbol) ??
+        currencyState.symbol;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -35,7 +38,7 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
           hintText: "0",
           border: InputBorder.none,
           prefixText: ' ',
-          suffixText: currencyState.symbol,
+          suffixText: symbol,
           suffixStyle: Theme.of(context).textTheme.headlineMedium!.copyWith(
             color: selectedType.toColor(
               brightness: Theme.of(context).brightness,

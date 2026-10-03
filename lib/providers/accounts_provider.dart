@@ -66,6 +66,7 @@ class Accounts extends _$Accounts {
     bool countNetWorth = true,
     bool mainAccount = false,
     num startingValue = 0,
+    String? currency,
   }) async {
     BankAccount account = BankAccount(
       name: name,
@@ -76,6 +77,7 @@ class Accounts extends _$Accounts {
       countNetWorth: countNetWorth,
       mainAccount: mainAccount,
       order: 0,
+      currency: currency,
     );
 
     state = const AsyncLoading();
@@ -93,6 +95,8 @@ class Accounts extends _$Accounts {
     bool? mainAccount,
     bool? countNetWorth,
     bool active = true,
+    bool updateCurrency = false,
+    String? currency,
   }) async {
     BankAccount account = ref
         .read(selectedAccountProvider)!
@@ -104,6 +108,7 @@ class Accounts extends _$Accounts {
           countNetWorth: countNetWorth,
           mainAccount: mainAccount,
         );
+    if (updateCurrency) account = account.copy(currency: currency);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       if (balance != null) {
@@ -250,15 +255,7 @@ Future<List<LedgerEntry>> accountLedger(Ref ref, int accountId) async {
   final entries = <LedgerEntry>[];
   for (final row in rows) {
     final transaction = Transaction.fromJson(row);
-    final delta = switch (transaction.type) {
-      TransactionType.income ||
-      TransactionType.adjustment => transaction.amount,
-      TransactionType.expense => -transaction.amount,
-      TransactionType.transfer =>
-        transaction.idBankAccountTransfer == accountId
-            ? transaction.amount
-            : -transaction.amount,
-    };
+    final delta = transaction.deltaFor(accountId);
     balance += delta;
     entries.add(
       LedgerEntry(

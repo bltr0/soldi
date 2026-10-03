@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../constants/constants.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
-import '../../../providers/currency_provider.dart';
+import '../../../ui/account_currency.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
@@ -40,7 +40,7 @@ class LedgerDayGroup extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
-    final currency = ref.watch(currencyStateProvider);
+    final symbol = ref.accountSymbol(accountId);
     final net = day.net;
     final netColor = net > 0
         ? visual.positive
@@ -96,7 +96,7 @@ class LedgerDayGroup extends ConsumerWidget {
                       ),
                       TextSpan(
                         text:
-                            '${day.endBalance.toCurrency()} ${currency.symbol}',
+                            '${day.endBalance.toCurrency()} $symbol',
                       ),
                     ],
                   ),
@@ -141,7 +141,7 @@ class _LedgerTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final visual = context.dashboardTheme;
-    final currency = ref.watch(currencyStateProvider);
+    final symbol = ref.accountSymbol(accountId);
     final t = entry.transaction;
     final incoming = t.idBankAccountTransfer == accountId;
     final otherAccount = incoming
@@ -166,6 +166,8 @@ class _LedgerTile extends ConsumerWidget {
             TransactionType.transfer =>
               incoming
                   ? 'From ${otherAccount ?? '?'}'
+                  : t.transferFee > 0
+                  ? 'To ${otherAccount ?? '?'} · fee ${t.transferFee.toCurrency()} $symbol'
                   : 'To ${otherAccount ?? '?'}',
             TransactionType.adjustment => 'Adjustment',
             TransactionType.income ||
@@ -225,7 +227,7 @@ class _LedgerTile extends ConsumerWidget {
         ),
         trailing: BlurWidget(
           child: Text(
-            '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency()} ${currency.symbol}',
+            '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency()} $symbol',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: amountColor,
               fontSize: 15,

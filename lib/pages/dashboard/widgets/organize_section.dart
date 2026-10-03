@@ -7,8 +7,8 @@ import '../../../constants/style.dart';
 import '../../../model/category_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/categories_provider.dart';
-import '../../../providers/currency_provider.dart';
 import '../../../providers/transactions_provider.dart';
+import '../../../ui/account_currency.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
@@ -329,7 +329,7 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = ref.watch(currencyStateProvider);
+    final symbol = ref.accountSymbol(transaction.idBankAccount);
     final visual = context.dashboardTheme;
     final signedAmount = transaction.type == TransactionType.expense
         ? "-${transaction.amount.toCurrency()}"
@@ -431,7 +431,7 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
                       BlurWidget(
                         sigma: 16,
                         child: Text(
-                          "$signedAmount ${currency.symbol}",
+                          "$signedAmount $symbol",
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: amountColor,

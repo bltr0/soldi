@@ -1,4 +1,5 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart' show DateUtils;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../services/database/repositories/transactions_repository.dart';
@@ -61,27 +62,59 @@ Future<DashboardSnapshot> dashboard(Ref ref) async {
     (total, row) => total + _number(row['expense']),
   );
 
+  final now = DateTime.now();
+  final isCurrentMonth = month.year == now.year && month.month == now.month;
+  final previous = DateTime(month.year, month.month - 1);
+
   return DashboardSnapshot(
     income: income,
     expense: expense,
-    currentMonth: _toCumulativeSpots(currentMonth),
-    previousMonth: _toCumulativeSpots(previousMonth),
+    // The selected month runs up to today when it is the current month, and
+    // to its last day otherwise; the previous month is always complete.
+    currentMonth: _toCumulativeSpots(
+      currentMonth,
+      lastDay: isCurrentMonth
+          ? now.day
+          : DateUtils.getDaysInMonth(month.year, month.month),
+    ),
+    previousMonth: _toCumulativeSpots(
+      previousMonth,
+      lastDay: DateUtils.getDaysInMonth(previous.year, previous.month),
+    ),
   );
 }
 
 num _number(Object? value) =>
     value is num ? value : num.tryParse('$value') ?? 0;
 
-List<FlSpot> _toCumulativeSpots(List<dynamic> source) {
-  final rows = source.map((row) => Map<String, Object?>.from(row)).toList()
-    ..sort((a, b) => '${a['day']}'.compareTo('${b['day']}'));
-  double runningTotal = 0;
+/// Running income minus expenses for every day from the 1st to [lastDay].
+///
+/// Days without transactions keep the previous total, and the line starts
+/// from zero: before, days ahead of the first transaction took that day's
+/// total, and the line stopped at the last transaction instead of today or
+/// the month's end.
+List<FlSpot> _toCumulativeSpots(List<dynamic> source, {required int lastDay}) {
+  if (source.isEmpty) return const [];
+  final netByDay = <int, num>{};
+  for (final raw in source) {
+    final row = Map<String, Object?>.from(raw as Map);
+    final day = DateTime.tryParse('${row['day']}')?.day;
+    if (day == null) continue;
+    netByDay[day] =
+        (netByDay[day] ?? 0) + _number(row['income']) - _number(row['expense']);
+  }
+  if (netByDay.isEmpty) return const [];
 
-  return rows
-      .map((row) {
-        runningTotal += _number(row['income']) - _number(row['expense']);
-        final day = DateTime.tryParse('${row['day']}')?.day ?? 1;
-        return FlSpot(day - 1.0, double.parse(runningTotal.toStringAsFixed(2)));
-      })
-      .toList(growable: false);
+  // Future-dated transactions in the current month still show up.
+  final end = [lastDay, ...netByDay.keys].reduce((a, b) => a > b ? a : b);
+  num runningTotal = 0;
+  return [
+    for (var day = 1; day <= end; day++)
+      FlSpot(
+        day - 1.0,
+        double.parse(
+          (runningTotal += netByDay[day] ?? 0).toStringAsFixed(2),
+        ),
+      ),
+  ];
 }

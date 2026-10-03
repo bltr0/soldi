@@ -38,36 +38,34 @@ class Statistics extends _$Statistics {
   }
 
   Future<void> updateStatistics() async {
-    final currentYearMontlyTransaction = await ref
+    final now = DateTime.now();
+    final changes = await ref
         .read(transactionsRepositoryProvider)
-        .currentYearMontlyTransactions();
+        .monthlyNetWorthChange(
+          from: DateTime(now.year, 1, 1),
+          to: DateTime(now.year, now.month + 1, 1),
+        );
+    final changeByMonth = <int, double>{
+      for (final row in changes)
+        int.parse('${row['month']}'.substring(5)) - 1:
+            (row['change'] as num? ?? 0).toDouble(),
+    };
 
-    final accountsAsync = ref.read(accountsProvider);
-    final accounts = accountsAsync.value ?? [];
-    double currentBalance = accounts
+    final accounts = await ref.read(accountsProvider.future);
+    final currentBalance = accounts
         .where((account) => account.countNetWorth && account.deletedAt == null)
         .fold(0.0, (sum, account) => sum + (account.total ?? 0));
 
-    List<FlSpot> spots = [];
-    double runningBalance = currentBalance;
-
-    final reversedTransactions = currentYearMontlyTransaction.reversed.toList();
-
-    for (int i = 0; i < reversedTransactions.length; i++) {
-      final monthData = reversedTransactions[i];
-      final monthIndex = double.parse(monthData['month'].substring(5)) - 1;
-
+    // Walk back from today's net worth: the end of each earlier month is the
+    // end of the next one minus what changed during it. Every month up to
+    // the current one gets a point, including months without transactions.
+    final spots = <FlSpot>[];
+    var runningBalance = currentBalance;
+    for (var month = now.month - 1; month >= 0; month--) {
       spots.add(
-        FlSpot(monthIndex, double.parse(runningBalance.toStringAsFixed(2))),
+        FlSpot(month.toDouble(), double.parse(runningBalance.toStringAsFixed(2))),
       );
-
-      if (i < reversedTransactions.length - 1) {
-        runningBalance =
-            runningBalance -
-            monthData['income'] +
-            monthData['expense'] -
-            (monthData['adjustment'] ?? 0);
-      }
+      runningBalance -= changeByMonth[month] ?? 0;
     }
 
     spots.sort((a, b) => a.x.compareTo(b.x));

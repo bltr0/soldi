@@ -11,6 +11,7 @@ import '../../../providers/currency_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../services/database/repositories/place_repository.dart';
 import '../../transactions/create_transaction/widgets/place_search_sheet.dart';
+import '../../transactions/create_transaction/widgets/transfer_details_fields.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/formatters/decimal_text_input_formatter.dart';
@@ -52,6 +53,7 @@ class _TransactionDetailsDialogState
   int? _placeId;
   Place? _place;
   bool _saving = false;
+  late final TransferDetailsController _transfer;
 
   Transaction get _original => widget.transaction;
 
@@ -69,6 +71,8 @@ class _TransactionDetailsDialogState
     _people = _original.peopleConcerned;
     _reimbursementDue = _original.reimbursementDue;
     _placeId = _original.idPlace;
+    _transfer = TransferDetailsController(initial: _original)
+      ..addListener(_onTransferChanged);
     final placeId = _placeId;
     if (placeId != null) {
       Future.microtask(() async {
@@ -84,7 +88,26 @@ class _TransactionDetailsDialogState
   void dispose() {
     _noteController.dispose();
     _amountController.dispose();
+    _transfer.dispose();
     super.dispose();
+  }
+
+  void _onTransferChanged() {
+    if (mounted) setState(() {});
+  }
+
+  BankAccount? _account(int? id) => id == null
+      ? null
+      : (ref.read(accountsProvider).value ?? const <BankAccount>[])
+            .where((a) => a.id == id)
+            .firstOrNull;
+
+  bool get _isCrossCurrency {
+    final main = ref.read(currencyStateProvider).code;
+    final from = _account(_accountId);
+    final to = _account(_toAccountId);
+    if (from == null || to == null) return false;
+    return from.currencyCode(main) != to.currencyCode(main);
   }
 
   num? get _amount => num.tryParse(_amountController.text.replaceAll(',', '.'));
@@ -95,6 +118,10 @@ class _TransactionDetailsDialogState
     if (_type != TransactionType.adjustment && amount < 0) return false;
     if (_type == TransactionType.transfer &&
         (_toAccountId == null || _toAccountId == _accountId)) {
+      return false;
+    }
+    if (_type == TransactionType.transfer &&
+        !_transfer.isValid(crossCurrency: _isCrossCurrency)) {
       return false;
     }
     return true;
@@ -127,6 +154,11 @@ class _TransactionDetailsDialogState
         _type == _original.type &&
         _type != TransactionType.transfer &&
         _type != TransactionType.adjustment;
+    final transfer = _transfer.values(
+      amount: _amount,
+      crossCurrency: _isCrossCurrency,
+    );
+    final isTransfer = _type == TransactionType.transfer;
     final updated = _original.copy(
       note: _noteController.text.trim(),
       amount: _amount,
@@ -140,6 +172,9 @@ class _TransactionDetailsDialogState
       peopleConcerned: _type == TransactionType.expense ? _people : 1,
       reimbursementDue: _type == TransactionType.expense && _reimbursementDue,
       idPlace: _type == TransactionType.expense ? _placeId : null,
+      fee: isTransfer ? transfer.fee : null,
+      feePercent: isTransfer ? transfer.feePercent : null,
+      amountTransfer: isTransfer ? transfer.amountTransfer : null,
     );
     await ref.read(transactionsProvider.notifier).saveTransaction(updated);
     if (mounted) Navigator.of(context).pop();
@@ -259,7 +294,13 @@ class _TransactionDetailsDialogState
                       decoration: _decoration(
                         context,
                         hint: '0.00',
-                      ).copyWith(suffixText: currency.symbol),
+                      ).copyWith(
+                        suffixText:
+                            _account(_accountId)?.currencySymbol(
+                              currency.symbol,
+                            ) ??
+                            currency.symbol,
+                      ),
                     ),
                   ),
                   _field(
@@ -292,6 +333,28 @@ class _TransactionDetailsDialogState
                         accounts,
                         _toAccountId,
                         (id) => setState(() => _toAccountId = id),
+                      ),
+                    ),
+                  if (_type == TransactionType.transfer)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Sizes.lg),
+                      child: TransferDetailsFields(
+                        controller: _transfer,
+                        amount: _amount,
+                        padding: EdgeInsets.zero,
+                        senderSymbol:
+                            _account(_accountId)?.currencySymbol(
+                              currency.symbol,
+                            ) ??
+                            currency.symbol,
+                        receiverSymbol:
+                            _account(_toAccountId)?.currencySymbol(
+                              currency.symbol,
+                            ) ??
+                            currency.symbol,
+                        crossCurrency: _isCrossCurrency,
+                        senderName: _account(_accountId)?.name,
+                        receiverName: _account(_toAccountId)?.name,
                       ),
                     ),
                   if (_type == TransactionType.expense) ...[

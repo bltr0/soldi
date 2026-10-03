@@ -23,6 +23,10 @@ class LineChartWidget extends StatefulWidget {
   // Used to decide the bottom label
   final Period period;
   final int? daysInMonth;
+
+  /// Month the first line belongs to (the second line is the month before).
+  /// Used to date tooltips; defaults to the current month.
+  final DateTime? referenceMonth;
   final int currentMonthDays = DateUtils.getDaysInMonth(
     DateTime.now().year,
     DateTime.now().month,
@@ -50,6 +54,7 @@ class LineChartWidget extends StatefulWidget {
     this.height,
     this.period = Period.month,
     this.daysInMonth,
+    this.referenceMonth,
     this.nXLabel = 10,
     double? minY,
   }) : lineData = enableGapFilling ? fillGaps(lineData) : lineData,
@@ -296,7 +301,7 @@ class _LineChartSample2State extends State<LineChartWidget> {
             }
 
             return touchedBarSpots.map((spot) {
-              final now = DateTime.now();
+              final now = widget.referenceMonth ?? DateTime.now();
               final date = widget.period == Period.month
                   ? DateTime(
                       now.year,

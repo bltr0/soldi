@@ -67,7 +67,7 @@ class AccountsCard extends ConsumerWidget {
                           BlurWidget(
                             sigma: 12,
                             child: Text(
-                              "${account.total?.toCurrency()} ${currencyState.symbol}",
+                              "${account.total?.toCurrency()} ${account.currencySymbol(currencyState.symbol)}",
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(
                                     color: visual.textPrimary,

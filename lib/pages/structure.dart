@@ -51,7 +51,10 @@ class _StructureState extends ConsumerState<Structure> {
         backgroundColor: Colors.transparent,
         resizeToAvoidBottomInset: false,
         extendBody: true,
-        extendBodyBehindAppBar: isDashboard,
+        // Keep the body's top edge fixed for every tab. Toggling this per tab
+        // moved the body by the bar's height in the same frame the cross-fade
+        // started, so the outgoing page jumped while it faded.
+        extendBodyBehindAppBar: false,
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(_topBarHeight),
           child: _TopControls(
@@ -117,6 +120,9 @@ class _TopControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 260);
     return SafeArea(
       bottom: false,
       child: Center(
@@ -133,9 +139,7 @@ class _TopControls extends StatelessWidget {
               children: [
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 260),
+                    duration: duration,
                     layoutBuilder: (current, previous) => Stack(
                       alignment: Alignment.centerLeft,
                       children: [...previous, ?current],
@@ -160,14 +164,23 @@ class _TopControls extends StatelessWidget {
                           ),
                   ),
                 ),
-                if (title != null) ...[
-                  const SizedBox(width: Sizes.sm),
-                  _DashboardAction(
-                    label: 'Search transactions',
-                    icon: Icons.search_rounded,
-                    onTap: onSearch,
-                  ),
-                ],
+                // Animate the search button in and out so the title slot
+                // resizes smoothly instead of snapping by the button's width.
+                AnimatedSize(
+                  duration: duration,
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerRight,
+                  child: title == null
+                      ? const SizedBox(height: 52)
+                      : Padding(
+                          padding: const EdgeInsets.only(left: Sizes.sm),
+                          child: _DashboardAction(
+                            label: 'Search transactions',
+                            icon: Icons.search_rounded,
+                            onTap: onSearch,
+                          ),
+                        ),
+                ),
                 const SizedBox(width: Sizes.sm),
                 _DashboardAction(
                   label: isVisible ? 'Hide amounts' : 'Show amounts',

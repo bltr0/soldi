@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../constants/constants.dart';
 import '../../model/transaction.dart';
 import '../../providers/currency_provider.dart';
+import '../account_currency.dart';
 import '../../providers/transactions_provider.dart';
 import '../device.dart';
 import '../extensions.dart';
@@ -153,9 +154,16 @@ class TransactionTile extends ConsumerWidget {
   final bool ignoreBlur;
   final Transaction transaction;
 
+  String _transferSubtitle(WidgetRef ref, String senderSymbol) =>
+      _transferSubtitleFor(
+        transaction,
+        senderSymbol,
+        ref.accountSymbol(transaction.idBankAccountTransfer),
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currencyState = ref.watch(currencyStateProvider);
+    final symbol = ref.accountSymbol(transaction.idBankAccount);
     final visual = context.dashboardTheme;
     return Material(
       color: Colors.transparent,
@@ -205,7 +213,7 @@ class TransactionTile extends ConsumerWidget {
         ),
         subtitle: Text(
           switch (transaction.type) {
-            TransactionType.transfer => "Transfer",
+            TransactionType.transfer => _transferSubtitle(ref, symbol),
             TransactionType.adjustment => "Adjustment",
             TransactionType.income || TransactionType.expense =>
               transaction.categoryName ?? "Uncategorized",
@@ -244,7 +252,7 @@ class TransactionTile extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    currencyState.symbol,
+                    symbol,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: transaction.type.toColor(
@@ -270,6 +278,24 @@ class TransactionTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "Transfer", plus the received amount when it differs and the fee.
+String _transferSubtitleFor(
+  Transaction transaction,
+  String senderSymbol,
+  String receiverSymbol,
+) {
+  final parts = <String>['Transfer'];
+  if (transaction.amountTransfer != null) {
+    parts.add(
+      'receives ${transaction.amountIn.toCurrency()} $receiverSymbol',
+    );
+  }
+  if (transaction.transferFee > 0) {
+    parts.add('fee ${transaction.transferFee.toCurrency()} $senderSymbol');
+  }
+  return parts.join(' · ');
 }
 
 class TransactionTitle extends ConsumerWidget {

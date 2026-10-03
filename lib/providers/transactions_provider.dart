@@ -243,6 +243,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     BankAccount? account,
     DateTime? date,
     TransactionType? type,
+    num? fee,
+    num? feePercent,
+    num? amountTransfer,
   }) async {
     state = const AsyncLoading();
 
@@ -278,6 +281,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       recurring: account != null
           ? false
           : ref.read(selectedRecurringPayProvider),
+      fee: t == TransactionType.transfer ? fee : null,
+      feePercent: t == TransactionType.transfer ? feePercent : null,
+      amountTransfer: t == TransactionType.transfer ? amountTransfer : null,
     );
 
     state = await AsyncValue.guard(() async {
@@ -307,9 +313,12 @@ class TransactionsNotifier extends _$TransactionsNotifier {
   Future<void> updateTransaction(
     Transaction transaction,
     num amount,
-    String label, [
+    String label, {
     int? recurringTransactionId,
-  ]) async {
+    num? fee,
+    num? feePercent,
+    num? amountTransfer,
+  }) async {
     final type = ref.read(selectedTransactionTypeProvider);
     final date = ref.read(selectedDateProvider);
     final bankAccount = ref.read(selectedBankAccountProvider)!;
@@ -340,6 +349,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           : null,
       idRecurringTransaction: recurringTransactionId,
       recurring: recurringTransactionId != null ? true : false,
+      fee: type == TransactionType.transfer ? fee : null,
+      feePercent: type == TransactionType.transfer ? feePercent : null,
+      amountTransfer: type == TransactionType.transfer ? amountTransfer : null,
     );
 
     state = const AsyncLoading();

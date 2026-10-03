@@ -7,6 +7,7 @@ import '../../../model/currency.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../providers/currency_provider.dart';
+import '../../../ui/account_currency.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/widgets/rounded_icon.dart';
@@ -287,7 +288,7 @@ class TransactionsList extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              "${amount.toCurrency()} ${currency.symbol}",
+                              "${amount.toCurrency()} ${ref.accountSymbol(transaction.idBankAccount)}",
                               style: Theme.of(context).textTheme.bodyLarge
                                   ?.copyWith(color: amount.toColor()),
                             ),

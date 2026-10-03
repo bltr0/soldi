@@ -26,6 +26,9 @@ class TransactionFields extends BaseEntityFields {
   static String idPlace = 'idPlace';
   static String recurring = 'recurring';
   static String idRecurringTransaction = 'idRecurringTransaction';
+  static String fee = 'fee';
+  static String feePercent = 'feePercent';
+  static String amountTransfer = 'amountTransfer';
   static String createdAt = BaseEntityFields.getCreatedAt;
   static String updatedAt = BaseEntityFields.getUpdatedAt;
 
@@ -43,6 +46,9 @@ class TransactionFields extends BaseEntityFields {
     idPlace,
     recurring,
     idRecurringTransaction,
+    fee,
+    feePercent,
+    amountTransfer,
     BaseEntityFields.createdAt,
     BaseEntityFields.updatedAt,
   ];
@@ -127,6 +133,17 @@ class Transaction extends BaseEntity {
   final bool recurring;
   final int? idRecurringTransaction;
 
+  /// Transfer only: fee charged to the sending account, in its currency.
+  /// It leaves the sender but never reaches the receiver.
+  final num? fee;
+
+  /// Transfer only: the percentage [fee] was entered as, if any.
+  final num? feePercent;
+
+  /// Transfer only: amount credited to the receiving account, in its
+  /// currency. Null means the receiver got exactly [amount].
+  final num? amountTransfer;
+
   const Transaction({
     super.id,
     required this.date,
@@ -147,6 +164,9 @@ class Transaction extends BaseEntity {
     this.idPlace,
     required this.recurring,
     this.idRecurringTransaction,
+    this.fee,
+    this.feePercent,
+    this.amountTransfer,
     super.createdAt,
     super.updatedAt,
   });
@@ -154,6 +174,26 @@ class Transaction extends BaseEntity {
   /// Account reset: not cashflow. Includes legacy CSV rows still stored as IN/OUT.
   bool get isBalanceReset =>
       type == TransactionType.adjustment || note == 'Reconciliation';
+
+  /// Fee paid on a transfer (0 for every other type).
+  num get transferFee =>
+      type == TransactionType.transfer ? (fee ?? 0) : 0;
+
+  /// What the sending account loses on a transfer: amount sent plus fee.
+  num get amountOut => amount + transferFee;
+
+  /// What the receiving account gains on a transfer, in its own currency.
+  num get amountIn => amountTransfer ?? amount;
+
+  /// Signed effect of this transaction on [accountId]'s balance.
+  num deltaFor(int accountId) => switch (type) {
+    TransactionType.income || TransactionType.adjustment => amount,
+    TransactionType.expense => -amount,
+    TransactionType.transfer =>
+      idBankAccountTransfer == accountId && idBankAccount != accountId
+          ? amountIn
+          : -amountOut,
+  };
 
   /// Equal split of what the other people still owe. A 4 payment shared by
   /// 2 people is due 2, because one share is yours.
@@ -179,6 +219,9 @@ class Transaction extends BaseEntity {
     Object? idPlace = _unset,
     bool? recurring,
     int? idRecurringTransaction,
+    Object? fee = _unset,
+    Object? feePercent = _unset,
+    Object? amountTransfer = _unset,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Transaction(
@@ -198,6 +241,11 @@ class Transaction extends BaseEntity {
     recurring: recurring ?? this.recurring,
     idRecurringTransaction:
         idRecurringTransaction ?? this.idRecurringTransaction,
+    fee: fee == _unset ? this.fee : fee as num?,
+    feePercent: feePercent == _unset ? this.feePercent : feePercent as num?,
+    amountTransfer: amountTransfer == _unset
+        ? this.amountTransfer
+        : amountTransfer as num?,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -226,6 +274,9 @@ class Transaction extends BaseEntity {
       recurring: json[TransactionFields.recurring] == 1,
       idRecurringTransaction:
           json[TransactionFields.idRecurringTransaction] as int?,
+      fee: json[TransactionFields.fee] as num?,
+      feePercent: json[TransactionFields.feePercent] as num?,
+      amountTransfer: json[TransactionFields.amountTransfer] as num?,
       createdAt: DateTime.parse(json[BaseEntityFields.createdAt] as String),
       updatedAt: DateTime.parse(json[BaseEntityFields.updatedAt] as String),
     );
@@ -250,6 +301,13 @@ class Transaction extends BaseEntity {
       TransactionFields.idPlace: idPlace,
       TransactionFields.recurring: recurring ? 1 : 0,
       TransactionFields.idRecurringTransaction: idRecurringTransaction,
+      TransactionFields.fee: type == TransactionType.transfer ? fee : null,
+      TransactionFields.feePercent: type == TransactionType.transfer
+          ? feePercent
+          : null,
+      TransactionFields.amountTransfer: type == TransactionType.transfer
+          ? amountTransfer
+          : null,
       BaseEntityFields.createdAt: createdAtDate,
       BaseEntityFields.updatedAt: DateTime.now().toIso8601String(),
     };

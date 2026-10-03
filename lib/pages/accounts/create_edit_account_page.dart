@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/accounts_provider.dart';
 import '../../constants/constants.dart';
 import '../../constants/style.dart';
+import '../../model/currency_catalog.dart';
 import '../../providers/currency_provider.dart';
 import '../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../ui/device.dart';
 import '../../ui/extensions.dart';
+import '../../ui/widgets/currency_picker_sheet.dart';
 import 'widgets/confirm_account_deletion_dialog.dart';
 
 class CreateEditAccountPage extends ConsumerStatefulWidget {
@@ -25,6 +27,9 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
   bool countNetWorth = true;
   bool mainAccount = false;
 
+  /// ISO code of the account's own currency; null uses the app currency.
+  String? accountCurrency;
+
   bool showAccountIcons = false;
 
   @override
@@ -37,6 +42,7 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
       accountColor = selectedAccount.color;
       countNetWorth = selectedAccount.countNetWorth;
       mainAccount = selectedAccount.mainAccount;
+      accountCurrency = selectedAccount.currency;
     }
     super.initState();
   }
@@ -52,6 +58,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
   Widget build(BuildContext context) {
     final selectedAccount = ref.watch(selectedAccountProvider);
     final currencyState = ref.watch(currencyStateProvider);
+    final accountCurrencyInfo = CurrencyCatalog.byCode(accountCurrency);
+    final balanceSymbol = accountCurrency == null
+        ? currencyState.symbol
+        : CurrencyCatalog.symbolFor(accountCurrency!);
 
     return Scaffold(
       appBar: AppBar(
@@ -99,6 +109,8 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                         balance: balanceController.text.toNum(),
                         countNetWorth: countNetWorth,
                         mainAccount: mainAccount,
+                        updateCurrency: true,
+                        currency: accountCurrency,
                       );
                 } else {
                   await ref
@@ -110,6 +122,7 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                         countNetWorth: countNetWorth,
                         mainAccount: mainAccount,
                         startingValue: balanceController.text.toNum(),
+                        currency: accountCurrency,
                       );
                 }
                 if (context.mounted) Navigator.of(context).pop();
@@ -348,7 +361,7 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                     decoration: InputDecoration(
                       hintText:
                           "${selectedAccount == null ? "Initial" : "Current"} Balance",
-                      suffixText: currencyState.symbol,
+                      suffixText: balanceSymbol,
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -359,6 +372,60 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(
+                Sizes.lg,
+                Sizes.lg,
+                Sizes.lg,
+                0,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: Sizes.lg,
+                ),
+                title: Text(
+                  "CURRENCY",
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                subtitle: Text(
+                  accountCurrency == null
+                      ? "App currency (${currencyState.code} ${currencyState.symbol})"
+                      : "${accountCurrencyInfo?.name ?? accountCurrency} "
+                            "($accountCurrency $balanceSymbol)",
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () async {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  final choice = await showCurrencyPicker(
+                    context,
+                    selected: accountCurrency,
+                    mainLabel:
+                        "${currencyState.name} (${currencyState.code} ${currencyState.symbol})",
+                  );
+                  if (choice != null && mounted) {
+                    setState(() => accountCurrency = choice.code);
+                  }
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Sizes.lg + Sizes.xs,
+                Sizes.xs,
+                Sizes.lg,
+                0,
+              ),
+              child: Text(
+                "Display only: amounts in this account are shown in this "
+                "currency and never converted.",
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
             Container(
