@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../ui/widgets/rounded_icon.dart';
-import '../../../../constants/style.dart';
-import '../../../../providers/theme_provider.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../../ui/device.dart';
 
 class LabelListTile extends ConsumerWidget {
@@ -13,8 +12,6 @@ class LabelListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDarkMode = ref.watch(appThemeStateProvider).isDarkModeEnabled;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Sizes.lg,
@@ -28,13 +25,14 @@ class LabelListTile extends ConsumerWidget {
             icon: Icons.description,
             size: 18,
             padding: const EdgeInsets.all(Sizes.sm),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
+            backgroundColor: context.dashboardTheme.accent,
           ),
           const SizedBox(width: Sizes.md),
           Text(
             "Description",
             style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: context.dashboardTheme.textPrimary,
+              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(width: Sizes.lg),
@@ -42,16 +40,17 @@ class LabelListTile extends ConsumerWidget {
             child: TextField(
               controller: labelController,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: "Add a description",
+                hintStyle: TextStyle(
+                  color: context.dashboardTheme.textSecondary,
+                ),
               ),
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: isDarkMode
-                    ? grey3
-                    : Theme.of(context).colorScheme.secondary,
+                color: context.dashboardTheme.textPrimary,
               ),
             ),
           ),

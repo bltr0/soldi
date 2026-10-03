@@ -123,6 +123,38 @@ class _GeneralSettingsPageState extends ConsumerState<GeneralSettingsPage> {
             ),
             Row(
               children: [
+<<<<<<< Updated upstream
+=======
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Daily exchange rates",
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      Text(
+                        "Download rates from Frankfurter once a day when the app opens, to show other currencies in ${currencyState.code}. Off keeps everything offline.",
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value:
+                      ref.watch(fxSourceSettingProvider) ==
+                      FxSource.frankfurter,
+                  onChanged: (on) => ref
+                      .read(fxSourceSettingProvider.notifier)
+                      .set(on ? FxSource.frankfurter : FxSource.offline),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+>>>>>>> Stashed changes
                 Text(
                   "Require authentication",
                   style: Theme.of(context).textTheme.titleLarge!.copyWith(

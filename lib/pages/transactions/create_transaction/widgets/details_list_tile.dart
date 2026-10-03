@@ -1,8 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../constants/style.dart";
-import "../../../../providers/theme_provider.dart";
+import "../../../../ui/theme/dashboard_visual_theme.dart";
 import "../../../../ui/widgets/rounded_icon.dart";
 import "../../../../ui/device.dart";
 
@@ -22,8 +21,6 @@ class DetailsListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDarkMode = ref.watch(appThemeStateProvider).isDarkModeEnabled;
-
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
@@ -33,12 +30,13 @@ class DetailsListTile extends ConsumerWidget {
         icon: icon,
         size: 18,
         padding: const EdgeInsets.all(Sizes.sm),
-        backgroundColor: Theme.of(context).colorScheme.secondary,
+        backgroundColor: context.dashboardTheme.accent,
       ),
       title: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium!.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: context.dashboardTheme.textPrimary,
+          fontWeight: FontWeight.w700,
         ),
       ),
       trailing: Row(
@@ -53,16 +51,14 @@ class DetailsListTile extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: isDarkMode
-                    ? grey3
-                    : Theme.of(context).colorScheme.secondary,
+                color: context.dashboardTheme.textSecondary,
               ),
             ),
           ),
           const SizedBox(width: Sizes.xs),
           Icon(
             Icons.chevron_right,
-            color: isDarkMode ? grey3 : Theme.of(context).colorScheme.secondary,
+            color: context.dashboardTheme.textSecondary,
           ),
         ],
       ),

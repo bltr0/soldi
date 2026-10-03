@@ -7,6 +7,7 @@ import '../../../model/category_transaction.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../ui/device.dart';
 import 'widgets/category_icon_color_selector.dart';
+import 'widgets/confirm_category_deletion_dialog.dart';
 
 class CreateEditSubcategoryPage extends ConsumerStatefulWidget {
   final CategoryTransaction category;
@@ -164,14 +165,33 @@ class _CreateEditSubcategoryPage
                 width: double.infinity,
                 padding: const EdgeInsets.all(Sizes.lg),
                 child: TextButton.icon(
-                  onPressed: () => ref
-                      .read(categoriesProvider.notifier)
-                      .removeCategory(selectedSubcategory)
-                      .whenComplete(() {
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      }),
+                  onPressed: () async {
+                    final count = await ref
+                        .read(categoriesProvider.notifier)
+                        .transactionCount(selectedSubcategory);
+                    if (!context.mounted) return;
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => ConfirmCategoryDeletionDialog(
+                        category: selectedSubcategory,
+                        transactionCount: count,
+                        onPressed: (deleteTransactions) => ref
+                            .read(categoriesProvider.notifier)
+                            .removeCategory(
+                              selectedSubcategory,
+                              deleteTransactions: deleteTransactions,
+                            )
+                            .whenComplete(() {
+                              if (dialogContext.mounted) {
+                                Navigator.of(dialogContext).pop();
+                              }
+                              if (context.mounted) {
+                                Navigator.of(context).pop();
+                              }
+                            }),
+                      ),
+                    );
+                  },
                   style: TextButton.styleFrom(
                     side: const BorderSide(color: red, width: 1),
                   ),

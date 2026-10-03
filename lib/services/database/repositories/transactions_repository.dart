@@ -331,6 +331,44 @@ class TransactionsRepository {
     );
   }
 
+  /// Number of transactions filed under any of [categoryIds].
+  Future<int> countByCategories(List<int> categoryIds) async {
+    if (categoryIds.isEmpty) return 0;
+    final db = await _sossoldiDB.database;
+    final marks = List.filled(categoryIds.length, '?').join(',');
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) as c FROM "$transactionTable" '
+      'WHERE ${TransactionFields.idCategory} IN ($marks)',
+      categoryIds,
+    );
+    return (rows.first['c'] as int?) ?? 0;
+  }
+
+  /// Keeps the transactions but takes them out of [categoryIds]; they show
+  /// up again in Organize as uncategorized.
+  Future<void> clearCategories(List<int> categoryIds) async {
+    if (categoryIds.isEmpty) return;
+    final db = await _sossoldiDB.database;
+    final marks = List.filled(categoryIds.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE "$transactionTable" SET ${TransactionFields.idCategory} = NULL '
+      'WHERE ${TransactionFields.idCategory} IN ($marks)',
+      categoryIds,
+    );
+  }
+
+  /// Deletes every transaction filed under any of [categoryIds].
+  Future<void> deleteByCategories(List<int> categoryIds) async {
+    if (categoryIds.isEmpty) return;
+    final db = await _sossoldiDB.database;
+    final marks = List.filled(categoryIds.length, '?').join(',');
+    await db.rawDelete(
+      'DELETE FROM "$transactionTable" '
+      'WHERE ${TransactionFields.idCategory} IN ($marks)',
+      categoryIds,
+    );
+  }
+
   Future<int> deleteById(int id) async {
     final db = await _sossoldiDB.database;
 

@@ -17,6 +17,11 @@ import '../pages/planning/widget/edit_recurring_transaction.dart';
 import '../pages/search/search_page.dart';
 import '../pages/settings/backup/backup_page.dart';
 import '../pages/settings/general/general_settings_page.dart';
+<<<<<<< Updated upstream
+=======
+import '../pages/settings/infos/collaborators_page.dart';
+import '../ui/widgets/themed_page.dart';
+>>>>>>> Stashed changes
 import '../pages/settings/infos/privacy_policy_page.dart';
 import '../pages/settings/notifications/notifications_settings.dart';
 import '../pages/settings/settings_page.dart';
@@ -90,6 +95,10 @@ Route<dynamic> makeRoute(RouteSettings settings) {
 }
 
 PageRoute buildAdaptiveRoute(String? routeName, Widget viewToShow) {
+  // The shell and onboarding paint their own backdrop.
+  if (routeName != '/' && routeName != '/onboarding') {
+    viewToShow = ThemedPage(child: viewToShow);
+  }
   if (Platform.isAndroid) {
     return _materialPageRoute(routeName, viewToShow);
   }

@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../constants/constants.dart';
-import '../../constants/style.dart';
 import '../../ui/widgets/alert_dialog.dart';
 import '../../ui/widgets/default_card.dart';
 import '../../services/database/sossoldi_database.dart';
@@ -21,6 +20,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/statistics_provider.dart';
 import '../../providers/transactions_provider.dart';
 import '../../ui/device.dart';
+import '../../ui/theme/dashboard_visual_theme.dart';
 
 List<List<Object?>> get settingsOptions => [
   [
@@ -129,7 +129,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           List setting = settingsOptions[i];
           if (setting[3] == null) return Container();
           return Padding(
-            padding: const EdgeInsets.only(bottom: Sizes.lg),
+            padding: const EdgeInsets.only(bottom: Sizes.md),
             child: DefaultCard(
               onTap: () {
                 if (setting[3] != null) {
@@ -145,15 +145,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: Row(
                 children: [
                   Container(
-                    decoration: const BoxDecoration(
-                      color: blue5,
-                      shape: BoxShape.circle,
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: context.dashboardTheme.accent.withValues(
+                        alpha: 0.14,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    padding: const EdgeInsets.all(Sizes.sm),
                     child: Icon(
                       setting[0] as IconData,
-                      size: 30.0,
-                      color: white,
+                      size: 24.0,
+                      color: context.dashboardTheme.accent,
                     ),
                   ),
                   const SizedBox(width: Sizes.md),
@@ -164,22 +167,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       children: [
                         Text(
                           setting[1].toString(),
-                          style: Theme.of(context).textTheme.titleLarge!
+                          style: Theme.of(context).textTheme.titleMedium!
                               .copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: context.dashboardTheme.textPrimary,
+                                fontWeight: FontWeight.w800,
                               ),
                         ),
                         Text(
                           setting[2].toString(),
                           style: Theme.of(context).textTheme.bodySmall!
                               .copyWith(
-                                color: Theme.of(context).colorScheme.primary,
+                                color: context.dashboardTheme.textSecondary,
                               ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 2,
                         ),
                       ],
                     ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: context.dashboardTheme.textSecondary,
                   ),
                 ],
               ),
@@ -196,7 +204,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Text(
                 'App version: $version',
                 style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
+                  color: context.dashboardTheme.textSecondary,
                 ),
               ),
               Row(
@@ -205,7 +213,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.github),
                     onPressed: () => launchUrl(Uri.parse(githubUrl)),
-                    color: Theme.of(context).colorScheme.primary,
+                    color: context.dashboardTheme.textSecondary,
                   ),
                 ],
               ),

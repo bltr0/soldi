@@ -23,6 +23,12 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
   Widget build(BuildContext context) {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
     final currencyState = ref.watch(currencyStateProvider);
+<<<<<<< Updated upstream
+=======
+    final account = ref.watch(selectedBankAccountProvider);
+    final symbol =
+        account?.currencySymbol(currencyState.symbol) ?? currencyState.symbol;
+>>>>>>> Stashed changes
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -47,7 +53,17 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
           // Leaving the default behaviour on Android which seems to be working as expeceted.
           signed: Platform.isAndroid,
         ),
+<<<<<<< Updated upstream
         inputFormatters: [DecimalTextInputFormatter(decimalDigits: 2)],
+=======
+        inputFormatters: [
+          DecimalTextInputFormatter(
+            decimalDigits: CurrencyCatalog.decimalsFor(
+              account?.currencyCode(currencyState.code) ?? currencyState.code,
+            ),
+          ),
+        ],
+>>>>>>> Stashed changes
         autofocus: false,
         textAlign: TextAlign.center,
         cursorColor: grey1,
