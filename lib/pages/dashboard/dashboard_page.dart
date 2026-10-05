@@ -81,7 +81,6 @@ class DashboardPage extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: Sizes.lg),
                     const PlacesSection(),
                   ],
                 ),

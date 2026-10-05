@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../ui/theme/dashboard_visual_theme.dart';
+import '../../ui/widgets/picker_sheet.dart';
+import '../../ui/widgets/settings_tiles.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../services/database/repositories/transactions_repository.dart';
@@ -50,8 +54,10 @@ class _SearchPage extends ConsumerState<SearchPage> {
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                color: context.dashboardTheme.textPrimary.withValues(
+                  alpha: 0.06,
+                ),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: InputDecorator(
                 decoration: const InputDecoration(
@@ -79,7 +85,7 @@ class _SearchPage extends ConsumerState<SearchPage> {
               ),
             ),
             const SizedBox(height: Sizes.md),
-            Text("SEARCH FOR", style: Theme.of(context).textTheme.bodySmall),
+            const PickerSectionLabel("Type"),
             SizedBox(
               height: 60,
               child: ListView(
@@ -87,18 +93,10 @@ class _SearchPage extends ConsumerState<SearchPage> {
                 children: TransactionType.values.map((type) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: Sizes.sm),
-                    child: FilterChip(
-                      showCheckmark: false,
-                      label: Text(
-                        type.name.capitalize(),
-                        style: TextStyle(
-                          color: filterType[type.code]!
-                              ? Colors.white
-                              : Theme.of(context).colorScheme.secondary,
-                        ),
-                      ),
+                    child: TogglePill(
+                      label: type.name.capitalize(),
                       selected: filterType[type.code] ?? false,
-                      onSelected: (_) {
+                      onTap: () {
                         ref.read(typeFilterProvider.notifier).setFilter({
                           ...filterType,
                           type.code: filterType[type.code] != null
@@ -112,7 +110,7 @@ class _SearchPage extends ConsumerState<SearchPage> {
               ),
             ),
             const SizedBox(height: Sizes.md),
-            Text("SEARCH IN", style: Theme.of(context).textTheme.bodySmall),
+            const PickerSectionLabel("Accounts"),
             SizedBox(
               height: 60,
               child: accountList.when(
@@ -124,20 +122,10 @@ class _SearchPage extends ConsumerState<SearchPage> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: Sizes.sm,
                         ),
-                        child: FilterChip(
-                          label: Text(
-                            account.name,
-                            style: TextStyle(
-                              color:
-                                  filterAccountList[account.id] != null &&
-                                      filterAccountList[account.id]!
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.secondary,
-                            ),
-                          ),
-                          showCheckmark: false,
+                        child: TogglePill(
+                          label: account.name,
                           selected: filterAccountList[account.id] ?? false,
-                          onSelected: (_) {
+                          onTap: () {
                             ref
                                 .read(filterAccountProvider.notifier)
                                 .setAccounts({

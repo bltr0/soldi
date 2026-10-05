@@ -29,6 +29,11 @@ class MainConverter {
       .toMain(value ?? t.amount, _currencies[t.idBankAccount], t.date)
       .toDouble();
 
+  /// True when [t] is held in another currency with no rate for its day, so
+  /// [transaction] returns it unchanged (1:1).
+  bool unconverted(Transaction t) =>
+      !fx.hasRate(_currencies[t.idBankAccount], t.date);
+
   /// [value] held in [accountId], in the main currency on [date].
   double amount(num value, int accountId, DateTime date) =>
       fx.toMain(value, _currencies[accountId], date).toDouble();
@@ -38,6 +43,18 @@ class MainConverter {
       .toMain(account.total ?? 0, account.currency, DateTime.now())
       .toDouble();
 }
+
+class _Flag extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
+/// Whether the month total of the Transactions page adds foreign amounts 1:1.
+final totalAmountUnconvertedProvider = NotifierProvider<_Flag, bool>(
+  _Flag.new,
+);
 
 final mainConverterProvider = FutureProvider<MainConverter>((ref) async {
   final fx = await ref.watch(fxTableProvider.future);

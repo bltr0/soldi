@@ -12,7 +12,7 @@ class SegmentedPill<T> extends StatelessWidget {
   });
 
   final Map<T, String> options;
-  final T selected;
+  final T? selected;
   final ValueChanged<T> onChanged;
   final double height;
 
@@ -47,17 +47,21 @@ class SegmentedPill<T> extends StatelessWidget {
                 top: 0,
                 bottom: 0,
                 width: segmentWidth,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: visual.navigationSelected,
-                    borderRadius: BorderRadius.circular(height / 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: visual.shadow,
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: index < 0 ? 0 : 1,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: visual.navigationSelected,
+                      borderRadius: BorderRadius.circular(height / 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: visual.shadow,
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

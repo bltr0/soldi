@@ -2,51 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../constants/constants.dart';
-import '../../../../constants/style.dart';
-import '../../../../ui/widgets/rounded_icon.dart';
 import '../../../../model/category_transaction.dart';
 import '../../../../providers/categories_provider.dart';
 import '../../../../providers/transactions_provider.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/widgets/picker_sheet.dart';
 
 class CategorySelector extends ConsumerStatefulWidget {
   const CategorySelector({required this.scrollController, super.key});
 
-  final ScrollController scrollController;
+  final ScrollController? scrollController;
 
   @override
   ConsumerState<CategorySelector> createState() => _CategorySelectorState();
 }
 
 class _CategorySelectorState extends ConsumerState<CategorySelector> {
-  void _commit(BuildContext context, CategoryTransaction? category) {
+  void _commit(CategoryTransaction? category) {
     ref.read(selectedCategoryProvider.notifier).setCategory(category);
     Navigator.of(context).pop();
   }
 
-  void _selectCategory(BuildContext context, CategoryTransaction? category) {
-    if (category == null) {
-      _commit(context, null);
-      return;
-    }
-    _selectParentOrCommit(context, category);
-  }
-
-  Future<void> _selectParentOrCommit(
-    BuildContext context,
-    CategoryTransaction category,
-  ) async {
+  Future<void> _selectParentOrCommit(CategoryTransaction category) async {
     final subcategories = await ref.read(
       subcategoriesProvider(category.id!).future,
     );
-    if (!context.mounted) return;
+    if (!mounted) return;
     final alreadySelected =
         ref.read(selectedCategoryProvider)?.id == category.id;
     if (subcategories.isNotEmpty && !alreadySelected) {
       ref.read(selectedCategoryProvider.notifier).setCategory(category);
       return;
     }
-    _commit(context, category);
+    _commit(category);
   }
 
   @override
@@ -60,211 +48,109 @@ class _CategorySelectorState extends ConsumerState<CategorySelector> {
     );
     final selectedCategory = ref.watch(selectedCategoryProvider);
 
-    return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppBar(
-            title: const Text("Category"),
-            actions: [
-              IconButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed('/add-category'),
-                icon: const Icon(Icons.add_circle),
-                splashRadius: 28,
-              ),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: widget.scrollController,
-              child: Column(
-                children: [
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(
-                      left: Sizes.lg,
-                      top: Sizes.xxl,
-                      bottom: Sizes.md,
-                    ),
-                    child: Text(
-                      "MORE FREQUENT",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+    return ListView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.only(bottom: Sizes.xl),
+      children: [
+        PickerSheetHeader(
+          title: 'Category',
+          subtitle: 'Tap a category twice to skip its subcategories',
+          onAdd: () => Navigator.of(context).pushNamed('/add-category'),
+        ),
+        ...frequentCategories.maybeWhen(
+          data: (categories) => categories.isEmpty
+              ? const <Widget>[]
+              : [
+                  const PickerSectionLabel('Frequent'),
+                  SizedBox(
+                    height: 76,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Sizes.sm,
                       ),
+                      children: [
+                        for (final category in categories)
+                          PickerChip(
+                            label: category.name,
+                            icon: iconList[category.symbol],
+                            color: categoryColorListTheme[category.color],
+                            onTap: () => _selectParentOrCommit(category),
+                          ),
+                      ],
                     ),
-                  ),
-                  Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    height: 74,
-                    width: double.infinity,
-                    child: frequentCategories.when(
-                      data: (categories) => ListView.builder(
-                        itemCount: categories.length, // to prevent range error
-                        scrollDirection: Axis.horizontal,
-                        shrinkWrap: true,
-                        itemBuilder: (context, i) {
-                          CategoryTransaction category = categories[i];
-                          return GestureDetector(
-                            onTap: () =>
-                                _selectParentOrCommit(context, category),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: Sizes.lg,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  RoundedIcon(
-                                    icon: iconList[category.symbol],
-                                    backgroundColor:
-                                        categoryColorListTheme[category.color],
-                                  ),
-                                  Text(
-                                    category.name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge!
-                                        .copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (err, stack) => Text('Error: $err'),
-                    ),
-                  ),
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(
-                      left: Sizes.lg,
-                      top: Sizes.xxl,
-                      bottom: Sizes.sm,
-                    ),
-                    child: Text(
-                      "ALL CATEGORIES",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  categoriesList.when(
-                    data: (categories) => Container(
-                      color: Theme.of(context).colorScheme.surface,
-                      child: ListView.separated(
-                        itemCount: categories.length + 1,
-                        scrollDirection: Axis.vertical,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1, color: grey1),
-                        itemBuilder: (context, i) {
-                          if (i == 0) {
-                            return ListTile(
-                              onTap: () => _selectCategory(context, null),
-                              leading: RoundedIcon(
-                                icon: Icons.label_off,
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.secondary,
-                              ),
-                              title: const Text("Uncategorized"),
-                              trailing: selectedCategory == null
-                                  ? const Icon(Icons.check)
-                                  : null,
-                            );
-                          }
-                          CategoryTransaction category = categories[i - 1];
-                          final subcategories = ref.watch(
-                            subcategoriesProvider(category.id!),
-                          );
-                          return Column(
-                            children: [
-                              ListTile(
-                                onTap: () =>
-                                    _selectParentOrCommit(context, category),
-                                leading: RoundedIcon(
-                                  icon: iconList[category.symbol],
-                                  backgroundColor:
-                                      categoryColorListTheme[category.color],
-                                ),
-                                title: Text(category.name),
-                                trailing: selectedCategory?.id == category.id
-                                    ? const Icon(Icons.check)
-                                    : null,
-                              ),
-                              AnimatedCrossFade(
-                                crossFadeState:
-                                    selectedCategory?.id == category.id ||
-                                        selectedCategory?.parent == category.id
-                                    ? CrossFadeState.showSecond
-                                    : CrossFadeState.showFirst,
-                                duration: const Duration(milliseconds: 150),
-                                firstChild: const SizedBox.shrink(),
-                                secondChild: subcategories.when(
-                                  data: (data) {
-                                    return ListView(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      children: data.map((subcategory) {
-                                        return ListTile(
-                                          contentPadding: const EdgeInsets.only(
-                                            left: Sizes.xxl,
-                                            right: Sizes.lg,
-                                          ),
-                                          onTap: () =>
-                                              _commit(context, subcategory),
-                                          leading: RoundedIcon(
-                                            icon: iconList[subcategory.symbol],
-                                            backgroundColor:
-                                                categoryColorListTheme[subcategory
-                                                    .color],
-                                          ),
-                                          title: Text(subcategory.name),
-                                          trailing:
-                                              ref
-                                                      .watch(
-                                                        selectedCategoryProvider,
-                                                      )
-                                                      ?.id ==
-                                                  subcategory.id
-                                              ? const Icon(Icons.check)
-                                              : null,
-                                        );
-                                      }).toList(),
-                                    );
-                                  },
-                                  loading: () => const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                  error: (err, stack) => Text('Error: $err'),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, stack) => Text('Error: $err'),
                   ),
                 ],
+          orElse: () => const <Widget>[],
+        ),
+        const PickerSectionLabel('All categories'),
+        PickerRow(
+          leading: const PickerIcon(icon: Icons.label_off_rounded, color: null),
+          title: 'Uncategorized',
+          selected: selectedCategory == null,
+          onTap: () => _commit(null),
+        ),
+        ...categoriesList.when(
+          data: (categories) => [
+            for (final category in categories) ...[
+              PickerRow(
+                leading: PickerIcon(
+                  icon: iconList[category.symbol],
+                  color: categoryColorListTheme[category.color],
+                ),
+                title: category.name,
+                selected: selectedCategory?.id == category.id,
+                onTap: () => _selectParentOrCommit(category),
               ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child:
+                    selectedCategory?.id == category.id ||
+                        selectedCategory?.parent == category.id
+                    ? ref
+                          .watch(subcategoriesProvider(category.id!))
+                          .maybeWhen(
+                            data: (subcategories) => Column(
+                              children: [
+                                for (final subcategory in subcategories)
+                                  PickerRow(
+                                    indent: Sizes.xl,
+                                    leading: PickerIcon(
+                                      icon: iconList[subcategory.symbol],
+                                      color: categoryColorListTheme[subcategory
+                                          .color],
+                                    ),
+                                    title: subcategory.name,
+                                    selected:
+                                        selectedCategory?.id == subcategory.id,
+                                    onTap: () => _commit(subcategory),
+                                  ),
+                              ],
+                            ),
+                            orElse: () => const SizedBox(
+                              width: double.infinity,
+                            ),
+                          )
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
+          ],
+          loading: () => const [
+            Padding(
+              padding: EdgeInsets.all(Sizes.xl),
+              child: Center(child: CircularProgressIndicator()),
             ),
-          ),
-        ],
-      ),
+          ],
+          error: (err, _) => [Center(child: Text('Error: $err'))],
+        ),
+      ],
     );
   }
 }
+
+Future<void> showCategorySelector(BuildContext context) => showPickerSheet<void>(
+  context,
+  builder: (_, controller) => CategorySelector(scrollController: controller),
+);

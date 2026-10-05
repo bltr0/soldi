@@ -16,6 +16,7 @@ class BankAccountFields extends BaseEntityFields {
   static String total = 'total';
   static String order = 'position';
   static String currency = 'currency';
+  static String alwaysBlurred = 'alwaysBlurred';
   static String createdAt = BaseEntityFields.getCreatedAt;
   static String updatedAt = BaseEntityFields.getUpdatedAt;
   static String deletedAt = BaseEntityFields.getDeletedAt;
@@ -31,6 +32,7 @@ class BankAccountFields extends BaseEntityFields {
     mainAccount,
     order,
     currency,
+    alwaysBlurred,
     BaseEntityFields.createdAt,
     BaseEntityFields.updatedAt,
     BaseEntityFields.deletedAt,
@@ -54,6 +56,10 @@ class BankAccount extends BaseEntity {
   /// app's main currency. Display only: amounts are never converted.
   final String? currency;
 
+  /// Balance hidden everywhere but the account's settings, whatever the
+  /// global visibility toggle says.
+  final bool alwaysBlurred;
+
   const BankAccount({
     super.id,
     required this.name,
@@ -66,6 +72,7 @@ class BankAccount extends BaseEntity {
     required this.order,
     this.total,
     this.currency,
+    this.alwaysBlurred = false,
     super.createdAt,
     super.updatedAt,
     super.deletedAt,
@@ -82,6 +89,7 @@ class BankAccount extends BaseEntity {
     bool? mainAccount,
     int? order,
     Object? currency = _unset,
+    bool? alwaysBlurred,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -96,6 +104,7 @@ class BankAccount extends BaseEntity {
     mainAccount: mainAccount ?? this.mainAccount,
     order: order ?? this.order,
     currency: currency == _unset ? this.currency : currency as String?,
+    alwaysBlurred: alwaysBlurred ?? this.alwaysBlurred,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt ?? this.deletedAt,
@@ -114,6 +123,7 @@ class BankAccount extends BaseEntity {
     order: json[BankAccountFields.order] as int,
     total: json[BankAccountFields.total] as num?,
     currency: _currencyFromJson(json[BankAccountFields.currency]),
+    alwaysBlurred: json[BankAccountFields.alwaysBlurred] == 1,
     createdAt: DateTime.parse(json[BaseEntityFields.createdAt] as String),
     updatedAt: DateTime.parse(json[BaseEntityFields.updatedAt] as String),
     deletedAt: json[BaseEntityFields.deletedAt] != null
@@ -137,6 +147,7 @@ class BankAccount extends BaseEntity {
     BankAccountFields.mainAccount: mainAccount && !delete ? 1 : 0,
     BankAccountFields.order: delete ? 0 : order,
     BankAccountFields.currency: currency,
+    BankAccountFields.alwaysBlurred: alwaysBlurred ? 1 : 0,
     BaseEntityFields.createdAt: update || delete
         ? createdAt?.toIso8601String()
         : DateTime.now().toIso8601String(),

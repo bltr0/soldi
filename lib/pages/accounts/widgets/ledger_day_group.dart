@@ -12,6 +12,7 @@ import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/blur_widget.dart';
+import '../../../ui/widgets/main_equivalent.dart';
 import '../../../ui/widgets/rounded_icon.dart';
 import '../../../ui/widgets/tonal_glass_surface.dart';
 
@@ -32,10 +33,16 @@ class LedgerDay {
 }
 
 class LedgerDayGroup extends ConsumerWidget {
-  const LedgerDayGroup({required this.day, required this.accountId, super.key});
+  const LedgerDayGroup({
+    required this.day,
+    required this.accountId,
+    this.alwaysBlurred = false,
+    super.key,
+  });
 
   final LedgerDay day;
   final int accountId;
+  final bool alwaysBlurred;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,6 +95,7 @@ class LedgerDayGroup extends ConsumerWidget {
               ),
               const SizedBox(width: Sizes.sm),
               BlurWidget(
+                always: alwaysBlurred,
                 child: Text.rich(
                   TextSpan(
                     children: [
@@ -180,6 +188,12 @@ class _LedgerTile extends ConsumerWidget {
         : entry.delta < 0
         ? visual.negative
         : visual.positive;
+    final amountStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: amountColor,
+      fontSize: 15,
+      fontWeight: FontWeight.w800,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return Material(
       color: Colors.transparent,
@@ -227,14 +241,15 @@ class _LedgerTile extends ConsumerWidget {
             context,
           ).textTheme.labelMedium?.copyWith(color: visual.textSecondary),
         ),
-        trailing: BlurWidget(
-          child: Text(
-            '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency(code)} $symbol',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: amountColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
+        trailing: MainEquivalent(
+          amount: entry.delta,
+          code: code,
+          date: t.date,
+          style: amountStyle,
+          child: BlurWidget(
+            child: Text(
+              '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency(code)} $symbol',
+              style: amountStyle,
             ),
           ),
         ),

@@ -1,45 +1,31 @@
 import "package:flutter/material.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../ui/widgets/rounded_icon.dart";
-import "../../../../ui/device.dart";
-import "details_list_tile.dart";
+import "../../../../ui/theme/dashboard_visual_theme.dart";
+import "../../../../ui/widgets/settings_tiles.dart";
 
-class NonEditableDetailsListTile extends DetailsListTile {
-  NonEditableDetailsListTile({
-    required super.title,
-    required super.icon,
-    required super.value,
+class NonEditableDetailsListTile extends StatelessWidget {
+  const NonEditableDetailsListTile({
+    required this.title,
+    required this.icon,
+    required this.value,
     super.key,
-  }) : super(callback: () {});
+  });
+
+  final String title;
+  final IconData icon;
+  final String? value;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      contentPadding: const EdgeInsets.all(Sizes.lg),
-      tileColor: Theme.of(context).colorScheme.surface,
-      onTap: callback,
-      leading: RoundedIcon(
-        icon: icon,
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-      ),
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+  Widget build(BuildContext context) {
+    return SettingsTile(
+      icon: icon,
+      title: title,
+      trailing: Text(
+        value ?? '',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: context.dashboardTheme.textSecondary,
+          fontWeight: FontWeight.w600,
         ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            value ?? '',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall!.copyWith(color: Colors.grey),
-          ),
-          const SizedBox(width: Sizes.sm),
-        ],
       ),
     );
   }

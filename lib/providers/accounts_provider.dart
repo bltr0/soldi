@@ -67,6 +67,7 @@ class Accounts extends _$Accounts {
     bool mainAccount = false,
     num startingValue = 0,
     String? currency,
+    bool alwaysBlurred = false,
   }) async {
     BankAccount account = BankAccount(
       name: name,
@@ -78,6 +79,7 @@ class Accounts extends _$Accounts {
       mainAccount: mainAccount,
       order: 0,
       currency: currency,
+      alwaysBlurred: alwaysBlurred,
     );
 
     state = const AsyncLoading();
@@ -97,6 +99,7 @@ class Accounts extends _$Accounts {
     bool active = true,
     bool updateCurrency = false,
     String? currency,
+    bool? alwaysBlurred,
   }) async {
     BankAccount account = ref
         .read(selectedAccountProvider)!
@@ -107,6 +110,7 @@ class Accounts extends _$Accounts {
           active: active,
           countNetWorth: countNetWorth,
           mainAccount: mainAccount,
+          alwaysBlurred: alwaysBlurred,
         );
     if (updateCurrency) account = account.copy(currency: currency);
     state = const AsyncLoading();

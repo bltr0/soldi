@@ -252,7 +252,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                   itemCount: days.length,
                   separatorBuilder: (_, _) => const SizedBox(height: Sizes.lg),
                   itemBuilder: (context, index) =>
-                      LedgerDayGroup(day: days[index], accountId: account.id!),
+                      LedgerDayGroup(
+                        day: days[index],
+                        accountId: account.id!,
+                        alwaysBlurred: account.alwaysBlurred,
+                      ),
                 ),
               ),
           ],
@@ -374,6 +378,14 @@ class _AccountHero extends ConsumerWidget {
       fontWeight: FontWeight.w800,
       letterSpacing: 0.4,
     );
+    final balanceStyle = Theme.of(context).textTheme.displayLarge?.copyWith(
+      color: visual.textPrimary,
+      fontSize: 40,
+      fontWeight: FontWeight.w800,
+      height: 0.95,
+      letterSpacing: -1.4,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return TonalGlassSurface(
       tone: GlassTone.hero,
@@ -407,33 +419,25 @@ class _AccountHero extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Sizes.lg),
-          BlurWidget(
-            sigma: 18,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: AnimatedAmount(
-                value: balance,
-                suffix: ' $symbol',
-                code: code,
-                style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  color: visual.textPrimary,
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
-                  height: 0.95,
-                  letterSpacing: -1.4,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: MainEquivalent(
+              amount: balance,
+              code: code,
+              date: DateTime.now(),
+              style: balanceStyle?.copyWith(fontSize: 28, letterSpacing: -0.6),
+              alwaysBlurred: account.alwaysBlurred,
+              child: BlurWidget(
+                sigma: 18,
+                always: account.alwaysBlurred,
+                child: AnimatedAmount(
+                  value: balance,
+                  suffix: ' $symbol',
+                  code: code,
+                  style: balanceStyle,
                 ),
               ),
-            ),
-          ),
-          MainEquivalent(
-            amount: balance,
-            code: code,
-            date: DateTime.now(),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: visual.textSecondary,
-              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: Sizes.lg),

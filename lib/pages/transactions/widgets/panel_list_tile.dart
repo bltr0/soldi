@@ -12,6 +12,9 @@ import '../../../ui/account_currency.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/widgets/rounded_icon.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
+import '../../../ui/widgets/blur_widget.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
 
 class PanelListTile extends ConsumerWidget {
   const PanelListTile({
@@ -39,89 +42,95 @@ class PanelListTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(selectedListIndexProvider);
     final currency = ref.watch(currencyStateProvider);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(Sizes.borderRadius),
-      child: ExpansionPanelList(
-        elevation: 0,
-        expandedHeaderPadding: EdgeInsets.zero,
-        expansionCallback: (_, isExpanded) {
-          if (isExpanded) {
-            ref.read(selectedListIndexProvider.notifier).setIndex(index);
-          } else {
-            ref.invalidate(selectedListIndexProvider);
-          }
-        },
+    final visual = context.dashboardTheme;
+    final textTheme = Theme.of(context).textTheme;
+    final expanded = selectedIndex == index;
+    return TonalGlassSurface(
+      radius: 22,
+      pressScale: 1,
+      borderColor: expanded ? color.withValues(alpha: 0.6) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ExpansionPanel(
-            isExpanded: selectedIndex == index,
-            canTapOnHeader: true,
-            backgroundColor: color.withAlpha(90),
-            headerBuilder: (context, isExpanded) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Sizes.sm,
-                  vertical: Sizes.lg,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  spacing: Sizes.sm,
-                  children: [
-                    RoundedIcon(
-                      icon: icon,
-                      backgroundColor: color,
-                      padding: const EdgeInsets.all(Sizes.sm),
+          InkWell(
+            onTap: () => expanded
+                ? ref.invalidate(selectedListIndexProvider)
+                : ref.read(selectedListIndexProvider.notifier).setIndex(index),
+            child: Padding(
+              padding: const EdgeInsets.all(Sizes.md),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                name,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text(
-                                "${amount.toCurrency(currency.code)} ${currency.symbol}",
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(color: amount.toColor()),
-                              ),
-                            ],
+                    child: Icon(icon, size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: Sizes.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleSmall?.copyWith(
+                            color: visual.textPrimary,
+                            fontWeight: FontWeight.w800,
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "${transactions.length} transactions",
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                              Text(
-                                "${percent.toStringAsFixed(2)}%",
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ],
+                        ),
+                        Text(
+                          "${transactions.length} transaction${transactions.length == 1 ? '' : 's'} · ${percent.abs().toStringAsFixed(1)}%",
+                          style: textTheme.bodySmall?.copyWith(
+                            color: visual.textSecondary,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  BlurWidget(
+                    child: Text(
+                      "${amount.toCurrency(currency.code)} ${currency.symbol}",
+                      style: textTheme.titleSmall?.copyWith(
+                        color: amount >= 0 ? visual.positive : visual.negative,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-            body: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: enableSubcategories
-                  ? _buildGroupedTransactions(
-                      context,
-                      transactions,
-                      currency,
-                      ref.watch(mainConverterProvider).value,
-                    )
-                  : TransactionsList(
-                      currency: currency,
-                      transactions: transactions,
+                  ),
+                  AnimatedRotation(
+                    turns: expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 220),
+                    child: Icon(
+                      Icons.expand_more_rounded,
+                      color: visual.textSecondary,
                     ),
+                  ),
+                ],
+              ),
             ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: expanded
+                ? enableSubcategories
+                      ? _buildGroupedTransactions(
+                          context,
+                          transactions,
+                          currency,
+                          ref.watch(mainConverterProvider).value,
+                        )
+                      : TransactionsList(
+                          currency: currency,
+                          transactions: transactions,
+                        )
+                : const SizedBox(width: double.infinity),
           ),
         ],
       ),

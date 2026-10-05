@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/style.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/accent_button.dart';
+import '../../../ui/widgets/settings_tiles.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
 import '../../transactions/create_transaction/widgets/account_selector.dart';
 import '../../transactions/create_transaction/widgets/amount_widget.dart';
 import '../../transactions/create_transaction/widgets/details_list_tile.dart';
@@ -59,8 +62,8 @@ class _EditRecurringTransactionState
     final selectedRecurringTransaction = ref.watch(
       selectedRecurringTransactionUpdateProvider,
     );
-    final peopleConcerned = ref.watch(selectedPeopleConcernedProvider);
 
+    final visual = context.dashboardTheme;
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, _) {
@@ -68,183 +71,95 @@ class _EditRecurringTransactionState
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Edit recurring transaction"),
-          leadingWidth: 100,
-          leading: TextButton(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
+          title: const Text("Recurring payment"),
           actions: [
             if (selectedRecurringTransaction != null)
-              Container(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  onPressed: () async {
-                    ref
-                        .read(recurringTransactionsProvider.notifier)
-                        .delete(selectedRecurringTransaction.id!)
-                        .whenComplete(() {
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        });
-                  },
-                ),
+              IconButton(
+                tooltip: 'Delete',
+                icon: Icon(Icons.delete_outline_rounded, color: visual.negative),
+                onPressed: () => ref
+                    .read(recurringTransactionsProvider.notifier)
+                    .delete(selectedRecurringTransaction.id!)
+                    .whenComplete(() {
+                      if (context.mounted) Navigator.pop(context);
+                    }),
               ),
           ],
         ),
-        body: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: Sizes.md * 6),
-              child: Column(
-                children: [
-                  AmountWidget(amountController),
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(
-                      left: Sizes.lg,
-                      top: Sizes.xxl,
-                      bottom: Sizes.sm,
-                    ),
-                    child: Text(
-                      "DETAILS (any change will affect only future transactions)",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: Column(
-                      children: [
-                        LabelListTile(noteController),
-                        const Divider(height: 1, color: grey1),
-                        DetailsListTile(
-                          title: "Account",
-                          icon: Icons.account_balance_wallet,
-                          value: ref.watch(selectedBankAccountProvider)?.name,
-                          callback: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAliasWithSaveLayer,
-                              isScrollControlled: true,
-                              useSafeArea: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(Sizes.borderRadius),
-                                  topRight: Radius.circular(Sizes.borderRadius),
-                                ),
-                              ),
-                              builder: (_) => DraggableScrollableSheet(
-                                expand: false,
-                                minChildSize: 0.5,
-                                initialChildSize: 0.7,
-                                maxChildSize: 0.9,
-                                builder: (_, controller) => AccountSelector(
-                                  scrollController: controller,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const Divider(height: 1, color: grey1),
-                        NonEditableDetailsListTile(
-                          title: "Category",
-                          icon: Icons.list_alt,
-                          value: ref.watch(selectedCategoryProvider)?.name,
-                        ),
-                        if (selectedRecurringTransaction?.type ==
-                            TransactionType.expense) ...[
-                          const Divider(height: 1, color: grey1),
-                          DetailsListTile(
-                            title: "People concerned",
-                            icon: Icons.group_outlined,
-                            value: "$peopleConcerned",
-                            callback: () {
-                              showModalBottomSheet<void>(
-                                context: context,
-                                useSafeArea: true,
-                                showDragHandle: true,
-                                builder: (_) => const PeopleConcernedSelector(),
-                              );
-                            },
-                          ),
-                        ],
-                        const Divider(height: 1, color: grey1),
-                        NonEditableDetailsListTile(
-                          title: "Date Start",
-                          icon: Icons.calendar_month,
-                          value: startDate.formatEDMY(),
-                        ),
-                        const RecurrenceListTileEdit(),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Sizes.lg,
+              Sizes.sm,
+              Sizes.lg,
+              Sizes.md,
             ),
-            Container(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.15),
-                      blurRadius: 5.0,
-                      offset: const Offset(0, -1.0),
-                    ),
-                  ],
+            child: AccentButton(
+              label: 'Save changes',
+              icon: Icons.check_rounded,
+              onPressed: () => ref
+                  .read(recurringTransactionsProvider.notifier)
+                  .updateTransaction(
+                    amountController.text.toNum(),
+                    noteController.text,
+                  )
+                  .whenComplete(() {
+                    if (context.mounted) Navigator.of(context).pop();
+                  }),
+            ),
+          ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Sizes.lg,
+            Sizes.sm,
+            Sizes.lg,
+            Sizes.xl,
+          ),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            TonalGlassSurface(
+              tone: GlassTone.hero,
+              radius: 28,
+              pressScale: 1,
+              padding: const EdgeInsets.symmetric(vertical: Sizes.md),
+              child: AmountWidget(amountController),
+            ),
+            const SizedBox(height: Sizes.xl),
+            SettingsGroup(
+              title: 'Details',
+              footer: 'Changes only affect future transactions.',
+              children: [
+                LabelListTile(noteController),
+                DetailsListTile(
+                  title: "Account",
+                  icon: Icons.account_balance_wallet_rounded,
+                  value: ref.watch(selectedBankAccountProvider)?.name,
+                  callback: () => showAccountSelector(context),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Sizes.xl,
-                  vertical: Sizes.sm,
+                NonEditableDetailsListTile(
+                  title: "Category",
+                  icon: Icons.category_rounded,
+                  value: ref.watch(selectedCategoryProvider)?.name,
                 ),
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary,
-                    boxShadow: [defaultShadow],
-                    borderRadius: BorderRadius.circular(Sizes.borderRadius),
+                if (selectedRecurringTransaction?.type ==
+                    TransactionType.expense)
+                  const SettingsTile(
+                    icon: Icons.group_rounded,
+                    title: 'People concerned',
+                    trailing: PeopleConcernedStepper(),
                   ),
-                  child: TextButton(
-                    onPressed: () {
-                      ref
-                          .read(recurringTransactionsProvider.notifier)
-                          .updateTransaction(
-                            amountController.text.toNum(),
-                            noteController.text,
-                          )
-                          .whenComplete(() {
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                            }
-                          });
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                      ),
-                    ),
-                    child: Text(
-                      "UPDATE TRANSACTION",
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                  ),
+                NonEditableDetailsListTile(
+                  title: "Starts",
+                  icon: Icons.calendar_month_rounded,
+                  value: startDate.formatEDMY(),
                 ),
-              ),
+                const RecurrenceListTileEdit(),
+              ],
             ),
           ],
         ),

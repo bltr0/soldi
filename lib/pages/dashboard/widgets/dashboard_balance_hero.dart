@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../../ui/widgets/unconverted_amount.dart';
 
 import '../../../providers/currency_provider.dart';
 import '../../../providers/dashboard_provider.dart';
@@ -108,7 +109,11 @@ class _HeroContent extends ConsumerWidget {
                       ? 'Monthly balance ${snapshot.balance.toCurrency(currency.code)} ${currency.code}'
                       : 'Monthly balance hidden',
                   excludeSemantics: true,
-                  child: BlurWidget(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: UnconvertedAmount(
+                      unconverted: snapshot.unconverted,
+                      child: BlurWidget(
                     sigma: 18,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
@@ -119,6 +124,8 @@ class _HeroContent extends ConsumerWidget {
                         code: currency.code,
                         style: titleStyle,
                       ),
+                    ),
+                  ),
                     ),
                   ),
                 ),

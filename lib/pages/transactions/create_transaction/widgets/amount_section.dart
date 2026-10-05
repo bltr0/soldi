@@ -2,36 +2,30 @@ import 'package:flutter/material.dart';
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import '../../../../constants/constants.dart';
-import '../../../../ui/widgets/rounded_icon.dart';
+import '../../../../model/bank_account.dart';
 import '../../../../model/transaction.dart';
 import '../../../../providers/transactions_provider.dart';
-import 'amount_widget.dart';
 import '../../../../ui/device.dart';
-import 'account_selector.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../../ui/widgets/picker_sheet.dart';
 import '../../../../ui/widgets/segmented_pill.dart';
+import 'account_selector.dart';
+import 'amount_widget.dart';
 
-class AmountSection extends ConsumerStatefulWidget {
+class AmountSection extends ConsumerWidget {
   const AmountSection(this.amountController, {super.key});
 
   final TextEditingController amountController;
 
   @override
-  ConsumerState<AmountSection> createState() => _AmountSectionState();
-}
-
-class _AmountSectionState extends ConsumerState<AmountSection> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final selectedType = ref.watch(selectedTransactionTypeProvider);
-
     final visual = context.dashboardTheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.md),
+      padding: const EdgeInsets.all(Sizes.md),
       child: Column(
         children: [
-          const SizedBox(height: Sizes.md),
           if (selectedType == TransactionType.adjustment)
             Container(
               height: 40,
@@ -53,8 +47,8 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
               height: 40,
               selected: selectedType,
               options: const {
-                TransactionType.income: 'Income',
                 TransactionType.expense: 'Expense',
+                TransactionType.income: 'Income',
                 TransactionType.transfer: 'Transfer',
               },
               onChanged: (type) {
@@ -64,275 +58,108 @@ class _AmountSectionState extends ConsumerState<AmountSection> {
                 ref.invalidate(bankAccountTransferProvider);
               },
             ),
-          if (selectedType == TransactionType.transfer)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Sizes.lg,
-                Sizes.sm,
-                Sizes.lg,
-                0,
+          AmountWidget(amountController),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: selectedType == TransactionType.transfer
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: _AccountChip(
+                          label: 'From',
+                          account: ref.watch(selectedBankAccountProvider),
+                          onTap: () => showAccountSelector(context),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Swap accounts',
+                        color: visual.textSecondary,
+                        onPressed: () => ref
+                            .read(transactionsProvider.notifier)
+                            .switchAccount(),
+                        icon: const Icon(Icons.swap_horiz_rounded),
+                      ),
+                      Expanded(
+                        child: _AccountChip(
+                          label: 'To',
+                          account: ref.watch(bankAccountTransferProvider),
+                          onTap: () =>
+                              showAccountSelector(context, transfer: true),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountChip extends StatelessWidget {
+  const _AccountChip({
+    required this.label,
+    required this.account,
+    required this.onTap,
+  });
+
+  final String label;
+  final BankAccount? account;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    final textTheme = Theme.of(context).textTheme;
+    final account = this.account;
+    return Material(
+      color: visual.textPrimary.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(Sizes.sm),
+          child: Row(
+            children: [
+              PickerIcon(
+                icon: account == null
+                    ? Icons.account_balance_wallet_outlined
+                    : accountIconList[account.symbol],
+                color: account == null
+                    ? null
+                    : accountColorListTheme[account.color],
               ),
-              child: SizedBox(
-                height: Sizes.xxl * 2,
-                child: Row(
+              const SizedBox(width: Sizes.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: Sizes.sm),
-                          Text(
-                            "FROM:",
-                            style: Theme.of(context).textTheme.labelMedium!
-                                .copyWith(
-                                  color: visual.textSecondary,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.6,
-                                ),
-                          ),
-                          const SizedBox(height: Sizes.xxs * 0.5),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(14),
-                              onTap: () {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                showModalBottomSheet(
-                                  context: context,
-                                  clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  isScrollControlled: true,
-                                  useSafeArea: true,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(
-                                        Sizes.borderRadius,
-                                      ),
-                                      topRight: Radius.circular(
-                                        Sizes.borderRadius,
-                                      ),
-                                    ),
-                                  ),
-                                  builder: (_) => DraggableScrollableSheet(
-                                    expand: false,
-                                    minChildSize: 0.5,
-                                    initialChildSize: 0.7,
-                                    maxChildSize: 0.9,
-                                    builder: (_, controller) => AccountSelector(
-                                      // from
-                                      scrollController: controller,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: visual.raisedSurface,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: visual.glassBorder),
-                                ),
-                                padding: const EdgeInsets.all(Sizes.xxs),
-                                child: Row(
-                                  children: [
-                                    RoundedIcon(
-                                      icon:
-                                          ref
-                                                  .watch(
-                                                    selectedBankAccountProvider,
-                                                  )
-                                                  ?.symbol !=
-                                              null
-                                          ? accountIconList[ref
-                                                .watch(
-                                                  selectedBankAccountProvider,
-                                                )!
-                                                .symbol]
-                                          : null,
-                                      backgroundColor:
-                                          ref
-                                                  .watch(
-                                                    selectedBankAccountProvider,
-                                                  )
-                                                  ?.color !=
-                                              null
-                                          ? accountColorListTheme[ref
-                                                .watch(
-                                                  selectedBankAccountProvider,
-                                                )!
-                                                .color]
-                                          : null,
-                                      size: 16,
-                                      padding: const EdgeInsets.all(Sizes.xs),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      ref
-                                              .watch(
-                                                selectedBankAccountProvider,
-                                              )
-                                              ?.name ??
-                                          "Select Account",
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                            color: visual.textPrimary,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                    const Spacer(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      label,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: visual.textSecondary,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => ref
-                          .read(transactionsProvider.notifier)
-                          .switchAccount(),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: VerticalDivider(
-                              width: 1,
-                              color: visual.hairline,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: Sizes.xxs * 0.5,
-                              horizontal: Sizes.xl,
-                            ),
-                            child: Icon(
-                              Icons.change_circle,
-                              size: 32,
-                              color: visual.textSecondary,
-                            ),
-                          ),
-                          Expanded(
-                            child: VerticalDivider(
-                              width: 1,
-                              color: visual.hairline,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: Sizes.sm),
-                          Text(
-                            "TO:",
-                            style: Theme.of(context).textTheme.labelMedium!
-                                .copyWith(
-                                  color: visual.textSecondary,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.6,
-                                ),
-                          ),
-                          const SizedBox(height: Sizes.xxs * 0.5),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(14),
-                              onTap: () {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                showModalBottomSheet(
-                                  context: context,
-                                  clipBehavior: Clip.antiAliasWithSaveLayer,
-                                  isScrollControlled: true,
-                                  useSafeArea: true,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(
-                                        Sizes.borderRadius,
-                                      ),
-                                      topRight: Radius.circular(
-                                        Sizes.borderRadius,
-                                      ),
-                                    ),
-                                  ),
-                                  builder: (_) => DraggableScrollableSheet(
-                                    expand: false,
-                                    minChildSize: 0.5,
-                                    initialChildSize: 0.7,
-                                    maxChildSize: 0.9,
-                                    builder: (_, controller) => AccountSelector(
-                                      // to
-                                      scrollController: controller,
-                                      transfer: true,
-                                    ),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: visual.raisedSurface,
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: visual.glassBorder),
-                                ),
-                                padding: const EdgeInsets.all(Sizes.xs),
-                                child: Row(
-                                  children: [
-                                    RoundedIcon(
-                                      icon:
-                                          accountIconList[ref
-                                              .watch(
-                                                bankAccountTransferProvider,
-                                              )
-                                              ?.symbol],
-                                      backgroundColor:
-                                          ref.watch(
-                                                bankAccountTransferProvider,
-                                              ) !=
-                                              null
-                                          ? accountColorListTheme[ref
-                                                .watch(
-                                                  bankAccountTransferProvider,
-                                                )!
-                                                .color]
-                                          : null,
-                                      size: 16,
-                                      padding: const EdgeInsets.all(Sizes.xs),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      ref
-                                              .watch(
-                                                bankAccountTransferProvider,
-                                              )
-                                              ?.name ??
-                                          "Select account",
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                            color: visual.textPrimary,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                    const Spacer(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      account?.name ?? 'Choose',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: visual.textPrimary,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          AmountWidget(widget.amountController),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/constants.dart';
-import '../../../constants/style.dart';
 import '../../../ui/device.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/settings_tiles.dart';
 
 class CategoryIconColorSelector extends StatefulWidget {
   final String selectedIcon;
@@ -25,7 +26,6 @@ class CategoryIconColorSelector extends StatefulWidget {
 
 class _CategoryIconColorSelectorState extends State<CategoryIconColorSelector> {
   final PageController _pageController = PageController();
-  bool showCategoryIcons = false;
   String selectedIconCategory = mapIconsList.keys.first;
 
   @override
@@ -36,151 +36,77 @@ class _CategoryIconColorSelectorState extends State<CategoryIconColorSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: Sizes.lg,
-        vertical: Sizes.md,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: Sizes.lg,
-        vertical: Sizes.md,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-      ),
-      child: Column(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "ICON AND COLOR",
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          const SizedBox(height: Sizes.xl),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(Sizes.borderRadius * 10),
-              onTap: () => setState(() => showCategoryIcons = true),
-              child: Ink(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: categoryColorListTheme[widget.selectedColor],
-                ),
-                padding: const EdgeInsets.all(Sizes.lg),
-                child: Icon(
-                  iconList[widget.selectedIcon],
-                  size: 48,
-                  color: white,
+    return SettingsGroup(
+      title: 'Look',
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(Sizes.md),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final key in mapIconsList.keys)
+                      CategoryTab(
+                        category: key,
+                        isSelected: selectedIconCategory == key,
+                        onSelected: () {
+                          setState(() => selectedIconCategory = key);
+                          _pageController.animateToPage(
+                            mapIconsList.keys.toList().indexOf(key),
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                      ),
+                  ],
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: Sizes.sm),
-          Text(
-            "CHOOSE ICON",
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: Sizes.md),
-          if (showCategoryIcons) const Divider(height: 1, color: grey1),
-          if (showCategoryIcons)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Sizes.lg,
-                vertical: Sizes.sm,
-              ),
-              color: Theme.of(context).colorScheme.surface,
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 40,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: mapIconsList.keys
-                          .map(
-                            (key) => CategoryTab(
-                              category: key,
-                              isSelected: selectedIconCategory == key,
-                              onSelected: () {
-                                setState(() {
-                                  selectedIconCategory = key;
-                                  _pageController.jumpToPage(
-                                    mapIconsList.keys.toList().indexOf(key),
-                                  );
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
+              const SizedBox(height: Sizes.md),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const crossAxisCount = 7;
+                  final itemSize =
+                      (constraints.maxWidth - (crossAxisCount - 1) * Sizes.sm) /
+                      crossAxisCount;
+                  var maxRows = 0;
+                  for (final icons in mapIconsList.values) {
+                    final rows = (icons.length / crossAxisCount).ceil();
+                    if (rows > maxRows) maxRows = rows;
+                  }
+                  return SizedBox(
+                    height: maxRows * itemSize + (maxRows - 1) * Sizes.sm,
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) => setState(
+                        () => selectedIconCategory = mapIconsList.keys
+                            .elementAt(index),
+                      ),
+                      children: [
+                        for (final icons in mapIconsList.values)
+                          IconsGrid(
+                            icons: icons,
+                            selectedIcon: widget.selectedIcon,
+                            selectedColor:
+                                categoryColorListTheme[widget.selectedColor],
+                            onIconChanged: widget.onIconChanged,
+                          ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: Sizes.md),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossAxisCount = 7;
-                      final itemSize =
-                          (constraints.maxWidth -
-                              (crossAxisCount - 1) * Sizes.md) /
-                          crossAxisCount;
-
-                      int maxRows = 0;
-                      for (var category in mapIconsList.entries) {
-                        final icons = mapIconsList[category.key]!;
-                        final rows = (icons.length / crossAxisCount).ceil();
-                        if (rows > maxRows) maxRows = rows;
-                      }
-
-                      final gridHeight =
-                          (maxRows * itemSize) + ((maxRows - 1) * Sizes.md);
-
-                      return SizedBox(
-                        height: gridHeight,
-                        child: PageView(
-                          controller: _pageController,
-                          onPageChanged: (index) {
-                            setState(
-                              () => selectedIconCategory = mapIconsList.keys
-                                  .elementAt(index),
-                            );
-                          },
-                          children: mapIconsList.entries
-                              .map(
-                                (e) => IconsGrid(
-                                  icons: e.value,
-                                  selectedIcon: widget.selectedIcon,
-                                  onIconChanged: widget.onIconChanged,
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-          if (widget.onColorChanged != null)
-            const Divider(height: 1, color: grey1),
-          if (widget.onColorChanged != null)
-            ColorGrid(
-              selectedColor: widget.selectedColor,
-              onColorChanged: widget.onColorChanged!,
-            ),
-          if (widget.onColorChanged != null)
-            Text(
-              "CHOOSE COLOR",
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-        ],
-      ),
+            ],
+          ),
+        ),
+        if (widget.onColorChanged != null)
+          ColorGrid(
+            selectedColor: widget.selectedColor,
+            onColorChanged: widget.onColorChanged!,
+          ),
+      ],
     );
   }
 }
@@ -200,31 +126,11 @@ class CategoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Sizes.xs),
-      child: ChoiceChip(
-        label: Text(category),
+      padding: const EdgeInsets.only(right: Sizes.xs),
+      child: TogglePill(
+        label: category,
         selected: isSelected,
-        showCheckmark: false,
-        onSelected: (selected) {
-          if (selected) {
-            onSelected.call();
-          }
-        },
-        backgroundColor: white,
-        selectedColor: blue5,
-        labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: isSelected ? white : grey1,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Sizes.borderRadius),
-          side: BorderSide(color: isSelected ? blue5 : grey2, width: 1),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: Sizes.md,
-          vertical: Sizes.md / 2,
-        ),
-        visualDensity: VisualDensity.compact,
+        onTap: onSelected,
       ),
     );
   }
@@ -235,42 +141,44 @@ class IconsGrid extends StatelessWidget {
     required this.icons,
     required this.selectedIcon,
     required this.onIconChanged,
+    this.selectedColor,
     super.key,
   });
 
   final Map<String, IconData> icons;
   final String selectedIcon;
+  final Color? selectedColor;
   final Function(String) onIconChanged;
 
   @override
   Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
     return GridView.builder(
       itemCount: icons.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisSpacing: Sizes.md,
-        crossAxisSpacing: Sizes.md,
+        mainAxisSpacing: Sizes.sm,
+        crossAxisSpacing: Sizes.sm,
       ),
       itemBuilder: (context, index) {
-        String categoryIconName = icons.keys.elementAt(index);
-        IconData categoryIconData = icons[categoryIconName]!;
+        final name = icons.keys.elementAt(index);
+        final selected = iconList[selectedIcon] == icons[name];
         return GestureDetector(
-          onTap: () => onIconChanged(categoryIconName),
-          child: Container(
+          onTap: () => onIconChanged(name),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
             decoration: BoxDecoration(
-              color: iconList[selectedIcon] == categoryIconData
-                  ? Theme.of(context).colorScheme.secondary
-                  : Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
+              color: selected
+                  ? selectedColor ?? visual.accent
+                  : visual.textPrimary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              categoryIconData,
-              color: iconList[selectedIcon] == categoryIconData
-                  ? Colors.white
-                  : Theme.of(context).colorScheme.primary,
-              size: 28,
+              icons[name],
+              color: selected ? Colors.white : visual.textPrimary,
+              size: 22,
             ),
           ),
         );
@@ -298,62 +206,64 @@ class _ColorGridState extends State<ColorGrid> {
 
   @override
   Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
     return Padding(
-      padding: const EdgeInsets.only(top: Sizes.md, bottom: Sizes.xs),
+      padding: const EdgeInsets.fromLTRB(Sizes.md, Sizes.md, Sizes.md, 0),
       child: Column(
         children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 8,
-              mainAxisSpacing: Sizes.lg,
-              crossAxisSpacing: Sizes.lg,
-            ),
-            itemCount: showAllColors ? categoryColorListTheme.length : 16,
-            itemBuilder: (context, index) {
-              final isSelected = widget.selectedColor == index;
-              return Center(
-                child: GestureDetector(
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 8,
+                mainAxisSpacing: Sizes.sm,
+                crossAxisSpacing: Sizes.sm,
+              ),
+              itemCount: showAllColors ? categoryColorListTheme.length : 16,
+              itemBuilder: (context, index) {
+                final isSelected = widget.selectedColor == index;
+                return GestureDetector(
                   onTap: () => widget.onColorChanged(index),
-                  child: Container(
-                    height: isSelected ? 38 : 32,
-                    width: isSelected ? 38 : 32,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
                       color: categoryColorListTheme[index],
-                      border: isSelected
-                          ? Border.all(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 3,
-                            )
-                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? visual.textPrimary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
                     ),
+                    child: isSelected
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          )
+                        : null,
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: Sizes.sm),
-            child: TextButton.icon(
-              onPressed: () => setState(() => showAllColors = !showAllColors),
-              icon: Icon(
-                showAllColors ? Icons.expand_less : Icons.expand_more,
-                size: 20,
-              ),
-              label: Text(
-                showAllColors ? 'Show less' : 'Show more',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Sizes.md,
-                  vertical: Sizes.xs,
-                ),
-              ),
+          TextButton.icon(
+            onPressed: () => setState(() => showAllColors = !showAllColors),
+            icon: Icon(
+              showAllColors
+                  ? Icons.expand_less_rounded
+                  : Icons.expand_more_rounded,
+              size: 20,
+            ),
+            label: Text(showAllColors ? 'Fewer colors' : 'More colors'),
+            style: TextButton.styleFrom(
+              foregroundColor: visual.textSecondary,
+              shape: const StadiumBorder(),
             ),
           ),
         ],

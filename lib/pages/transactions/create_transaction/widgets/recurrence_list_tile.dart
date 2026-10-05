@@ -1,240 +1,173 @@
-import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../constants/style.dart";
-import '../../../../ui/extensions.dart';
-import '../../../../ui/widgets/rounded_icon.dart';
-import '../../../../providers/theme_provider.dart';
-import '../../../../providers/transactions_provider.dart';
 import '../../../../model/transaction.dart';
+import '../../../../providers/transactions_provider.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/extensions.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../../ui/widgets/picker_sheet.dart';
+import '../../../../ui/widgets/settings_tiles.dart';
 import 'recurrence_selector.dart';
 
 class RecurrenceListTile extends ConsumerWidget {
-  final bool recurrencyEditingPermitted;
-  final Transaction? selectedTransaction;
-
   const RecurrenceListTile({
     super.key,
     required this.recurrencyEditingPermitted,
-    required this.selectedTransaction, // Add this line
+    required this.selectedTransaction,
   });
+
+  final bool recurrencyEditingPermitted;
+  final Transaction? selectedTransaction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDarkMode = ref.watch(appThemeStateProvider).isDarkModeEnabled;
+    final visual = context.dashboardTheme;
     final isRecurring = ref.watch(selectedRecurringPayProvider);
+    final interval = ref.watch(intervalProvider);
     final endDate = ref.watch(endDateProvider);
-    bool isSnackBarVisible = false;
+    final editable = selectedTransaction == null || recurrencyEditingPermitted;
+    final generated = selectedTransaction != null && !recurrencyEditingPermitted;
 
-    return Column(
-      children: [
-        const Divider(height: 1),
-        ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-          leading: RoundedIcon(
-            icon: Icons.autorenew,
-            size: 18,
-            padding: const EdgeInsets.all(Sizes.sm),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-          ),
-          title: Text(
-            "Recurring payment",
-            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          trailing: recurrencyEditingPermitted
-              ? Switch.adaptive(
-                  value: isRecurring,
-                  onChanged: (value) => ref
-                      .read(selectedRecurringPayProvider.notifier)
-                      .setValue(value),
-                )
-              : GestureDetector(
-                  onTap: () {
-                    if (!isSnackBarVisible) {
-                      isSnackBarVisible = true;
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(
-                            const SnackBar(
-                              content: Text('Switch is disabled'),
-                              duration: Duration(milliseconds: 800),
-                            ),
+    return SettingsTile(
+      icon: Icons.autorenew_rounded,
+      title: 'Repeat',
+      subtitle: generated
+          ? 'Created by a recurring payment'
+          : isRecurring
+          ? 'Adds this transaction automatically'
+          : 'One-time transaction',
+      onTap: recurrencyEditingPermitted
+          ? () => ref
+                .read(selectedRecurringPayProvider.notifier)
+                .setValue(!isRecurring)
+          : null,
+      trailing: Switch.adaptive(
+        value: isRecurring,
+        activeTrackColor: visual.accent,
+        onChanged: recurrencyEditingPermitted
+            ? (value) =>
+                  ref.read(selectedRecurringPayProvider.notifier).setValue(value)
+            : null,
+      ),
+      below: isRecurring
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: RecurrenceOptionButton(
+                        label: 'Every',
+                        value: interval.label,
+                        onTap: editable
+                            ? () => showRecurrenceSelector(context)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: Sizes.sm),
+                    Expanded(
+                      child: RecurrenceOptionButton(
+                        label: 'Until',
+                        value: endDate?.formatEDMY() ?? 'Never',
+                        onTap: editable
+                            ? () => showEndDateSelector(context)
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+                if (generated) ...[
+                  const SizedBox(height: Sizes.sm),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: visual.accent,
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context)
+                          .pushNamed(
+                            "/edit-recurring-transaction",
+                            arguments: selectedTransaction,
                           )
-                          .closed
                           .then((_) {
-                            isSnackBarVisible = false;
+                            if (context.mounted) Navigator.of(context).pop();
                           });
-                    }
-                  },
-                  child: Tooltip(
-                    message: 'Switch is disabled',
-                    child: Switch.adaptive(
-                      value: isRecurring,
-                      onChanged: null, // This makes the switch read-only
-                    ),
+                    },
+                    icon: const Icon(Icons.edit_calendar_rounded, size: 18),
+                    label: const Text('Edit the recurring payment'),
+                  ),
+                ],
+              ],
+            )
+          : null,
+    );
+  }
+}
+
+class RecurrenceOptionButton extends StatelessWidget {
+  const RecurrenceOptionButton({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Opacity(
+      opacity: onTap == null ? 0.5 : 1,
+      child: Material(
+        color: visual.textPrimary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Sizes.md,
+              vertical: Sizes.sm,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: textTheme.labelSmall?.copyWith(
+                          color: visual.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: visual.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 20,
+                  color: visual.textSecondary,
+                ),
+              ],
+            ),
+          ),
         ),
-        if (isRecurring) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-            child: Opacity(
-              opacity: selectedTransaction == null || recurrencyEditingPermitted
-                  ? 1.0
-                  : 0.5,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Sizes.lg,
-                    vertical: Sizes.md,
-                  ),
-                ),
-                onPressed:
-                    selectedTransaction == null || recurrencyEditingPermitted
-                    ? () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (_) => const RecurrenceSelector(),
-                        );
-                      }
-                    : null,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "Interval",
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      ref.watch(intervalProvider).label,
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: isDarkMode
-                            ? grey3
-                            : Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                    const SizedBox(width: Sizes.xs),
-                    Icon(
-                      Icons.chevron_right,
-                      color: isDarkMode
-                          ? grey3
-                          : Theme.of(context).colorScheme.secondary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Sizes.lg,
-              Sizes.sm,
-              Sizes.lg,
-              Sizes.sm,
-            ),
-            child: Opacity(
-              opacity: selectedTransaction == null || recurrencyEditingPermitted
-                  ? 1.0
-                  : 0.5,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Sizes.lg,
-                    vertical: Sizes.md,
-                  ),
-                ),
-                onPressed:
-                    selectedTransaction == null || recurrencyEditingPermitted
-                    ? () => showModalBottomSheet(
-                        context: context,
-                        elevation: 10,
-                        builder: (BuildContext context) {
-                          return const EndDateSelector();
-                        },
-                      )
-                    : null,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "End repetition",
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      endDate?.formatEDMY() ?? "Never",
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: isDarkMode
-                            ? grey3
-                            : Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                    const SizedBox(width: Sizes.xs),
-                    Icon(
-                      Icons.chevron_right,
-                      color: isDarkMode
-                          ? grey3
-                          : Theme.of(context).colorScheme.secondary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (selectedTransaction != null && !recurrencyEditingPermitted) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context)
-                      .pushNamed(
-                        "/edit-recurring-transaction",
-                        arguments: selectedTransaction,
-                      )
-                      .then((value) {
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
-                      });
-                },
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.warning, color: Colors.orange),
-                    SizedBox(width: Sizes.sm),
-                    Flexible(
-                      child: Text(
-                        'This is a transaction generated by a recurring one: any change will affect this unique transaction.\nTo change all future transactions options, or recurrency options, TAP HERE',
-                        style: TextStyle(color: darkBlue5, fontSize: 13),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ],
+      ),
     );
   }
 }
@@ -244,63 +177,35 @@ class EndDateSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: ListView(
-        scrollDirection: Axis.vertical,
-        shrinkWrap: true,
+    final endDate = ref.watch(endDateProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Sizes.lg),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            visualDensity: const VisualDensity(vertical: -3),
-            trailing: ref.watch(endDateProvider) != null
-                ? null
-                : const Icon(Icons.check),
-            title: const Text("Never"),
+          const PickerSheetHeader(title: 'Stop repeating'),
+          PickerRow(
+            title: 'Never',
+            selected: endDate == null,
             onTap: () {
               ref.read(endDateProvider.notifier).setDate(null);
               Navigator.pop(context);
             },
           ),
-          ListTile(
-            visualDensity: const VisualDensity(vertical: -3),
-            title: const Text("On a date"),
-            trailing: ref.watch(endDateProvider) != null
-                ? const Icon(Icons.check)
-                : null,
-            subtitle: Text(
-              ref.read(endDateProvider) != null
-                  ? ref.read(endDateProvider)!.formatEDMY()
-                  : '',
-            ),
+          PickerRow(
+            title: 'On a date',
+            subtitle: endDate?.formatEDMY(),
+            selected: endDate != null,
             onTap: () async {
-              FocusManager.instance.primaryFocus?.unfocus();
-              if (Platform.isIOS) {
-                showCupertinoModalPopup(
-                  context: context,
-                  builder: (_) => Container(
-                    height: 300,
-                    color: white,
-                    child: CupertinoDatePicker(
-                      initialDateTime: ref.watch(endDateProvider),
-                      minimumYear: 2015,
-                      maximumYear: 2050,
-                      mode: CupertinoDatePickerMode.date,
-                      onDateTimeChanged: (date) =>
-                          ref.read(endDateProvider.notifier).setDate(date),
-                    ),
-                  ),
-                );
-              } else if (Platform.isAndroid) {
-                final DateTime? pickedDate = await showDatePicker(
-                  context: context,
-                  initialDate: ref.watch(endDateProvider),
-                  firstDate: DateTime(2015),
-                  lastDate: DateTime(2050),
-                );
-                if (pickedDate != null) {
-                  ref.read(endDateProvider.notifier).setDate(pickedDate);
-                }
-              }
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: endDate ?? DateTime.now(),
+                firstDate: DateTime(2015),
+                lastDate: DateTime(2050),
+              );
+              if (picked == null) return;
+              ref.read(endDateProvider.notifier).setDate(picked);
+              if (context.mounted) Navigator.pop(context);
             },
           ),
         ],
@@ -308,3 +213,9 @@ class EndDateSelector extends ConsumerWidget {
     );
   }
 }
+
+Future<void> showEndDateSelector(BuildContext context) => showPickerSheet<void>(
+  context,
+  scrollable: false,
+  builder: (_, _) => const EndDateSelector(),
+);
