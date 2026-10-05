@@ -27,7 +27,7 @@ android {
     }
 
     namespace = "com.bltr.sossoldi"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

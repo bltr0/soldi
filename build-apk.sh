@@ -28,7 +28,7 @@ fi
 "${FLUTTER[@]}" pub get
 "${DART[@]}" run build_runner build --delete-conflicting-outputs
 
-"${FLUTTER[@]}" build apk --flavor default --release "${DEFINE_ARGS[@]}"
+"${FLUTTER[@]}" build apk --no-pub --flavor default --release "${DEFINE_ARGS[@]}"
 
 APK="$ROOT/build/app/outputs/flutter-apk/app-default-release.apk"
 if [[ ! -f "$APK" ]]; then

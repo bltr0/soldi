@@ -127,9 +127,9 @@ class SossoldiDatabase {
     }
 
     // Convert to CSV string
-    String csv = const ListToCsvConverter().convert(allData);
+    final csvData = csv.encode(allData);
 
-    return csv;
+    return csvData;
   }
 
   Future<Map<String, bool>> importFromCSV(String csvFilePath) async {
@@ -143,9 +143,7 @@ class SossoldiDatabase {
       }
 
       final String csvData = await file.readAsString();
-      final List<List<dynamic>> rows = const CsvToListConverter().convert(
-        csvData,
-      );
+      final List<List<dynamic>> rows = csv.decode(csvData);
 
       if (rows.isEmpty) {
         throw Exception('CSV file is empty');
@@ -219,10 +217,7 @@ class SossoldiDatabase {
       throw Exception('CSV file not found');
     }
 
-    final rows = const CsvToListConverter().convert(
-      await file.readAsString(),
-      shouldParseNumbers: false,
-    );
+    final rows = Csv(dynamicTyping: false).decode(await file.readAsString());
     if (rows.isEmpty) {
       throw const FormatException('CSV file is empty');
     }

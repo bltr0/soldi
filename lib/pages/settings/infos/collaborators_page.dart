@@ -37,7 +37,7 @@ var collaborators = const [
 ];
 
 // Cycles through the category colour palette for visual variety.
-IconData _platformIcon(String url) {
+FaIconData _platformIcon(String url) {
   if (url.contains('github.com')) return FontAwesomeIcons.github;
   if (url.contains('linkedin.com')) return FontAwesomeIcons.linkedin;
   return FontAwesomeIcons.globe;
