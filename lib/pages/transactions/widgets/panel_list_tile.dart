@@ -7,6 +7,7 @@ import '../../../model/currency.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../providers/currency_provider.dart';
+import '../../../providers/main_converter_provider.dart';
 import '../../../ui/account_currency.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
@@ -110,7 +111,12 @@ class PanelListTile extends ConsumerWidget {
             body: Container(
               color: Theme.of(context).colorScheme.primaryContainer,
               child: enableSubcategories
-                  ? _buildGroupedTransactions(context, transactions, currency)
+                  ? _buildGroupedTransactions(
+                      context,
+                      transactions,
+                      currency,
+                      ref.watch(mainConverterProvider).value,
+                    )
                   : TransactionsList(
                       currency: currency,
                       transactions: transactions,
@@ -126,6 +132,7 @@ class PanelListTile extends ConsumerWidget {
     BuildContext context,
     List<Transaction> txs,
     Currency currency,
+    MainConverter? converter,
   ) {
     final Map<int?, List<Transaction>> grouped = {};
     final List<Widget> children = [];
@@ -142,9 +149,9 @@ class PanelListTile extends ConsumerWidget {
       double sum = 0;
       for (final t in list) {
         if (t.isBalanceReset) continue;
-        sum += t.type == TransactionType.income
-            ? t.amount.toDouble()
-            : -t.amount.toDouble();
+        // Shown in the main currency, at each transaction's own rate.
+        final amount = converter?.transaction(t) ?? t.amount.toDouble();
+        sum += t.type == TransactionType.income ? amount : -amount;
       }
 
       final headerName = list.first.categoryName ?? 'Uncategorized';

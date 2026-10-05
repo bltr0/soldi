@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../constants/constants.dart';
 import '../../model/transaction.dart';
 import '../../providers/currency_provider.dart';
+import '../../providers/main_converter_provider.dart';
 import '../account_currency.dart';
 import '../../providers/transactions_provider.dart';
 import '../device.dart';
@@ -15,7 +16,7 @@ import 'default_container.dart';
 import 'rounded_icon.dart';
 import 'main_equivalent.dart';
 
-class TransactionsList extends StatefulWidget {
+class TransactionsList extends ConsumerStatefulWidget {
   const TransactionsList({
     super.key,
     required this.transactions,
@@ -30,36 +31,28 @@ class TransactionsList extends StatefulWidget {
   final bool ignoreBlur;
 
   @override
-  State<TransactionsList> createState() => _TransactionsListState();
+  ConsumerState<TransactionsList> createState() => _TransactionsListState();
 }
 
-class _TransactionsListState extends State<TransactionsList> {
+class _TransactionsListState extends ConsumerState<TransactionsList> {
   Map<String, double> totals = {};
   List<Transaction> get transactions => widget.transactions;
 
-  @override
-  void initState() {
-    updateTotal();
-    super.initState();
-  }
-
-  @override
-  void didUpdateWidget(covariant TransactionsList oldWidget) {
-    updateTotal();
-    super.didUpdateWidget(oldWidget);
-  }
-
-  void updateTotal() {
+  /// Daily totals in the main currency, each transaction at its own rate.
+  void updateTotal(MainConverter? converter) {
     totals = {};
     for (final transaction in transactions) {
       final date = transaction.date.formatYMD();
       final currentTotal = totals[date] ?? 0.0;
 
+      final value =
+          converter?.transaction(transaction) ??
+          transaction.amount.toDouble();
       final amount = transaction.isBalanceReset
           ? 0.0
           : switch (transaction.type) {
-              TransactionType.expense => -transaction.amount.toDouble(),
-              TransactionType.income => transaction.amount.toDouble(),
+              TransactionType.expense => -value,
+              TransactionType.income => value,
               TransactionType.transfer => 0.0,
               TransactionType.adjustment => 0.0,
             };
@@ -70,6 +63,7 @@ class _TransactionsListState extends State<TransactionsList> {
 
   @override
   Widget build(BuildContext context) {
+    updateTotal(ref.watch(mainConverterProvider).value);
     if (transactions.isNotEmpty) {
       return DefaultContainer(
         margin: widget.margin,

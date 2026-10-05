@@ -94,37 +94,40 @@ class BudgetRepository {
     return result.map((json) => Budget.fromJson(json)).toList();
   }
 
-  Future<List<BudgetStats>> selectMonthlyBudgetsStats() async {
+  /// This month's spending against each active budget. [toMain] converts
+  /// each expense, held in its account's currency, into the main currency
+  /// at its own day's rate, so accounts in other currencies add up right.
+  Future<List<BudgetStats>> selectMonthlyBudgetsStats({
+    num Function(num amount, int accountId, DateTime date)? toMain,
+  }) async {
     final db = await _sossoldiDB.database;
-    var query =
-        "SELECT bt.*, SUM(t.${TransactionFields.amount}) as spent FROM $budgetTable as bt LEFT JOIN $categoryTransactionTable as ct ON bt.${BudgetFields.idCategory} = ct.${CategoryTransactionFields.id} LEFT JOIN '$transactionTable' as t ON t.${TransactionFields.idCategory} = ct.${CategoryTransactionFields.id} WHERE bt.${BudgetFields.active} = 1 AND strftime('%m', t.date) = strftime('%m', 'now') AND strftime('%Y', t.date) = strftime('%Y', 'now') GROUP BY bt.${BudgetFields.idCategory};";
-    final result = await db.rawQuery(query);
+    final rows = await db.rawQuery(
+      "SELECT bt.${BudgetFields.idCategory} as category, t.${TransactionFields.amount} as amount, t.${TransactionFields.date} as date, t.${TransactionFields.idBankAccount} as account FROM $budgetTable as bt JOIN '$transactionTable' as t ON t.${TransactionFields.idCategory} = bt.${BudgetFields.idCategory} WHERE bt.${BudgetFields.active} = 1 AND strftime('%m', t.date) = strftime('%m', 'now') AND strftime('%Y', t.date) = strftime('%Y', 'now');",
+    );
 
-    List<Budget> allBudgets = await selectAllActive();
-
-    List<BudgetStats> statsList = result
-        .map((json) => BudgetStats.fromJson(json))
-        .toList();
-
-    Set<int> resultBudgetIds = statsList
-        .map((stats) => stats.idCategory)
-        .toSet();
-
-    // Check for missing budgets and add them with a spent amount of 0
-    for (var budget in allBudgets) {
-      if (!resultBudgetIds.contains(budget.idCategory)) {
-        statsList.add(
-          BudgetStats(
-            idCategory: budget.idCategory,
-            name: budget.name,
-            spent: 0,
-            amountLimit: budget.amountLimit,
-          ),
-        );
-      }
+    final spent = <int, num>{};
+    for (final row in rows) {
+      final category = row['category'] as int;
+      final amount = row['amount'] as num? ?? 0;
+      final date = DateTime.tryParse(row['date'] as String? ?? '');
+      final account = row['account'] as int?;
+      spent[category] =
+          (spent[category] ?? 0) +
+          (toMain == null || date == null || account == null
+              ? amount
+              : toMain(amount, account, date));
     }
 
-    return statsList;
+    final allBudgets = await selectAllActive();
+    return [
+      for (final budget in allBudgets)
+        BudgetStats(
+          idCategory: budget.idCategory,
+          name: budget.name,
+          spent: spent[budget.idCategory] ?? 0,
+          amountLimit: budget.amountLimit,
+        ),
+    ];
   }
 
   Future<int> updateItem(Budget item) async {

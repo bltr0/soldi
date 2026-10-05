@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/place.dart';
 import '../services/database/repositories/place_repository.dart';
+import 'main_converter_provider.dart';
 
 part 'places_provider.g.dart';
 
@@ -19,6 +20,9 @@ Future<List<Place>> savedPlaces(Ref ref) {
 }
 
 @Riverpod(keepAlive: true)
-Future<List<PlaceSpend>> placeSpending(Ref ref) {
-  return ref.read(placeRepositoryProvider).spending();
+Future<List<PlaceSpend>> placeSpending(Ref ref) async {
+  final converter = await ref.watch(mainConverterProvider.future);
+  return ref
+      .read(placeRepositoryProvider)
+      .spending(toMain: converter.amount);
 }

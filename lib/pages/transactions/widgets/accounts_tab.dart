@@ -7,6 +7,7 @@ import '../../../ui/widgets/transaction_type_button.dart';
 import '../../../model/bank_account.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
+import '../../../providers/main_converter_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import 'accounts_pie_chart.dart';
@@ -20,9 +21,10 @@ class AccountsTab extends ConsumerWidget {
     final accounts = ref.watch(accountsProvider);
     final transactions = ref.watch(transactionsProvider);
     final transactionType = ref.watch(selectedTransactionTypeProvider);
+    final converter = ref.watch(mainConverterProvider).value;
 
-    // create a map to link each accounts with a list of its transactions
-    // stored as Map<String, dynamic> to be passed to AccountListTile
+    // Each account with its transactions and its total, in the main
+    // currency at each transaction's own rate so accounts can be compared.
     Map<int, List<Transaction>> accountToTransactionsIncome = {},
         accountToTransactionsExpense = {};
     Map<int, double> accountToAmountIncome = {}, accountToAmountExpense = {};
@@ -37,49 +39,19 @@ class AccountsTab extends ConsumerWidget {
         accountToAmountExpense.putIfAbsent(accountId, () => 0);
         continue;
       }
+      final amount =
+          converter?.transaction(transaction) ??
+          transaction.amount.toDouble();
       if (transaction.type == TransactionType.income) {
-        if (accountToTransactionsIncome.containsKey(accountId)) {
-          accountToTransactionsIncome[accountId]?.add(transaction);
-        } else {
-          accountToTransactionsIncome.putIfAbsent(
-            accountId,
-            () => [transaction],
-          );
-        }
-
-        // update total amount for the account
-        totalIncome += transaction.amount;
-        if (accountToAmountIncome.containsKey(accountId)) {
-          accountToAmountIncome[accountId] =
-              accountToAmountIncome[accountId]! + transaction.amount.toDouble();
-        } else {
-          accountToAmountIncome.putIfAbsent(
-            accountId,
-            () => transaction.amount.toDouble(),
-          );
-        }
+        (accountToTransactionsIncome[accountId] ??= []).add(transaction);
+        totalIncome += amount;
+        accountToAmountIncome[accountId] =
+            (accountToAmountIncome[accountId] ?? 0) + amount;
       } else if (transaction.type == TransactionType.expense) {
-        if (accountToTransactionsExpense.containsKey(accountId)) {
-          accountToTransactionsExpense[accountId]?.add(transaction);
-        } else {
-          accountToTransactionsExpense.putIfAbsent(
-            accountId,
-            () => [transaction],
-          );
-        }
-
-        // update total amount for the account
-        totalExpense -= transaction.amount;
-        if (accountToAmountExpense.containsKey(accountId)) {
-          accountToAmountExpense[accountId] =
-              accountToAmountExpense[accountId]! -
-              transaction.amount.toDouble();
-        } else {
-          accountToAmountExpense.putIfAbsent(
-            accountId,
-            () => -transaction.amount.toDouble(),
-          );
-        }
+        (accountToTransactionsExpense[accountId] ??= []).add(transaction);
+        totalExpense -= amount;
+        accountToAmountExpense[accountId] =
+            (accountToAmountExpense[accountId] ?? 0) - amount;
       }
     }
 
@@ -165,6 +137,12 @@ class AccountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Accounts with an amount first, so a pie slice and its tile share the
+    // same index when one is tapped.
+    final accountList = [
+      ...this.accountList.where((a) => (amounts[a.id] ?? 0) != 0),
+      ...this.accountList.where((a) => (amounts[a.id] ?? 0) == 0),
+    ];
     final pieAccounts = [
       for (final account in accountList)
         if ((amounts[account.id] ?? 0) != 0) account,

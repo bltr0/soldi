@@ -7,6 +7,7 @@ import '../services/database/repositories/transactions_repository.dart';
 import '../services/database/repositories/budget_repository.dart';
 import '../services/database/repositories/recurring_transactions_repository.dart';
 import 'budgets_provider.dart';
+import 'main_converter_provider.dart';
 import 'recurring_transactions_provider.dart';
 import 'statistics_provider.dart';
 import 'transactions_provider.dart';
@@ -295,6 +296,7 @@ Future<List<CategoryTransaction>> frequentCategories(
 
 @Riverpod(keepAlive: true)
 Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
+  final converter = await ref.watch(mainConverterProvider.future);
   final categoryType = ref.watch(categoryTypeProvider);
   final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
@@ -332,7 +334,7 @@ Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
           0.0,
           (previousValue, transaction) =>
               previousValue +
-              _statisticsAmount(transaction, categoryType, myCosts),
+              _statisticsAmount(transaction, categoryType, myCosts, converter),
         );
 
     categoriesMap[category] = categoryType == CategoryTransactionType.income
@@ -345,6 +347,7 @@ Future<Map<CategoryTransaction, double>> categoryMap(Ref ref) async {
 
 @Riverpod(keepAlive: true)
 Future<double> categoryTotalAmount(Ref ref) async {
+  final converter = await ref.watch(mainConverterProvider.future);
   final categoryType = ref.watch(categoryTypeProvider);
   final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
@@ -363,7 +366,7 @@ Future<double> categoryTotalAmount(Ref ref) async {
   final totalAmount = transactions.fold<double>(
     0,
     (previousValue, transaction) =>
-        previousValue + _statisticsAmount(transaction, categoryType, myCosts),
+        previousValue + _statisticsAmount(transaction, categoryType, myCosts, converter),
   );
 
   return categoryType == CategoryTransactionType.income
@@ -373,6 +376,7 @@ Future<double> categoryTotalAmount(Ref ref) async {
 
 @Riverpod(keepAlive: true)
 Future<List<double>> monthlyTotals(Ref ref) async {
+  final converter = await ref.watch(mainConverterProvider.future);
   final categoryType = ref.watch(categoryTypeProvider);
   final myCosts = ref.watch(myCostsProvider);
   final dateStart = ref.watch(filterDateStartProvider);
@@ -399,20 +403,24 @@ Future<List<double>> monthlyTotals(Ref ref) async {
       transaction,
       categoryType,
       myCosts,
+      converter,
     ).abs();
   }
   return monthlyTotals;
 }
 
+/// In the main currency, at the rate of the transaction's day.
 double _statisticsAmount(
   Transaction transaction,
   CategoryTransactionType categoryType,
   bool myCosts,
+  MainConverter converter,
 ) {
+  final amount = converter.transaction(transaction);
   if (myCosts && categoryType == CategoryTransactionType.expense) {
-    return transaction.amount.toDouble() / transaction.peopleConcerned;
+    return amount / transaction.peopleConcerned;
   }
-  return transaction.amount.toDouble();
+  return amount;
 }
 
 class ParentCategoryWithSubcategoriesData {
@@ -437,6 +445,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
   final categories = ref.watch(categoriesProvider).value ?? [];
   final parentCategories = ref.watch(allParentCategoriesProvider).value ?? [];
   final transactions = ref.watch(transactionsProvider).value ?? [];
+  final converter = await ref.watch(mainConverterProvider.future);
   final parentCategoriesByType = parentCategories.where(
     (cat) => cat.type.transactionType == trnscType,
   );
@@ -452,7 +461,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
     categoryTransactions.addAll(parentTransactions);
     total += parentTransactions.fold(
       0,
-      (previousValue, trnsc) => previousValue + trnsc.amount,
+      (previousValue, trnsc) => previousValue + converter.transaction(trnsc),
     );
     final subcategories = categories.where(
       (cat) => cat.parent == parentCategory.id,
@@ -463,7 +472,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
       );
       num subcategoryTotal = subcategoryTransactions.fold(
         0,
-        (previousValue, trnsc) => previousValue + trnsc.amount,
+        (previousValue, trnsc) => previousValue + converter.transaction(trnsc),
       );
       if (subcategoryTotal != 0) {
         subcategoryMap[subcategory] = trnscType == TransactionType.expense

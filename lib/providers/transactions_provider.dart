@@ -13,6 +13,7 @@ import 'categories_provider.dart';
 import 'dashboard_provider.dart';
 import 'places_provider.dart';
 import 'fx_provider.dart';
+import 'main_converter_provider.dart';
 import 'statistics_provider.dart';
 
 part 'transactions_provider.g.dart';
@@ -232,6 +233,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
           limit: limit,
         );
 
+    // Read, not watched: this method invalidates what the converter depends
+    // on, so watching it would rebuild in a loop.
+    final converter = await ref.read(mainConverterProvider.future);
     ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(0, (
       prev,
       transaction,
@@ -240,8 +244,8 @@ class TransactionsNotifier extends _$TransactionsNotifier {
       return switch (transaction.type) {
         TransactionType.transfer => prev,
         TransactionType.adjustment => prev,
-        TransactionType.expense => prev - transaction.amount,
-        TransactionType.income => prev + transaction.amount,
+        TransactionType.expense => prev - converter.transaction(transaction),
+        TransactionType.income => prev + converter.transaction(transaction),
       };
     });
     return transactions;

@@ -9,6 +9,7 @@ import '../../../../ui/widgets/blur_widget.dart';
 import '../../../../ui/widgets/default_container.dart';
 import '../../../../providers/accounts_provider.dart';
 import '../../../../providers/currency_provider.dart';
+import '../../../../providers/main_converter_provider.dart';
 import '../../../../model/bank_account.dart';
 import '../card_label.dart';
 import '../../../../ui/widgets/main_equivalent.dart';
@@ -20,6 +21,7 @@ class AccountsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accountList = ref.watch(activeAccountsProvider);
     final currencyState = ref.watch(currencyStateProvider);
+    final converter = ref.watch(mainConverterProvider).value;
     final visual = context.dashboardTheme;
 
     return Column(
@@ -37,9 +39,13 @@ class AccountsCard extends ConsumerWidget {
               separatorBuilder: (context, i) =>
                   const SizedBox(height: Sizes.xs),
               itemBuilder: (context, i) {
+                // Bars compare balances in the main currency.
+                double inMain(BankAccount account) =>
+                    converter?.balance(account) ??
+                    (account.total ?? 0).toDouble();
                 double total = accounts.isNotEmpty
                     ? accounts
-                          .map((account) => account.total!.toDouble())
+                          .map(inMain)
                           .reduce(
                             (first, second) => first > second ? first : second,
                           )
@@ -95,7 +101,7 @@ class AccountsCard extends ConsumerWidget {
                       ),
                       LinearProgressBar(
                         type: BarType.account,
-                        amount: account.total!.toDouble(),
+                        amount: inMain(account),
                         total: total,
                         colorIndex: account.color,
                       ),

@@ -87,6 +87,16 @@ class ExchangeRateRepository {
     return rows.isEmpty ? null : rows.first['d'] as String?;
   }
 
+  /// Earliest stored day (`yyyy-MM-dd`) for the pair, if any.
+  Future<String?> earliestDate(String base, String quote) async {
+    final db = await _sossoldiDB.database;
+    final rows = await db.rawQuery(
+      'SELECT MIN(date) as d FROM $exchangeRateTable WHERE base = ? AND quote = ?',
+      [base, quote],
+    );
+    return rows.isEmpty ? null : rows.first['d'] as String?;
+  }
+
   /// Earliest transaction day touching an account held in [currency].
   Future<DateTime?> earliestTransaction(String currency) async {
     final db = await _sossoldiDB.database;

@@ -41,12 +41,12 @@ class CategoriesPieChart extends ConsumerWidget {
               centerSpaceRadius: 70,
               sectionsSpace: 0,
               borderData: FlBorderData(show: false),
-              sections: List.generate(amounts.values.length, (i) {
+              sections: List.generate(categories.length, (i) {
                 final isTouched = (i == selectedIndex);
                 final radius = isTouched ? 30.0 : 25.0;
                 return PieChartSectionData(
                   color: categoryColorList[categories[i].color],
-                  value: 360 * amounts[categories[i].id]!,
+                  value: (amounts[categories[i].id] ?? 0).abs(),
                   radius: radius,
                   showTitle: false,
                   borderSide: const BorderSide(color: Colors.black, width: 1.5),

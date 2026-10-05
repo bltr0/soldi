@@ -104,13 +104,20 @@ class FxSync extends _$FxSync {
       final now = DateTime.now();
       for (final code in codes) {
         final latest = await repository.latestDate(code, main);
+        final stored = await repository.earliestDate(code, main);
+        final earliest = await repository.earliestTransaction(code);
+        // A few days before, so the first transaction has a prior rate
+        // (weekends and holidays have none).
+        final needed = (earliest ?? now).subtract(const Duration(days: 7));
         DateTime from;
-        if (latest != null) {
-          from = DateTime.parse(latest);
+        if (latest == null ||
+            stored == null ||
+            (earliest != null && DateTime.parse(stored).isAfter(earliest))) {
+          // Nothing stored yet, or a transaction was back-dated before the
+          // first stored rate: without this it would use a later day's rate.
+          from = needed;
         } else {
-          final earliest = await repository.earliestTransaction(code);
-          // A few days before, so the first transaction has a prior rate.
-          from = (earliest ?? now).subtract(const Duration(days: 7));
+          from = DateTime.parse(latest);
         }
         final rates = await client.series(
           base: code,

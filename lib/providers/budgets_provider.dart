@@ -2,14 +2,16 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/budget.dart';
 import '../services/database/repositories/budget_repository.dart';
+import 'main_converter_provider.dart';
 
 part 'budgets_provider.g.dart';
 
 @Riverpod(keepAlive: true)
 Future<List<BudgetStats>> monthlyBudgetsStats(Ref ref) async {
+  final converter = await ref.watch(mainConverterProvider.future);
   final budgets = await ref
       .read(budgetRepositoryProvider)
-      .selectMonthlyBudgetsStats();
+      .selectMonthlyBudgetsStats(toMain: converter.amount);
   return budgets;
 }
 

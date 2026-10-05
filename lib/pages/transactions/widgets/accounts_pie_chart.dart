@@ -25,7 +25,8 @@ class AccountsPieChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = ref.watch(selectedListIndexProvider);
+    final rawIndex = ref.watch(selectedListIndexProvider);
+    final selectedIndex = rawIndex < accounts.length ? rawIndex : -1;
     final currencyState = ref.watch(currencyStateProvider);
     return SizedBox(
       height: 200,
@@ -38,12 +39,13 @@ class AccountsPieChart extends ConsumerWidget {
               centerSpaceRadius: 70,
               sectionsSpace: 0,
               borderData: FlBorderData(show: false),
-              sections: List.generate(amounts.values.length, (i) {
+              sections: List.generate(accounts.length, (i) {
                 final isTouched = (i == selectedIndex);
                 final radius = isTouched ? 30.0 : 25.0;
                 return PieChartSectionData(
                   color: accountColorList[accounts[i].color],
-                  value: 360 * amounts[accounts[i].id]!,
+                  // Expenses are negative; a pie needs sizes.
+                  value: (amounts[accounts[i].id] ?? 0).abs(),
                   radius: radius,
                   showTitle: false,
                   borderSide: const BorderSide(color: Colors.black, width: 1.5),
@@ -80,7 +82,7 @@ class AccountsPieChart extends ConsumerWidget {
                 ),
               Text(
                 (selectedIndex != -1)
-                    ? "${amounts[accounts[selectedIndex].id]!.toCurrency(accounts[selectedIndex].currencyCode(currencyState.code))} ${accounts[selectedIndex].currencySymbol(currencyState.symbol)}"
+                    ? "${amounts[accounts[selectedIndex].id]!.toCurrency(currencyState.code)} ${currencyState.symbol}"
                     : "${total.toCurrency(currencyState.code)} ${currencyState.symbol}",
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color:
