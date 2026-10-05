@@ -1,7 +1,4 @@
 import 'package:collection/collection.dart';
-import 'dart:io' show Platform;
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,9 +12,13 @@ import '../../../providers/recurring_transactions_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
-import "widgets/account_selector.dart";
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/accent_button.dart';
+import '../../../ui/widgets/settings_tiles.dart';
+import '../../../ui/widgets/tonal_glass_surface.dart';
+import 'widgets/account_selector.dart';
 import 'widgets/amount_section.dart';
-import "widgets/category_selector.dart";
+import 'widgets/category_selector.dart';
 import 'widgets/details_list_tile.dart';
 import 'widgets/duplicate_transaction_dialog.dart';
 import 'widgets/label_list_tile.dart';
@@ -25,8 +26,6 @@ import 'widgets/people_concerned_selector.dart';
 import 'widgets/place_search_sheet.dart';
 import 'widgets/recurrence_list_tile.dart';
 import 'widgets/transfer_details_fields.dart';
-import '../../../ui/theme/dashboard_visual_theme.dart';
-import '../../../ui/widgets/tonal_glass_surface.dart';
 
 class CreateTransactionPage extends ConsumerStatefulWidget {
   const CreateTransactionPage({super.key, this.transaction});
@@ -361,9 +360,9 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     });
 
     final isSaveEnabled = _canSave(selectedType);
-
     final visual = context.dashboardTheme;
-    final arrowColor = visual.textPrimary;
+    final isEditing = widget.transaction != null;
+    final date = ref.watch(selectedDateProvider);
 
     return PopScope(
       canPop: true,
@@ -376,23 +375,15 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
         appBar: AppBar(
           leading: IconButton(
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            color: arrowColor,
-            icon: const BackButtonIcon(),
+            icon: const Icon(Icons.arrow_back_ios_new),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: Text(
-            (widget.transaction != null)
-                ? "Editing transaction"
-                : "New transaction",
-          ),
+          title: Text(isEditing ? "Edit transaction" : "New transaction"),
           actions: [
-            if (widget.transaction != null) ...[
+            if (isEditing) ...[
               IconButton(
-                icon: Icon(
-                  Icons.copy,
-                  size: 20,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                tooltip: 'Duplicate',
+                icon: Icon(Icons.copy_rounded, color: visual.textPrimary),
                 onPressed: () => showDialog(
                   context: context,
                   builder: (_) => DuplicateTransactionDialog(
@@ -401,307 +392,176 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
                 ),
               ),
               IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                tooltip: 'Delete',
+                icon: Icon(Icons.delete_outline_rounded, color: visual.negative),
                 onPressed: _deleteTransaction,
               ),
             ],
           ],
         ),
-        persistentFooterDecoration: const BoxDecoration(
-          color: Colors.transparent,
-        ),
-        persistentFooterButtons: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
+        bottomNavigationBar: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              Sizes.lg,
               Sizes.sm,
-              Sizes.xs,
-              Sizes.sm,
-              Sizes.sm,
+              Sizes.lg,
+              Sizes.md + MediaQuery.viewInsetsOf(context).bottom,
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: visual.navigationSelected,
-                  foregroundColor: visual.navigationFill.withValues(alpha: 1),
-                  disabledBackgroundColor: visual.textPrimary.withValues(
-                    alpha: 0.12,
-                  ),
-                  disabledForegroundColor: visual.textSecondary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                  ),
-                ),
-                onPressed: isSaveEnabled ? _createOrUpdateTransaction : null,
-                child: Text(
-                  widget.transaction != null
-                      ? "UPDATE TRANSACTION"
-                      : "ADD TRANSACTION",
-                ),
-              ),
+            child: AccentButton(
+              label: isEditing ? 'Save changes' : 'Add transaction',
+              icon: isEditing ? Icons.check_rounded : Icons.add_rounded,
+              onPressed: isSaveEnabled ? _createOrUpdateTransaction : null,
             ),
           ),
-        ],
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: Sizes.md),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-                child: TonalGlassSurface(
-                  tone: GlassTone.hero,
-                  radius: 28,
-                  pressScale: 1,
-                  child: AmountSection(amountController),
-                ),
-              ),
-              if (selectedType == TransactionType.transfer)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Sizes.lg,
-                    Sizes.md,
-                    Sizes.lg,
-                    0,
-                  ),
-                  child: TonalGlassSurface(
-                    radius: 24,
-                    pressScale: 1,
-                    padding: const EdgeInsets.only(
-                      top: Sizes.sm,
-                      bottom: Sizes.lg,
-                    ),
-                    child: TransferDetailsFields(
-                      controller: _transfer,
-                      amount: _parsedAmount(),
-                      senderSymbol:
-                          fromAccount?.currencySymbol(mainCurrency.symbol) ??
-                          mainCurrency.symbol,
-                      receiverSymbol:
-                          toAccount?.currencySymbol(mainCurrency.symbol) ??
-                          mainCurrency.symbol,
-                      senderCode: fromAccount?.currencyCode(mainCurrency.code),
-                      receiverCode: toAccount?.currencyCode(mainCurrency.code),
-                      crossCurrency: _isCrossCurrency,
-                      senderName: fromAccount?.name,
-                      receiverName: toAccount?.name,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: Sizes.md),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-                child: TonalGlassSurface(
-                  radius: 24,
-                  pressScale: 1,
-                  child: Column(
-                    children: [
-                      LabelListTile(noteController),
-                      const Divider(height: 1),
-                      if (selectedType != TransactionType.transfer) ...[
-                        DetailsListTile(
-                          title: "Account",
-                          icon: Icons.account_balance_wallet,
-                          value: ref.watch(selectedBankAccountProvider)?.name,
-                          callback: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            showModalBottomSheet(
-                              context: context,
-                              clipBehavior: Clip.antiAliasWithSaveLayer,
-                              isScrollControlled: true,
-                              useSafeArea: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(Sizes.borderRadius),
-                                  topRight: Radius.circular(Sizes.borderRadius),
-                                ),
-                              ),
-                              builder: (_) => DraggableScrollableSheet(
-                                expand: false,
-                                minChildSize: 0.5,
-                                initialChildSize: 0.7,
-                                maxChildSize: 0.9,
-                                builder: (_, controller) => AccountSelector(
-                                  scrollController: controller,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        if (selectedType != TransactionType.adjustment) ...[
-                          const Divider(height: 1),
-                          DetailsListTile(
-                            title: "Category",
-                            icon: Icons.list_alt,
-                            value:
-                                ref.watch(selectedCategoryProvider)?.name ??
-                                "Uncategorized",
-                            callback: () {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              showModalBottomSheet(
-                                context: context,
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                isScrollControlled: true,
-                                useSafeArea: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(
-                                      Sizes.borderRadius,
-                                    ),
-                                    topRight: Radius.circular(
-                                      Sizes.borderRadius,
-                                    ),
-                                  ),
-                                ),
-                                builder: (_) => DraggableScrollableSheet(
-                                  expand: false,
-                                  minChildSize: 0.5,
-                                  initialChildSize: 0.7,
-                                  maxChildSize: 0.9,
-                                  builder: (_, controller) => CategorySelector(
-                                    scrollController: controller,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                        if (selectedType == TransactionType.expense) ...[
-                          const Divider(height: 1),
-                          DetailsListTile(
-                            title: "People concerned",
-                            icon: Icons.group_outlined,
-                            value:
-                                "${ref.watch(selectedPeopleConcernedProvider)}",
-                            callback: () {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              showModalBottomSheet<void>(
-                                context: context,
-                                useSafeArea: true,
-                                showDragHandle: true,
-                                builder: (_) => const PeopleConcernedSelector(),
-                              );
-                            },
-                          ),
-                          const Divider(height: 1),
-                          ListTile(
-                            dense: true,
-                            visualDensity: VisualDensity.compact,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: Sizes.lg,
-                            ),
-                            onTap: () => ref
-                                .read(selectedReimbursementDueProvider.notifier)
-                                .setValue(!paidForOthers),
-                            leading: Icon(
-                              Icons.group_outlined,
-                              color: visual.accent,
-                            ),
-                            title: Text(
-                              'Paid for other people',
-                              style: Theme.of(context).textTheme.titleMedium!
-                                  .copyWith(
-                                    color: visual.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            subtitle: Text(
-                              paidForOthers ? 'Still due' : 'Paid back',
-                              style: TextStyle(color: visual.textSecondary),
-                            ),
-                            trailing: AbsorbPointer(
-                              child: Checkbox(
-                                value: paidForOthers,
-                                activeColor: visual.textPrimary,
-                                checkColor: visual.solidSurface,
-                                onChanged: (_) {},
-                              ),
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          DetailsListTile(
-                            title: 'Place',
-                            icon: Icons.place_outlined,
-                            value: place?.name ?? 'None',
-                            callback: () async {
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              final choice = await showPlaceSearchSheet(
-                                context,
-                                canClear: place != null,
-                              );
-                              if (choice == null || !choice.apply) return;
-                              ref
-                                  .read(selectedPlaceProvider.notifier)
-                                  .setPlace(choice.place);
-                            },
-                          ),
-                        ],
-                        const Divider(height: 1),
-                      ],
-                      DetailsListTile(
-                        title: "Date",
-                        icon: Icons.calendar_month,
-                        value: ref.watch(selectedDateProvider).formatEDMY(),
-                        callback: () async {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          if (Platform.isIOS) {
-                            showCupertinoModalPopup(
-                              context: context,
-                              builder: (_) => Container(
-                                height: 300,
-                                color: CupertinoDynamicColor.resolve(
-                                  CupertinoColors.secondarySystemBackground,
-                                  context,
-                                ),
-                                child: CupertinoDatePicker(
-                                  initialDateTime: ref.read(
-                                    selectedDateProvider,
-                                  ),
-                                  minimumYear: 2015,
-                                  maximumYear: 2050,
-                                  mode: CupertinoDatePickerMode.date,
-                                  onDateTimeChanged: (date) => ref
-                                      .read(selectedDateProvider.notifier)
-                                      .setDate(date),
-                                ),
-                              ),
-                            );
-                          } else {
-                            final DateTime? pickedDate = await showDatePicker(
-                              context: context,
-                              initialDate: ref.read(selectedDateProvider),
-                              firstDate: DateTime(2015),
-                              lastDate: DateTime(2050),
-                            );
-                            if (pickedDate != null) {
-                              ref
-                                  .read(selectedDateProvider.notifier)
-                                  .setDate(pickedDate);
-                            }
-                          }
-                        },
-                      ),
-                      if (selectedType != TransactionType.adjustment)
-                        RecurrenceListTile(
-                          recurrencyEditingPermitted:
-                              recurrencyEditingPermitted,
-                          selectedTransaction: widget.transaction,
-                        ),
-                    ],
-                  ),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            Sizes.lg,
+            Sizes.sm,
+            Sizes.lg,
+            Sizes.xl,
+          ),
+          physics: const BouncingScrollPhysics(),
+          children: [
+            TonalGlassSurface(
+              tone: GlassTone.hero,
+              radius: 28,
+              pressScale: 1,
+              child: AmountSection(amountController),
+            ),
+            if (selectedType == TransactionType.transfer) ...[
+              const SizedBox(height: Sizes.lg),
+              TonalGlassSurface(
+                radius: 24,
+                pressScale: 1,
+                padding: const EdgeInsets.symmetric(vertical: Sizes.lg),
+                child: TransferDetailsFields(
+                  controller: _transfer,
+                  amount: _parsedAmount(),
+                  senderSymbol:
+                      fromAccount?.currencySymbol(mainCurrency.symbol) ??
+                      mainCurrency.symbol,
+                  receiverSymbol:
+                      toAccount?.currencySymbol(mainCurrency.symbol) ??
+                      mainCurrency.symbol,
+                  senderCode: fromAccount?.currencyCode(mainCurrency.code),
+                  receiverCode: toAccount?.currencyCode(mainCurrency.code),
+                  crossCurrency: _isCrossCurrency,
+                  senderName: fromAccount?.name,
+                  receiverName: toAccount?.name,
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: Sizes.lg),
+            SettingsGroup(
+              children: [
+                LabelListTile(noteController),
+                if (selectedType != TransactionType.transfer)
+                  DetailsListTile(
+                    title: "Account",
+                    icon: Icons.account_balance_wallet_rounded,
+                    value: fromAccount?.name ?? 'Choose',
+                    callback: () => showAccountSelector(context),
+                  ),
+                if (selectedType == TransactionType.income ||
+                    selectedType == TransactionType.expense)
+                  DetailsListTile(
+                    title: "Category",
+                    icon: Icons.category_rounded,
+                    value:
+                        ref.watch(selectedCategoryProvider)?.name ??
+                        "Uncategorized",
+                    callback: () => showCategorySelector(context),
+                  ),
+                DetailsListTile(
+                  title: "Date",
+                  icon: Icons.calendar_month_rounded,
+                  value: date.isSameDay(DateTime.now())
+                      ? 'Today'
+                      : date.formatEDMY(),
+                  callback: _pickDate,
+                ),
+              ],
+            ),
+            if (selectedType == TransactionType.expense) ...[
+              const SizedBox(height: Sizes.lg),
+              SettingsGroup(
+                title: 'Shared & place',
+                children: [
+                  SettingsTile(
+                    icon: Icons.group_rounded,
+                    title: 'People concerned',
+                    subtitle: 'Your share is the total divided equally',
+                    trailing: const PeopleConcernedStepper(),
+                  ),
+                  SettingsSwitchTile(
+                    icon: Icons.volunteer_activism_rounded,
+                    title: 'Paid for other people',
+                    subtitle: paidForOthers
+                        ? 'Still due, shown in Paybacks'
+                        : 'Nothing to get back',
+                    value: paidForOthers,
+                    onChanged: (value) => ref
+                        .read(selectedReimbursementDueProvider.notifier)
+                        .setValue(value),
+                  ),
+                  DetailsListTile(
+                    title: 'Place',
+                    icon: Icons.place_rounded,
+                    value: place?.name ?? 'None',
+                    callback: () async {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      final choice = await showPlaceSearchSheet(
+                        context,
+                        canClear: place != null,
+                      );
+                      if (choice == null || !choice.apply) return;
+                      ref
+                          .read(selectedPlaceProvider.notifier)
+                          .setPlace(choice.place);
+                    },
+                  ),
+                ],
+              ),
+            ],
+            if (selectedType != TransactionType.adjustment) ...[
+              const SizedBox(height: Sizes.lg),
+              SettingsGroup(
+                children: [
+                  RecurrenceListTile(
+                    recurrencyEditingPermitted: recurrencyEditingPermitted,
+                    selectedTransaction: widget.transaction,
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickDate() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: ref.read(selectedDateProvider),
+      firstDate: DateTime(2015),
+      lastDate: DateTime(2050),
+    );
+    if (picked == null) return;
+    final current = ref.read(selectedDateProvider);
+    ref
+        .read(selectedDateProvider.notifier)
+        .setDate(
+          DateTime(
+            picked.year,
+            picked.month,
+            picked.day,
+            current.hour,
+            current.minute,
+            current.second,
+          ),
+        );
   }
 }

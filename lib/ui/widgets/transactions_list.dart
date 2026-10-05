@@ -15,6 +15,7 @@ import 'blur_widget.dart';
 import 'default_container.dart';
 import 'rounded_icon.dart';
 import 'main_equivalent.dart';
+import 'unconverted_amount.dart';
 
 class TransactionsList extends ConsumerStatefulWidget {
   const TransactionsList({
@@ -36,11 +37,13 @@ class TransactionsList extends ConsumerStatefulWidget {
 
 class _TransactionsListState extends ConsumerState<TransactionsList> {
   Map<String, double> totals = {};
+  Set<String> unconvertedDays = {};
   List<Transaction> get transactions => widget.transactions;
 
   /// Daily totals in the main currency, each transaction at its own rate.
   void updateTotal(MainConverter? converter) {
     totals = {};
+    unconvertedDays = {};
     for (final transaction in transactions) {
       final date = transaction.date.formatYMD();
       final currentTotal = totals[date] ?? 0.0;
@@ -58,6 +61,9 @@ class _TransactionsListState extends ConsumerState<TransactionsList> {
             };
 
       totals[date] = currentTotal + amount;
+      if (amount != 0 && (converter?.unconverted(transaction) ?? false)) {
+        unconvertedDays.add(date);
+      }
     }
   }
 
@@ -87,6 +93,7 @@ class _TransactionsListState extends ConsumerState<TransactionsList> {
                   ignoreBlur: widget.ignoreBlur,
                   date: DateTime.parse(currentDate),
                   total: totals[currentDate] ?? 0,
+                  unconverted: unconvertedDays.contains(currentDate),
                 ),
                 Container(
                   decoration: BoxDecoration(
@@ -225,50 +232,51 @@ class TransactionTile extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            BlurWidget(
-              ignore: ignoreBlur,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    switch (transaction.type) {
-                      TransactionType.expense =>
-                        "-${transaction.amount.toCurrency(code)}",
-                      TransactionType.adjustment =>
-                        transaction.amount.toCurrency(code),
-                      TransactionType.income || TransactionType.transfer =>
-                        transaction.amount.toCurrency(code),
-                    },
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: transaction.type.toColor(
-                        brightness: Theme.of(context).brightness,
-                      ),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  Text(
-                    symbol,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: transaction.type.toColor(
-                        brightness: Theme.of(context).brightness,
-                      ),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             MainEquivalent(
               amount: transaction.amount,
               code: code,
               date: transaction.date,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: visual.textSecondary,
+              ignoreBlur: ignoreBlur,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontSize: 15,
+              ),
+              child: BlurWidget(
+                ignore: ignoreBlur,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      switch (transaction.type) {
+                        TransactionType.expense =>
+                          "-${transaction.amount.toCurrency(code)}",
+                        TransactionType.adjustment =>
+                          transaction.amount.toCurrency(code),
+                        TransactionType.income || TransactionType.transfer =>
+                          transaction.amount.toCurrency(code),
+                      },
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: transaction.type.toColor(
+                          brightness: Theme.of(context).brightness,
+                        ),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    Text(
+                      symbol,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: transaction.type.toColor(
+                          brightness: Theme.of(context).brightness,
+                        ),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Text(
@@ -316,7 +324,10 @@ class TransactionTitle extends ConsumerWidget {
     required this.date,
     required this.total,
     required this.ignoreBlur,
+    this.unconverted = false,
   });
+
+  final bool unconverted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -337,24 +348,18 @@ class TransactionTitle extends ConsumerWidget {
             ),
           ),
           const Spacer(),
-          BlurWidget(
-            ignore: ignoreBlur,
-            child: Text(
-              total.toCurrency(currencyState.code),
-              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                color: color,
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
+          UnconvertedAmount(
+            unconverted: unconverted,
+            child: BlurWidget(
+              ignore: ignoreBlur,
+              child: Text(
+                '${total.toCurrency(currencyState.code)} ${currencyState.symbol}',
+                style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
-            ),
-          ),
-          BlurWidget(
-            ignore: ignoreBlur,
-            child: Text(
-              currencyState.symbol,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium!.copyWith(color: color),
             ),
           ),
         ],

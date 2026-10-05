@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/constants.dart';
-import '../../../constants/style.dart';
-import '../../../model/category_transaction.dart';
-import '../../../providers/categories_provider.dart';
-import '../../../ui/device.dart';
+import '../../constants/constants.dart';
+import '../../model/category_transaction.dart';
+import '../../providers/categories_provider.dart';
+import '../../ui/device.dart';
+import '../../ui/widgets/accent_button.dart';
+import '../../ui/widgets/name_hero.dart';
 import 'widgets/category_icon_color_selector.dart';
 import 'widgets/confirm_category_deletion_dialog.dart';
 
@@ -47,165 +48,97 @@ class _CreateEditSubcategoryPage
     super.dispose();
   }
 
+  Future<void> _save() async {
+    if (nameController.text.isEmpty) return;
+    final notifier = ref.read(categoriesProvider.notifier);
+    if (ref.read(selectedSubcategoryProvider) != null) {
+      await notifier.updateSubcategory(
+        name: nameController.text,
+        icon: categoryIcon,
+      );
+    } else {
+      await notifier.addSubcategory(name: nameController.text, icon: categoryIcon);
+    }
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  Future<void> _delete(CategoryTransaction subcategory) async {
+    final count = await ref
+        .read(categoriesProvider.notifier)
+        .transactionCount(subcategory);
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => ConfirmCategoryDeletionDialog(
+        category: subcategory,
+        transactionCount: count,
+        onPressed: (deleteTransactions) => ref
+            .read(categoriesProvider.notifier)
+            .removeCategory(subcategory, deleteTransactions: deleteTransactions)
+            .whenComplete(() {
+              if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+              if (mounted) Navigator.of(context).pop();
+            }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedSubcategory = ref.watch(selectedSubcategoryProvider);
+    final isNew = selectedSubcategory == null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "${selectedSubcategory == null ? "New" : "Edit"} Subcategory",
-        ),
+        title: Text(isNew ? 'New subcategory' : 'Edit subcategory'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context, false),
         ),
       ),
-      persistentFooterDecoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.15),
-            blurRadius: 5.0,
-            offset: const Offset(0, -1.0),
-          ),
-        ],
-      ),
-      persistentFooterButtons: [
-        Padding(
+      bottomNavigationBar: SafeArea(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(
+            Sizes.lg,
             Sizes.sm,
-            Sizes.xs,
-            Sizes.sm,
-            Sizes.sm,
+            Sizes.lg,
+            Sizes.md,
           ),
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              boxShadow: [defaultShadow],
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
-            ),
-            child: ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty) {
-                  if (selectedSubcategory != null) {
-                    await ref
-                        .read(categoriesProvider.notifier)
-                        .updateSubcategory(
-                          name: nameController.text,
-                          icon: categoryIcon,
-                        );
-                  } else {
-                    await ref
-                        .read(categoriesProvider.notifier)
-                        .addSubcategory(
-                          name: nameController.text,
-                          icon: categoryIcon,
-                        );
-                  }
-                  // Result from the .pop is used in lib\pages\planning_page\manage_budget_page.dart.
-                  //
-                  // If the category has been created correctly, result is true.
-                  if (context.mounted) Navigator.of(context).pop(true);
-                }
-              },
-              child: Text(
-                "${selectedSubcategory == null ? "CREATE" : "UPDATE"} SUBCATEGORY",
-              ),
-            ),
+          child: AccentButton(
+            label: isNew ? 'Create subcategory' : 'Save changes',
+            icon: isNew ? Icons.add_rounded : Icons.check_rounded,
+            onPressed: _save,
           ),
         ),
-      ],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.symmetric(
-                horizontal: Sizes.lg,
-                vertical: Sizes.md,
-              ),
-              padding: const EdgeInsets.fromLTRB(
-                Sizes.lg,
-                Sizes.md,
-                Sizes.lg,
-                0,
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "NAME",
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(
-                      hintText: "Category name",
-                    ),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ],
-              ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          Sizes.lg,
+          Sizes.lg,
+          Sizes.lg,
+          Sizes.xl,
+        ),
+        physics: const BouncingScrollPhysics(),
+        children: [
+          NameHero(
+            icon: iconList[categoryIcon],
+            color: categoryColorListTheme[categoryColor],
+            controller: nameController,
+            hint: 'Subcategory name',
+          ),
+          const SizedBox(height: Sizes.xl),
+          CategoryIconColorSelector(
+            selectedIcon: categoryIcon,
+            selectedColor: categoryColor,
+            onIconChanged: (icon) => setState(() => categoryIcon = icon),
+          ),
+          if (!isNew) ...[
+            const SizedBox(height: Sizes.xl),
+            DeleteAction(
+              label: 'Delete subcategory',
+              onPressed: () => _delete(selectedSubcategory),
             ),
-            CategoryIconColorSelector(
-              selectedIcon: categoryIcon,
-              selectedColor: categoryColor,
-              onIconChanged: (icon) => setState(() => categoryIcon = icon),
-            ),
-            if (selectedSubcategory != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(Sizes.lg),
-                child: TextButton.icon(
-                  onPressed: () async {
-                    final count = await ref
-                        .read(categoriesProvider.notifier)
-                        .transactionCount(selectedSubcategory);
-                    if (!context.mounted) return;
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => ConfirmCategoryDeletionDialog(
-                        category: selectedSubcategory,
-                        transactionCount: count,
-                        onPressed: (deleteTransactions) => ref
-                            .read(categoriesProvider.notifier)
-                            .removeCategory(
-                              selectedSubcategory,
-                              deleteTransactions: deleteTransactions,
-                            )
-                            .whenComplete(() {
-                              if (dialogContext.mounted) {
-                                Navigator.of(dialogContext).pop();
-                              }
-                              if (context.mounted) {
-                                Navigator.of(context).pop();
-                              }
-                            }),
-                      ),
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    side: const BorderSide(color: red, width: 1),
-                  ),
-                  icon: const Icon(Icons.delete_outlined, color: red),
-                  label: Text(
-                    "Delete subcategory",
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.copyWith(color: red),
-                  ),
-                ),
-              ),
           ],
-        ),
+        ],
       ),
     );
   }

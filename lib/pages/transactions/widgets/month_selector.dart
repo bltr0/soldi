@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../ui/widgets/unconverted_amount.dart';
+import '../../../providers/main_converter_provider.dart';
 
 import '../../../constants/style.dart';
 import '../../../providers/currency_provider.dart';
@@ -121,7 +123,9 @@ class MonthSelector extends ConsumerWidget {
                   ),
                 ),
                 if (type == MonthSelectorType.advanced)
-                  BlurWidget(
+                  UnconvertedAmount(
+                    unconverted: ref.watch(totalAmountUnconvertedProvider),
+                    child: BlurWidget(
                     sigma: 12,
                     child: RichText(
                       text: TextSpan(
@@ -139,6 +143,7 @@ class MonthSelector extends ConsumerWidget {
                         ],
                       ),
                     ),
+                  ),
                   ),
               ],
             ),

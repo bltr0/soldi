@@ -1,11 +1,10 @@
 import "package:flutter/material.dart";
-import "package:flutter_riverpod/flutter_riverpod.dart";
 
-import "../../../../ui/theme/dashboard_visual_theme.dart";
-import "../../../../ui/widgets/rounded_icon.dart";
 import "../../../../ui/device.dart";
+import "../../../../ui/theme/dashboard_visual_theme.dart";
+import "../../../../ui/widgets/settings_tiles.dart";
 
-class DetailsListTile extends ConsumerWidget {
+class DetailsListTile extends StatelessWidget {
   const DetailsListTile({
     required this.title,
     required this.icon,
@@ -20,46 +19,31 @@ class DetailsListTile extends ConsumerWidget {
   final VoidCallback callback;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.symmetric(horizontal: Sizes.lg),
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    return SettingsTile(
+      icon: icon,
+      title: title,
       onTap: callback,
-      leading: RoundedIcon(
-        icon: icon,
-        size: 18,
-        padding: const EdgeInsets.all(Sizes.sm),
-        backgroundColor: context.dashboardTheme.accent,
-      ),
-      title: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-          color: context.dashboardTheme.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.sizeOf(context).width * 0.45,
+              maxWidth: MediaQuery.sizeOf(context).width * 0.4,
             ),
             child: Text(
               value ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: context.dashboardTheme.textSecondary,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: visual.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
           const SizedBox(width: Sizes.xs),
-          Icon(
-            Icons.chevron_right,
-            color: context.dashboardTheme.textSecondary,
-          ),
+          Icon(Icons.chevron_right_rounded, color: visual.textSecondary),
         ],
       ),
     );

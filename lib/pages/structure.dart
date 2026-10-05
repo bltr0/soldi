@@ -10,6 +10,7 @@ import '../ui/device.dart';
 import '../ui/theme/dashboard_visual_theme.dart';
 import '../ui/widgets/app_navigation_bar.dart';
 import '../ui/widgets/atmospheric_background.dart';
+import '../ui/widgets/fx_source_dialog.dart';
 import '../ui/widgets/tonal_glass_surface.dart';
 import 'dashboard/dashboard_page.dart';
 import 'graphs/graphs_page.dart';
@@ -30,7 +31,9 @@ class _StructureState extends ConsumerState<Structure> {
   void initState() {
     super.initState();
     // Once a day when the app opens, and only if the user allowed it.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await askFxSourceIfUnset(context, ref);
+      if (!mounted) return;
       ref.read(fxSyncProvider.notifier).sync();
     });
   }

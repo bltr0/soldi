@@ -13,7 +13,7 @@ import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/blur_widget.dart';
-import '../../../ui/widgets/rounded_icon.dart';
+import '../../../ui/widgets/picker_sheet.dart';
 import '../../../ui/widgets/tonal_glass_surface.dart';
 import 'transaction_details_dialog.dart';
 
@@ -25,6 +25,14 @@ class OrganizeSection extends ConsumerWidget {
     final queue = ref.watch(organizeQueueProvider);
     final visual = context.dashboardTheme;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final currentKey = switch (queue) {
+      AsyncValue(:final value?) when value.items.isNotEmpty => ValueKey(
+        value.items.first.id,
+      ),
+      AsyncValue(:final value?) => const ValueKey('organize-empty'),
+      AsyncError() => const ValueKey('organize-error'),
+      _ => const ValueKey('organize-loading'),
+    };
 
     return TonalGlassSurface(
       radius: 28,
@@ -58,6 +66,7 @@ class OrganizeSection extends ConsumerWidget {
                 ),
               ),
               queue.when(
+                skipLoadingOnReload: true,
                 data: (data) => data.total == 0
                     ? const SizedBox.shrink()
                     : Row(
@@ -85,37 +94,55 @@ class OrganizeSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: Sizes.lg),
-          AnimatedSwitcher(
+          AnimatedSize(
             duration: reduceMotion
                 ? Duration.zero
                 : const Duration(milliseconds: 320),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
-            ),
-            child: queue.when(
-              data: (data) {
-                if (data.items.isEmpty) {
-                  return const _OrganizeEmpty(key: ValueKey('organize-empty'));
-                }
-                return _OrganizeTile(
-                  key: ValueKey(data.items.first.id),
-                  transaction: data.items.first,
-                );
-              },
-              loading: () =>
-                  const _OrganizeLoading(key: ValueKey('organize-loading')),
-              error: (_, _) => _OrganizeError(
-                key: const ValueKey('organize-error'),
-                onRetry: () => ref.invalidate(organizeQueueProvider),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: ClipRect(
+              child: AnimatedSwitcher(
+                duration: reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 320),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    for (final child in previous)
+                      Positioned(top: 0, left: 0, right: 0, child: child),
+                    ?current,
+                  ],
+                ),
+                transitionBuilder: (child, animation) {
+                  final incoming = child.key == currentKey;
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: Offset(incoming ? 1 : -1, 0),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: queue.when(
+                  skipLoadingOnReload: true,
+                  data: (data) {
+                    if (data.items.isEmpty) {
+                      return const _OrganizeEmpty(key: ValueKey('organize-empty'));
+                    }
+                    return _OrganizeTile(
+                      key: ValueKey(data.items.first.id),
+                      transaction: data.items.first,
+                    );
+                  },
+                  loading: () =>
+                      const _OrganizeLoading(key: ValueKey('organize-loading')),
+                  error: (_, _) => _OrganizeError(
+                    key: const ValueKey('organize-error'),
+                    onRetry: () => ref.invalidate(organizeQueueProvider),
+                  ),
+                ),
               ),
             ),
           ),
@@ -282,30 +309,15 @@ class _OrganizeTileState extends ConsumerState<_OrganizeTile> {
   Future<void> _openSheet() async {
     final type = transaction.type;
     if (type.categoryType == null) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      clipBehavior: Clip.antiAliasWithSaveLayer,
-      isScrollControlled: true,
-      useSafeArea: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(Sizes.borderRadius),
-          topRight: Radius.circular(Sizes.borderRadius),
-        ),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        minChildSize: 0.5,
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        builder: (_, controller) => OrganizeCategorySheet(
-          type: type,
-          scrollController: controller,
-          onSelected: (category) {
-            Navigator.of(context).pop();
-            setState(() => _category = category);
-          },
-        ),
+    await showPickerSheet<void>(
+      context,
+      builder: (_, controller) => OrganizeCategorySheet(
+        type: type,
+        scrollController: controller,
+        onSelected: (category) {
+          Navigator.of(context).pop();
+          setState(() => _category = category);
+        },
       ),
     );
   }
@@ -601,7 +613,7 @@ class OrganizeCategorySheet extends ConsumerStatefulWidget {
   });
 
   final TransactionType type;
-  final ScrollController scrollController;
+  final ScrollController? scrollController;
   final ValueChanged<CategoryTransaction> onSelected;
 
   @override
@@ -632,174 +644,89 @@ class _OrganizeCategorySheetState extends ConsumerState<OrganizeCategorySheet> {
       frequentCategoriesProvider(categoryType),
     );
 
-    return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppBar(title: const Text("Category")),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: widget.scrollController,
-              child: Column(
-                children: [
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(
-                      left: Sizes.lg,
-                      top: Sizes.xxl,
-                      bottom: Sizes.md,
-                    ),
-                    child: Text(
-                      "MORE FREQUENT",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+    return ListView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.only(bottom: Sizes.xl),
+      children: [
+        const PickerSheetHeader(title: 'Category'),
+        ...frequentCategories.maybeWhen(
+          data: (categories) => categories.isEmpty
+              ? const <Widget>[]
+              : [
+                  const PickerSectionLabel('Frequent'),
+                  SizedBox(
+                    height: 76,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Sizes.sm,
                       ),
-                    ),
-                  ),
-                  Container(
-                    color: Theme.of(context).colorScheme.surface,
-                    height: 74,
-                    width: double.infinity,
-                    child: frequentCategories.when(
-                      data: (categories) => ListView.builder(
-                        itemCount: categories.length,
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, i) {
-                          final category = categories[i];
-                          return GestureDetector(
+                      children: [
+                        for (final category in categories)
+                          PickerChip(
+                            label: category.name,
+                            icon: iconList[category.symbol],
+                            color: categoryColorListTheme[category.color],
                             onTap: () => _selectParent(category),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: Sizes.lg,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  RoundedIcon(
-                                    icon: iconList[category.symbol],
-                                    backgroundColor:
-                                        categoryColorListTheme[category.color],
-                                  ),
-                                  Text(
-                                    category.name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelLarge!
-                                        .copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (err, _) => Text('Error: $err'),
+                          ),
+                      ],
                     ),
-                  ),
-                  Container(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(
-                      left: Sizes.lg,
-                      top: Sizes.xxl,
-                      bottom: Sizes.sm,
-                    ),
-                    child: Text(
-                      "ALL CATEGORIES",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  categoriesList.when(
-                    data: (categories) => Container(
-                      color: Theme.of(context).colorScheme.surface,
-                      child: ListView.separated(
-                        itemCount: categories.length,
-                        scrollDirection: Axis.vertical,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1, color: grey1),
-                        itemBuilder: (context, i) {
-                          final category = categories[i];
-                          final subcategories = ref.watch(
-                            subcategoriesProvider(category.id!),
-                          );
-                          return Column(
-                            children: [
-                              ListTile(
-                                onTap: () => _selectParent(category),
-                                leading: RoundedIcon(
-                                  icon: iconList[category.symbol],
-                                  backgroundColor:
-                                      categoryColorListTheme[category.color],
-                                ),
-                                title: Text(category.name),
-                                trailing: _pendingParentId == category.id
-                                    ? const Icon(Icons.check)
-                                    : null,
-                              ),
-                              AnimatedCrossFade(
-                                crossFadeState: _pendingParentId == category.id
-                                    ? CrossFadeState.showSecond
-                                    : CrossFadeState.showFirst,
-                                duration: const Duration(milliseconds: 150),
-                                firstChild: const SizedBox.shrink(),
-                                secondChild: subcategories.when(
-                                  data: (data) => ListView(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    children: data
-                                        .map(
-                                          (subcategory) => ListTile(
-                                            contentPadding:
-                                                const EdgeInsets.only(
-                                                  left: Sizes.xxl,
-                                                  right: Sizes.lg,
-                                                ),
-                                            onTap: () =>
-                                                widget.onSelected(subcategory),
-                                            leading: RoundedIcon(
-                                              icon:
-                                                  iconList[subcategory.symbol],
-                                              backgroundColor:
-                                                  categoryColorListTheme[subcategory
-                                                      .color],
-                                            ),
-                                            title: Text(subcategory.name),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                  loading: () => const Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                  error: (_, _) => const SizedBox.shrink(),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, _) => Text('Error: $err'),
                   ),
                 ],
+          orElse: () => const <Widget>[],
+        ),
+        const PickerSectionLabel('All categories'),
+        ...categoriesList.when(
+          data: (categories) => [
+            for (final category in categories) ...[
+              PickerRow(
+                leading: PickerIcon(
+                  icon: iconList[category.symbol],
+                  color: categoryColorListTheme[category.color],
+                ),
+                title: category.name,
+                selected: _pendingParentId == category.id,
+                onTap: () => _selectParent(category),
               ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _pendingParentId == category.id
+                    ? ref
+                          .watch(subcategoriesProvider(category.id!))
+                          .maybeWhen(
+                            data: (subcategories) => Column(
+                              children: [
+                                for (final subcategory in subcategories)
+                                  PickerRow(
+                                    indent: Sizes.xl,
+                                    leading: PickerIcon(
+                                      icon: iconList[subcategory.symbol],
+                                      color: categoryColorListTheme[subcategory
+                                          .color],
+                                    ),
+                                    title: subcategory.name,
+                                    onTap: () => widget.onSelected(subcategory),
+                                  ),
+                              ],
+                            ),
+                            orElse: () =>
+                                const SizedBox(width: double.infinity),
+                          )
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
+          ],
+          loading: () => const [
+            Padding(
+              padding: EdgeInsets.all(Sizes.xl),
+              child: Center(child: CircularProgressIndicator()),
             ),
-          ),
-        ],
-      ),
+          ],
+          error: (err, _) => [Center(child: Text('Error: $err'))],
+        ),
+      ],
     );
   }
 }

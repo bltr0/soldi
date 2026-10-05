@@ -29,6 +29,7 @@ class AccountsTab extends ConsumerWidget {
         accountToTransactionsExpense = {};
     Map<int, double> accountToAmountIncome = {}, accountToAmountExpense = {};
     double totalIncome = 0, totalExpense = 0;
+    var unconvertedIncome = false, unconvertedExpense = false;
 
     for (Transaction transaction in transactions.value ?? []) {
       final accountId = transaction.idBankAccount;
@@ -45,11 +46,13 @@ class AccountsTab extends ConsumerWidget {
       if (transaction.type == TransactionType.income) {
         (accountToTransactionsIncome[accountId] ??= []).add(transaction);
         totalIncome += amount;
+        unconvertedIncome |= converter?.unconverted(transaction) ?? false;
         accountToAmountIncome[accountId] =
             (accountToAmountIncome[accountId] ?? 0) + amount;
       } else if (transaction.type == TransactionType.expense) {
         (accountToTransactionsExpense[accountId] ??= []).add(transaction);
         totalExpense -= amount;
+        unconvertedExpense |= converter?.unconverted(transaction) ?? false;
         accountToAmountExpense[accountId] =
             (accountToAmountExpense[accountId] ?? 0) - amount;
       }
@@ -94,6 +97,7 @@ class AccountsTab extends ConsumerWidget {
                               accountList: accountIncomeList,
                               amounts: accountToAmountIncome,
                               total: totalIncome,
+                              unconverted: unconvertedIncome,
                               transactions: accountToTransactionsIncome,
                             )
                     : accountExpenseList.isEmpty
@@ -107,6 +111,7 @@ class AccountsTab extends ConsumerWidget {
                         accountList: accountExpenseList,
                         amounts: accountToAmountExpense,
                         total: totalExpense,
+                        unconverted: unconvertedExpense,
                         transactions: accountToTransactionsExpense,
                       );
               },
@@ -127,9 +132,11 @@ class AccountSection extends StatelessWidget {
     required this.amounts,
     required this.total,
     required this.transactions,
+    this.unconverted = false,
     super.key,
   });
 
+  final bool unconverted;
   final List<BankAccount> accountList;
   final Map<int, double> amounts;
   final double total;
@@ -155,6 +162,7 @@ class AccountSection extends StatelessWidget {
             accounts: pieAccounts,
             amounts: amounts,
             total: total,
+            unconverted: unconverted,
           ),
         ListView.separated(
           shrinkWrap: true,

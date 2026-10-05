@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/category_transaction.dart';
@@ -434,7 +435,11 @@ class ParentCategoryWithSubcategoriesData {
     required this.subcategories,
     required this.transactions,
     required this.total,
+    this.unconverted = false,
   });
+
+  /// Some foreign amounts in [total] are counted 1:1.
+  final bool unconverted;
 }
 
 @Riverpod(keepAlive: true)
@@ -489,6 +494,7 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
           subcategories: subcategoryMap,
           transactions: categoryTransactions,
           total: trnscType == TransactionType.expense ? -total : total,
+          unconverted: categoryTransactions.any(converter.unconverted),
         ),
       );
     }
@@ -496,3 +502,21 @@ Future<List<ParentCategoryWithSubcategoriesData>> categoryWithSubcategoriesData(
 
   return result;
 }
+
+/// Whether [categoryTotalAmountProvider] counts some foreign amounts 1:1.
+final categoryTotalUnconvertedProvider = FutureProvider<bool>((ref) async {
+  final categoryType = ref.watch(categoryTypeProvider);
+  final dateStart = ref.watch(filterDateStartProvider);
+  final dateEnd = ref.watch(filterDateEndProvider);
+  final converter = await ref.watch(mainConverterProvider.future);
+  final transactions = await ref
+      .read(transactionsRepositoryProvider)
+      .selectAll(
+        transactionType: [categoryType.transactionType.code],
+        dateRangeStart: dateStart,
+        dateRangeEnd: dateEnd,
+      );
+  return transactions.any(
+    (t) => !t.isBalanceReset && converter.unconverted(t),
+  );
+});

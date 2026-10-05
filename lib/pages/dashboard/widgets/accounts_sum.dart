@@ -27,6 +27,11 @@ class AccountsSum extends ConsumerWidget {
           0,
           accountColorListTheme.length - 1,
         )];
+    final amountStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      color: visual.textPrimary,
+      fontWeight: FontWeight.w800,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return SizedBox(
       width: width,
@@ -65,26 +70,21 @@ class AccountsSum extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 2),
-            BlurWidget(
-              sigma: 16,
-              child: Text(
-                '${(account.total ?? 0).toCurrency(account.currencyCode(currency.code))}${account.currencySymbol(currency.symbol)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: visual.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
             MainEquivalent(
               amount: account.total ?? 0,
               code: account.currencyCode(currency.code),
               date: DateTime.now(),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: visual.textSecondary,
-                fontWeight: FontWeight.w600,
+              style: amountStyle,
+              alwaysBlurred: account.alwaysBlurred,
+              child: BlurWidget(
+                sigma: 16,
+                always: account.alwaysBlurred,
+                child: Text(
+                  '${(account.total ?? 0).toCurrency(account.currencyCode(currency.code))}${account.currencySymbol(currency.symbol)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: amountStyle,
+                ),
               ),
             ),
           ],

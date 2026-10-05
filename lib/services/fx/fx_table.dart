@@ -12,6 +12,7 @@ class FxTable {
     required this.mainCode,
     List<StoredRate> stored = const [],
     List<TransferRate> transfers = const [],
+    this.strict = false,
   }) {
     final fetched = <String, List<_Point>>{};
     for (final rate in stored) {
@@ -39,6 +40,10 @@ class FxTable {
 
   /// ISO code of the app's main currency.
   final String mainCode;
+
+  /// Only a rate published on the day, or the last one before it within a
+  /// week (weekends, holidays); never a later day's rate.
+  final bool strict;
 
   late final Map<String, List<_Point>> _fetched;
   late final Map<String, List<_Point>> _derived;
@@ -74,7 +79,7 @@ class FxTable {
     final series = _fetched[pair] ?? _derived[pair];
     if (series == null || series.isEmpty) return null;
     // Latest point on or before [day]; before the first point, the first.
-    var low = 0, high = series.length - 1, found = 0;
+    var low = 0, high = series.length - 1, found = -1;
     while (low <= high) {
       final mid = (low + high) >> 1;
       if (series[mid].day <= day) {
@@ -84,8 +89,16 @@ class FxTable {
         high = mid - 1;
       }
     }
+    if (found < 0) return strict ? null : series.first.rate;
+    if (strict && _daysBetween(series[found].day, day) > 7) return null;
     return series[found].rate;
   }
+
+  static int _daysBetween(int from, int to) => DateTime(
+    to ~/ 10000,
+    to ~/ 100 % 100,
+    to % 100,
+  ).difference(DateTime(from ~/ 10000, from ~/ 100 % 100, from % 100)).inDays;
 
   static int? _dayKey(DateTime? date) =>
       date == null ? null : date.year * 10000 + date.month * 100 + date.day;

@@ -95,6 +95,7 @@ class CategorySection extends StatelessWidget {
           categories: categories,
           amounts: amounts,
           total: total,
+          unconverted: categoryData.any((e) => e.unconverted),
         ),
         ListView.separated(
           shrinkWrap: true,

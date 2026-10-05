@@ -1,105 +1,51 @@
-import 'package:fl_chart/fl_chart.dart';
 import "package:flutter/material.dart";
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/constants.dart';
-import '../../../constants/style.dart';
-import '../../../providers/transactions_provider.dart';
-import '../../../ui/widgets/rounded_icon.dart';
 import '../../../model/bank_account.dart';
 import '../../../providers/currency_provider.dart';
-import '../../../ui/device.dart';
+import '../../../providers/transactions_provider.dart';
 import '../../../ui/extensions.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/share_breakdown.dart';
 
 class AccountsPieChart extends ConsumerWidget {
   const AccountsPieChart({
     required this.accounts,
     required this.amounts,
     required this.total,
+    this.unconverted = false,
     super.key,
   });
 
   final List<BankAccount> accounts;
   final Map<int, double> amounts;
   final double total;
+  final bool unconverted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rawIndex = ref.watch(selectedListIndexProvider);
-    final selectedIndex = rawIndex < accounts.length ? rawIndex : -1;
-    final currencyState = ref.watch(currencyStateProvider);
-    return SizedBox(
-      height: 200,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          PieChart(
-            PieChartData(
-              startDegreeOffset: -90,
-              centerSpaceRadius: 70,
-              sectionsSpace: 0,
-              borderData: FlBorderData(show: false),
-              sections: List.generate(accounts.length, (i) {
-                final isTouched = (i == selectedIndex);
-                final radius = isTouched ? 30.0 : 25.0;
-                return PieChartSectionData(
-                  color: accountColorList[accounts[i].color],
-                  // Expenses are negative; a pie needs sizes.
-                  value: (amounts[accounts[i].id] ?? 0).abs(),
-                  radius: radius,
-                  showTitle: false,
-                  borderSide: const BorderSide(color: Colors.black, width: 1.5),
-                );
-              }),
-              pieTouchData: PieTouchData(
-                touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                  // expand category when tapped
-                  if (!event.isInterestedForInteractions ||
-                      pieTouchResponse == null ||
-                      pieTouchResponse.touchedSection == null) {
-                    return;
-                  }
-                  ref
-                      .read(selectedListIndexProvider.notifier)
-                      .setIndex(
-                        pieTouchResponse.touchedSection!.touchedSectionIndex,
-                      );
-                },
-              ),
-            ),
+    final selectedIndex = ref.watch(selectedListIndexProvider);
+    final currency = ref.watch(currencyStateProvider);
+    final visual = context.dashboardTheme;
+    return ShareBreakdown(
+      totalText: '${total.toCurrency(currency.code)} ${currency.symbol}',
+      unconverted: unconverted,
+      amountColor: total >= 0 ? visual.positive : visual.negative,
+      selectedIndex: selectedIndex < 0 ? null : selectedIndex,
+      onSelect: (i) =>
+          ref.read(selectedListIndexProvider.notifier).setIndex(i ?? -1),
+      slices: [
+        for (final account in accounts)
+          ShareSlice(
+            label: account.name,
+            value: amounts[account.id] ?? 0,
+            color: accountColorListTheme[account.color],
+            icon: accountIconList[account.symbol],
+            amountText:
+                '${(amounts[account.id] ?? 0).toCurrency(currency.code)} ${currency.symbol}',
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (selectedIndex != -1)
-                RoundedIcon(
-                  icon:
-                      accountIconList[accounts[selectedIndex].symbol] ??
-                      Icons.swap_horiz_rounded,
-                  backgroundColor:
-                      accountColorList[accounts[selectedIndex].color],
-                  padding: const EdgeInsets.all(Sizes.sm),
-                ),
-              Text(
-                (selectedIndex != -1)
-                    ? "${amounts[accounts[selectedIndex].id]!.toCurrency(currencyState.code)} ${currencyState.symbol}"
-                    : "${total.toCurrency(currencyState.code)} ${currencyState.symbol}",
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  color:
-                      ((selectedIndex != -1 &&
-                              amounts[accounts[selectedIndex].id]! > 0) ||
-                          (selectedIndex == -1 && total > 0))
-                      ? green
-                      : red,
-                ),
-              ),
-              (selectedIndex != -1)
-                  ? Text(accounts[selectedIndex].name)
-                  : const Text("Total"),
-            ],
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

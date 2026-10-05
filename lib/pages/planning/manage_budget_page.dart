@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../ui/theme/dashboard_visual_theme.dart';
+import '../../ui/widgets/accent_button.dart';
 
 import '../../model/budget.dart';
 import '../../model/category_transaction.dart';
@@ -92,67 +94,60 @@ class _ManageBudgetPageState extends ConsumerState<ManageBudgetPage> {
     final currencyState = ref.watch(currencyStateProvider);
 
     return Scaffold(
-      persistentFooterDecoration: const BoxDecoration(),
-      persistentFooterButtons: [
-        Column(
-          children: [
-            Text(
-              "Swipe left to delete",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: Sizes.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Sizes.lg,
+            Sizes.sm,
+            Sizes.lg,
+            Sizes.md,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
                 children: [
-                  Text(
-                    "Your monthly budget will be: ",
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Expanded(
+                    child: Text(
+                      "Monthly budget",
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: context.dashboardTheme.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                  Text.rich(
-                    TextSpan(
-                      text:
-                          "${(budgets.isEmpty ? 0 : budgets.fold<num>(0, (sum, e) => sum + e.amountLimit)).toCurrency(currencyState.code)} ",
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                      children: [
-                        TextSpan(
-                          text: currencyState.symbol,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                      ],
+                  Text(
+                    "${(budgets.isEmpty ? 0 : budgets.fold<num>(0, (sum, e) => sum + e.amountLimit)).toCurrency(currencyState.code)} ${currencyState.symbol}",
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: context.dashboardTheme.textPrimary,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: Sizes.lg),
-            const Divider(indent: 16, endIndent: 16),
-            Container(
-              padding: const EdgeInsets.all(Sizes.lg),
-              width: double.infinity,
-              child: ElevatedButton(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: Sizes.xs),
+                child: Text(
+                  "Swipe left to delete",
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.dashboardTheme.textSecondary,
+                  ),
+                ),
+              ),
+              AccentButton(
+                label: 'Save budget',
+                icon: Icons.check_rounded,
                 onPressed: () async {
                   await ref
                       .read(budgetsProvider.notifier)
                       .saveBudget(budgets, deletedBudgets);
-
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
+                  if (context.mounted) Navigator.of(context).pop();
                 },
-                child: const Text("SAVE BUDGET"),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ],
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

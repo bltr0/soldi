@@ -9,12 +9,16 @@ class BlurWidget extends ConsumerStatefulWidget {
   const BlurWidget({
     required this.child,
     this.ignore = false,
+    this.always = false,
     this.replacement,
     this.sigma = 14,
     super.key,
   });
 
   final bool ignore;
+
+  /// Stays blurred even when amounts are shown.
+  final bool always;
   final Widget child;
   final Widget? replacement;
   final double sigma;
@@ -33,8 +37,18 @@ class _BlurWidgetState extends ConsumerState<BlurWidget>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 280),
-      value: ref.read(visibilityAmountProvider) ? 0 : 1,
+      value: widget.always || !ref.read(visibilityAmountProvider) ? 1 : 0,
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant BlurWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.always != widget.always) {
+      _controller.value = widget.always || !ref.read(visibilityAmountProvider)
+          ? 1
+          : 0;
+    }
   }
 
   @override
@@ -48,7 +62,7 @@ class _BlurWidgetState extends ConsumerState<BlurWidget>
     if (widget.ignore) return widget.child;
 
     ref.listen<bool>(visibilityAmountProvider, (_, visible) {
-      final target = visible ? 0.0 : 1.0;
+      final target = visible && !widget.always ? 0.0 : 1.0;
       if (MediaQuery.disableAnimationsOf(context)) {
         _controller.value = target;
       } else {
@@ -56,7 +70,8 @@ class _BlurWidgetState extends ConsumerState<BlurWidget>
       }
     });
 
-    if (widget.replacement != null && !ref.watch(visibilityAmountProvider)) {
+    if (widget.replacement != null &&
+        (widget.always || !ref.watch(visibilityAmountProvider))) {
       return Semantics(
         label: 'Financial value hidden',
         child: ExcludeSemantics(child: widget.replacement!),

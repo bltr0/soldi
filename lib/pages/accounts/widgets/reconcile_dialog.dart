@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../model/bank_account.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/currency_provider.dart';
+import '../../../ui/widgets/blur_widget.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/formatters/decimal_text_input_formatter.dart';
@@ -208,14 +209,17 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
                 ),
               ),
               const SizedBox(height: Sizes.md),
-              Text(
-                difference == null
-                    ? 'Recorded on that day: ${recorded.toCurrency(code)} $symbol'
-                    : 'Recorded ${recorded.toCurrency(code)} $symbol → '
-                          'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency(code)} $symbol',
-                style: textTheme.bodySmall?.copyWith(
-                  color: visual.textSecondary,
-                  fontWeight: FontWeight.w600,
+              BlurWidget(
+                always: widget.account.alwaysBlurred,
+                child: Text(
+                  difference == null
+                      ? 'Recorded on that day: ${recorded.toCurrency(code)} $symbol'
+                      : 'Recorded ${recorded.toCurrency(code)} $symbol → '
+                            'adjustment of ${difference > 0 ? '+' : ''}${difference.toCurrency(code)} $symbol',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: visual.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(height: Sizes.xl),

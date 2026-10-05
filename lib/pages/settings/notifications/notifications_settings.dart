@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/style.dart';
 import '../../../providers/settings_provider.dart';
-import '../../../ui/device.dart';
 import '../../../services/notifications/notifications_service.dart';
-import 'widgets/notification_type_tile.dart';
+import '../../../ui/device.dart';
+import '../../../ui/widgets/segmented_pill.dart';
+import '../../../ui/widgets/settings_tiles.dart';
 
 class NotificationsSettings extends ConsumerWidget {
   const NotificationsSettings({super.key});
@@ -28,137 +28,62 @@ class NotificationsSettings extends ConsumerWidget {
         title: const Text('Notifications'),
       ),
       body: ListView(
-        padding: const EdgeInsets.only(top: Sizes.xl),
+        padding: EdgeInsets.fromLTRB(
+          Sizes.lg,
+          Sizes.lg,
+          Sizes.lg,
+          MediaQuery.paddingOf(context).bottom + Sizes.xl,
+        ),
+        physics: const BouncingScrollPhysics(),
         children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-            padding: const EdgeInsets.symmetric(
-              horizontal: Sizes.lg,
-              vertical: Sizes.md,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "Add transactions reminder",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: isTrscReminderEnabled,
-                      onChanged: (value) async {
-                        await NotificationService()
-                            .requestNotificationPermissions();
-                        ref
+          SettingsGroup(
+            title: 'Reminders',
+            children: [
+              SettingsSwitchTile(
+                icon: Icons.edit_notifications_rounded,
+                title: 'Add transactions reminder',
+                subtitle: 'A nudge to log what you spent',
+                value: isTrscReminderEnabled,
+                onChanged: (value) async {
+                  await NotificationService().requestNotificationPermissions();
+                  ref
+                      .read(notificationsProvider.notifier)
+                      .updateNotificationReminder(active: value);
+                },
+                below: isTrscReminderEnabled
+                    ? SegmentedPill<NotificationReminderType>(
+                        options: {
+                          for (final type in NotificationReminderType.values)
+                            if (type != NotificationReminderType.none)
+                              type:
+                                  '${type.name[0].toUpperCase()}${type.name.substring(1)}',
+                        },
+                        selected:
+                            trscReminderCadence == NotificationReminderType.none
+                            ? null
+                            : trscReminderCadence,
+                        onChanged: (type) => ref
                             .read(notificationsProvider.notifier)
-                            .updateNotificationReminder(active: value);
-                      },
-                    ),
-                  ],
-                ),
-                AnimatedCrossFade(
-                  crossFadeState: isTrscReminderEnabled
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  duration: const Duration(milliseconds: 150),
-                  firstChild: const SizedBox(),
-                  secondChild: Column(
-                    children: NotificationReminderType.values
-                        .where((type) => type != NotificationReminderType.none)
-                        .map((type) {
-                          return NotificationTypeTile(
-                            type: type,
-                            selected: trscReminderCadence == type,
-                            setNotificationTypeCallback: () {
-                              ref
-                                  .read(notificationsProvider.notifier)
-                                  .updateNotificationReminder(type: type);
-                            },
-                          );
-                        })
-                        .toList(),
-                  ),
-                ),
-              ],
-            ),
+                            .updateNotificationReminder(type: type),
+                      )
+                    : null,
+              ),
+            ],
           ),
-          Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(
-              left: Sizes.xxl,
-              top: Sizes.xl,
-              bottom: Sizes.sm,
-            ),
-            child: Text(
-              "RECURRING TRANSACTIONS",
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge!.copyWith(color: grey1),
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: Sizes.lg),
-            padding: const EdgeInsets.symmetric(
-              horizontal: Sizes.lg,
-              vertical: Sizes.md,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(Sizes.borderRadiusSmall),
-            ),
-            child: Column(
-              spacing: Sizes.md,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "Recurring transaction added",
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: isTrscAddedReminderEnabled,
-                      onChanged: (value) {
-                        ref
-                            .read(notificationsProvider.notifier)
-                            .updateNotificationRecurring(active: value);
-                      },
-                    ),
-                  ],
-                ),
-                // TODO: Implement this feature
-                // const Divider(height: 1, color: grey2),
-                // Row(
-                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                //   children: [
-                //     Expanded(
-                //       child: Text(
-                //         "Recurring transaction reminder",
-                //         style: Theme.of(context).textTheme.bodyMedium,
-                //       ),
-                //     ),
-                //     Switch.adaptive(
-                //       value: ref.watch(transactionRecReminderSwitchProvider),
-                //       onChanged: (value) {
-                //         ref.read(transactionRecReminderSwitchProvider.notifier).setValue(value);
-                //         // ref.read(notificationsProvider.notifier).updateNotifications(active: value);
-                //       },
-                //     ),
-                //   ],
-                // ),
-              ],
-            ),
+          const SizedBox(height: Sizes.xl),
+          SettingsGroup(
+            title: 'Recurring transactions',
+            children: [
+              SettingsSwitchTile(
+                icon: Icons.event_repeat_rounded,
+                title: 'Recurring transaction added',
+                subtitle: 'Know when a recurring payment is recorded',
+                value: isTrscAddedReminderEnabled,
+                onChanged: (value) => ref
+                    .read(notificationsProvider.notifier)
+                    .updateNotificationRecurring(active: value),
+              ),
+            ],
           ),
         ],
       ),

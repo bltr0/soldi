@@ -23,6 +23,11 @@ class AccountsCard extends ConsumerWidget {
     final currencyState = ref.watch(currencyStateProvider);
     final converter = ref.watch(mainConverterProvider).value;
     final visual = context.dashboardTheme;
+    final amountStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+      color: visual.textPrimary,
+      fontWeight: FontWeight.w800,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
 
     return Column(
       children: [
@@ -71,31 +76,24 @@ class AccountsCard extends ConsumerWidget {
                                   ),
                             ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                          BlurWidget(
-                            sigma: 12,
-                            child: Text(
-                              "${account.total?.toCurrency(account.currencyCode(currencyState.code))} ${account.currencySymbol(currencyState.symbol)}",
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    color: visual.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
-                            ),
-                          ),
-                              MainEquivalent(
-                                amount: account.total ?? 0,
-                                code: account.currencyCode(currencyState.code),
-                                date: DateTime.now(),
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(color: visual.textSecondary),
+                          Flexible(
+                            child: MainEquivalent(
+                              amount: account.total ?? 0,
+                              code: account.currencyCode(currencyState.code),
+                              date: DateTime.now(),
+                              style: amountStyle,
+                              alwaysBlurred: account.alwaysBlurred,
+                              child: BlurWidget(
+                                sigma: 12,
+                                always: account.alwaysBlurred,
+                                child: Text(
+                                  "${account.total?.toCurrency(account.currencyCode(currencyState.code))} ${account.currencySymbol(currencyState.symbol)}",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: amountStyle,
+                                ),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),

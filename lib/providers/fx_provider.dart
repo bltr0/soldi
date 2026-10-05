@@ -49,15 +49,20 @@ class FxSourceSetting extends _$FxSourceSetting {
   }
 }
 
-/// All known rates, ready for lookups. Rebuilt when rates are fetched, the
-/// main currency changes or transactions change.
+/// The rates the user allowed, ready for lookups: none until they choose,
+/// only their own transfers offline, fetched ones on top with Frankfurter.
+/// Rebuilt when rates are fetched, the main currency, the source or
+/// transactions change.
 @Riverpod(keepAlive: true)
 Future<FxTable> fxTable(Ref ref) async {
   final main = ref.watch(currencyStateProvider).code;
+  final source = ref.watch(fxSourceSettingProvider);
+  if (source == FxSource.unset) return FxTable(mainCode: main);
   final repository = ref.read(exchangeRateRepositoryProvider);
-  final stored = await repository.all();
-  final transfers = await repository.transferRates();
-  return FxTable(mainCode: main, stored: stored, transfers: transfers);
+  if (source == FxSource.frankfurter) {
+    return FxTable(mainCode: main, stored: await repository.all(), strict: true);
+  }
+  return FxTable(mainCode: main, transfers: await repository.transferRates());
 }
 
 /// Fetches missing daily rates. Runs when the app opens and at most once a

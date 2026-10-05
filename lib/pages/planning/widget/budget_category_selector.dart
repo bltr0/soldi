@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
 
 import '../../../constants/constants.dart';
 import '../../../model/budget.dart';
@@ -61,8 +62,10 @@ class _BudgetCategorySelector extends ConsumerState<BudgetCategorySelector> {
   Widget build(BuildContext context) {
     final currencyState = ref.watch(currencyStateProvider);
     return Container(
-      padding: const EdgeInsets.all(Sizes.lg),
-      color: Theme.of(context).colorScheme.surface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Sizes.lg,
+        vertical: Sizes.sm,
+      ),
       child: Row(
         spacing: Sizes.lg,
         children: [
@@ -71,9 +74,10 @@ class _BudgetCategorySelector extends ConsumerState<BudgetCategorySelector> {
               height: 55,
               width: double.infinity,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(Sizes.borderRadius),
-                border: Border.all(width: 1, color: Colors.grey),
-                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(18),
+                color: context.dashboardTheme.textPrimary.withValues(
+                  alpha: 0.06,
+                ),
               ),
               child: DropdownButton<CategoryTransaction>(
                 value: selectedCategory,
@@ -99,7 +103,7 @@ class _BudgetCategorySelector extends ConsumerState<BudgetCategorySelector> {
                         RoundedIcon(
                           icon: icon,
                           padding: const EdgeInsets.all(Sizes.sm),
-                          backgroundColor: categoryColorList[category.color]
+                          backgroundColor: categoryColorListTheme[category.color]
                               .withValues(
                                 alpha: isCurrent || !isUsed ? 1 : 0.4,
                               ),
@@ -107,7 +111,7 @@ class _BudgetCategorySelector extends ConsumerState<BudgetCategorySelector> {
                         Text(
                           category.name,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.secondary
+                            color: context.dashboardTheme.textPrimary
                                 .withValues(
                                   alpha: isCurrent || !isUsed ? 1 : 0.4,
                                 ),
@@ -131,9 +135,8 @@ class _BudgetCategorySelector extends ConsumerState<BudgetCategorySelector> {
             width: 100,
             height: 55,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(Sizes.borderRadius),
-              border: Border.all(width: 1, color: Colors.grey),
+              color: context.dashboardTheme.textPrimary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(18),
             ),
             padding: const EdgeInsets.symmetric(horizontal: Sizes.sm),
             child: Center(

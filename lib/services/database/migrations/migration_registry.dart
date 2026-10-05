@@ -26,6 +26,7 @@ import '0012_add_places.dart';
 import '0013_place_city_country.dart';
 import '0014_account_currency_transfer_fees.dart';
 import '0015_exchange_rates.dart';
+import '0016_account_always_blurred.dart';
 
 import '../migration_base.dart';
 
@@ -52,6 +53,7 @@ List<Migration> getMigrations() {
     AddPlaceCityCountry(),
     AccountCurrencyAndTransferFees(),
     AddExchangeRates(),
+    AddAccountAlwaysBlurred(),
   ];
 }
 

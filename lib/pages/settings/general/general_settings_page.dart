@@ -1,45 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../constants/style.dart';
-import '../../../model/currency.dart';
+import '../../../providers/authentication_provider.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../providers/fx_provider.dart';
-import '../../../providers/authentication_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/database/repositories/currency_repository.dart';
 import '../../../ui/device.dart';
+import '../../../ui/widgets/segmented_pill.dart';
+import '../../../ui/widgets/settings_tiles.dart';
 import 'widgets/currency_selector_dialog.dart';
 
-class GeneralSettingsPage extends ConsumerStatefulWidget {
+class GeneralSettingsPage extends ConsumerWidget {
   const GeneralSettingsPage({super.key});
 
   @override
-  ConsumerState<GeneralSettingsPage> createState() =>
-      _GeneralSettingsPageState();
-}
-
-class _GeneralSettingsPageState extends ConsumerState<GeneralSettingsPage> {
-  //default values
-  bool darkMode = false;
-  String selectedCurrency = "EUR";
-  dynamic selectedLanguage = "🇬🇧";
-
-  List<List<dynamic>> languages = [
-    ["🇬🇧", "English"],
-    ["🇮🇹", "Italiano"],
-    ["🇫🇷", "Français"],
-    ["🇩🇪", "Deutsch"],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final appThemeState = ref.watch(appThemeStateProvider);
-    final currencyState = ref.watch(currencyStateProvider);
-    Future<List<Currency>> currencyList = ref
-        .read(currencyRepositoryProvider)
-        .selectAll();
-    final requiresAuthenticationState = ref.watch(authenticationStateProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = ref.watch(appThemeStateProvider).isDarkModeEnabled;
+    final currency = ref.watch(currencyStateProvider);
+    final fxSource = ref.watch(fxSourceSettingProvider);
+    final requiresAuthentication = ref.watch(authenticationStateProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -49,202 +29,94 @@ class _GeneralSettingsPageState extends ConsumerState<GeneralSettingsPage> {
         ),
         title: const Text('General Settings'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(
-          left: Sizes.lg,
-          right: Sizes.lg,
-          top: Sizes.xl,
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          Sizes.lg,
+          Sizes.lg,
+          Sizes.lg,
+          MediaQuery.paddingOf(context).bottom + Sizes.xl,
         ),
         physics: const BouncingScrollPhysics(),
-        child: Column(
-          spacing: Sizes.lg,
-          children: [
-            Row(
-              children: [
-                Text(
-                  "Appearance",
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                CircleAvatar(
-                  radius: 30.0,
-                  backgroundColor: blue5,
-                  child: IconButton(
-                    color: blue5,
-                    onPressed: () {
+        children: [
+          SettingsGroup(
+            title: 'Appearance',
+            children: [
+              SettingsTile(
+                icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                title: 'Theme',
+                below: SegmentedPill<bool>(
+                  options: const {false: 'Light', true: 'Dark'},
+                  selected: isDark,
+                  onChanged: (dark) {
+                    if (dark != isDark) {
                       ref.read(appThemeStateProvider.notifier).updateTheme();
-                    },
-                    icon: Icon(
-                      appThemeState.isDarkModeEnabled
-                          ? Icons.dark_mode
-                          : Icons.light_mode,
-                      size: 25.0,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Text(
-                  "Currency",
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      CurrencySelectorDialog.selectCurrencyDialog(
-                        context,
-                        currencyState,
-                        currencyList,
-                      );
-                    });
+                    }
                   },
-                  child: CircleAvatar(
-                    radius: 30.0,
-                    backgroundColor: blue5,
-                    child: Center(
-                      child: Text(
-                        currencyState.symbol,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontSize: 25,
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Daily exchange rates",
-                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      Text(
-                        "Download rates from Frankfurter once a day when the app opens, to show other currencies in ${currencyState.code}. Off keeps everything offline.",
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Sizes.xl),
+          SettingsGroup(
+            title: 'Money',
+            footer: switch (fxSource) {
+              FxSource.unset =>
+                'Not chosen yet: amounts in other currencies are not '
+                    'converted.',
+              FxSource.offline =>
+                'Nothing is sent. Only rates from your own cross-currency '
+                    'transfers are used.',
+              FxSource.frankfurter =>
+                'Daily rates from Frankfurter, fetched once a day when the '
+                    'app opens. Only currency codes and dates are sent.',
+            },
+            children: [
+              SettingsTile(
+                icon: Icons.payments_rounded,
+                title: 'Main currency',
+                subtitle: currency.name,
+                trailing: SettingsValue('${currency.code} ${currency.symbol}'),
+                onTap: () => CurrencySelectorDialog.selectCurrencyDialog(
+                  context,
+                  currency,
+                  ref.read(currencyRepositoryProvider).selectAll(),
                 ),
-                Switch(
-                  value:
-                      ref.watch(fxSourceSettingProvider) ==
-                      FxSource.frankfurter,
-                  onChanged: (on) => ref
-                      .read(fxSourceSettingProvider.notifier)
-                      .set(on ? FxSource.frankfurter : FxSource.offline),
+              ),
+              SettingsTile(
+                icon: Icons.currency_exchange_rounded,
+                title: 'Exchange rates',
+                subtitle: 'Show other currencies in ${currency.code}',
+                below: SegmentedPill<FxSource>(
+                  options: const {
+                    FxSource.offline: 'Offline',
+                    FxSource.frankfurter: 'Online',
+                  },
+                  selected: fxSource == FxSource.unset ? null : fxSource,
+                  onChanged: (source) =>
+                      ref.read(fxSourceSettingProvider.notifier).set(source),
                 ),
-              ],
-            ),
-            Row(
-              children: [
-                Text(
-                  "Require authentication",
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                CircleAvatar(
-                  radius: 30.0,
-                  backgroundColor: blue5,
-                  child: IconButton(
-                    color: blue5,
-                    onPressed: () {
-                      ref
-                          .read(authenticationStateProvider.notifier)
-                          .updateAuthentication();
-                    },
-                    icon: Icon(
-                      requiresAuthenticationState
-                          ? Icons.lock
-                          : Icons.lock_open,
-                      size: 25.0,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            /*
-            Row(
-              children: [
-                Text("Language",
-                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        color: Theme.of(context).colorScheme.primary)),
-                const Spacer(),
-                GestureDetector(
-                    onTap: () {
-                      selectLanguage();
-                    },
-                    child: CircleAvatar(
-                      radius: 30.0,
-                      backgroundColor: blue5,
-                      child: Center(child: Text(selectedLanguage, style: const TextStyle(fontSize: 30))),
-                    )),
-              ],
-            ),*/
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Sizes.xl),
+          SettingsGroup(
+            title: 'Security',
+            children: [
+              SettingsSwitchTile(
+                icon: requiresAuthentication
+                    ? Icons.lock_rounded
+                    : Icons.lock_open_rounded,
+                title: 'Require authentication',
+                subtitle: 'Unlock the app with your device credentials',
+                value: requiresAuthentication,
+                onChanged: (_) => ref
+                    .read(authenticationStateProvider.notifier)
+                    .updateAuthentication(),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
-
-  // selectLanguage() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: Text(
-  //         'Select a language',
-  //         style: Theme.of(context).textTheme.titleLarge!.copyWith(
-  //           color: Theme.of(context).colorScheme.primary,
-  //         ),
-  //       ),
-  //       content: SizedBox(
-  //         height: 220,
-  //         width: 220,
-  //         child: ListView.builder(
-  //           itemCount: languages.length,
-  //           physics: const NeverScrollableScrollPhysics(),
-  //           shrinkWrap: true,
-  //           itemBuilder: (BuildContext context, int index) {
-  //             return GestureDetector(
-  //               onTap: () {
-  //                 setState(() {
-  //                   selectedLanguage = languages.elementAt(index)[0];
-  //                 });
-  //                 Navigator.pop(context);
-  //               },
-  //               child: ListTile(
-  //                 leading: Text(
-  //                   languages.elementAt(index)[0],
-  //                   style: const TextStyle(fontSize: 30),
-  //                 ),
-  //                 title: Text(
-  //                   languages.elementAt(index)[1],
-  //                   textAlign: TextAlign.center,
-  //                 ),
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
 }

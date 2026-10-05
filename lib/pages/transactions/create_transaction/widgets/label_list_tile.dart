@@ -1,56 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../ui/widgets/rounded_icon.dart';
-import '../../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
 
-class LabelListTile extends ConsumerWidget {
+class LabelListTile extends StatelessWidget {
   const LabelListTile(this.labelController, {super.key});
 
   final TextEditingController labelController;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Sizes.lg,
-        Sizes.xs,
-        Sizes.xl,
-        Sizes.xs,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Sizes.md,
+        vertical: Sizes.sm,
       ),
       child: Row(
         children: [
-          RoundedIcon(
-            icon: Icons.description,
-            size: 18,
-            padding: const EdgeInsets.all(Sizes.sm),
-            backgroundColor: context.dashboardTheme.accent,
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: visual.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(Icons.notes_rounded, size: 20, color: visual.accent),
           ),
           const SizedBox(width: Sizes.md),
-          Text(
-            "Description",
-            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-              color: context.dashboardTheme.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: Sizes.lg),
           Expanded(
             child: TextField(
               controller: labelController,
               textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onTapOutside: (_) => FocusScope.of(context).unfocus(),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
-                hintText: "Add a description",
-                hintStyle: TextStyle(
-                  color: context.dashboardTheme.textSecondary,
-                ),
+                hintText: 'What was it for?',
+                hintStyle: TextStyle(color: visual.textSecondary),
               ),
-              textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: context.dashboardTheme.textPrimary,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: visual.textPrimary,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

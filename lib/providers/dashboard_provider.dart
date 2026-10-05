@@ -33,7 +33,11 @@ class DashboardSnapshot {
     required this.expense,
     required this.currentMonth,
     required this.previousMonth,
+    this.unconverted = false,
   });
+
+  /// Some foreign amounts in [income] or [expense] are counted 1:1.
+  final bool unconverted;
 
   final num income;
   final num expense;
@@ -53,6 +57,12 @@ Future<DashboardSnapshot> dashboard(Ref ref) async {
     repository.lastMonthDailyTransactions(month: month),
   ]);
   final fx = await ref.watch(fxTableProvider.future);
+  final unconverted = results[0].any((raw) {
+    final row = raw as Map;
+    final day = DateTime.tryParse('${row['day']}') ?? DateTime.now();
+    final moved = _number(row['income']) != 0 || _number(row['expense']) != 0;
+    return moved && !fx.hasRate(row['currency'] as String?, day);
+  });
   final currentMonth = _inMainCurrency(results[0], fx);
   final previousMonth = _inMainCurrency(results[1], fx);
 
@@ -72,6 +82,7 @@ Future<DashboardSnapshot> dashboard(Ref ref) async {
   return DashboardSnapshot(
     income: income,
     expense: expense,
+    unconverted: unconverted,
     // The selected month runs up to today when it is the current month, and
     // to its last day otherwise; the previous month is always complete.
     currentMonth: _toCumulativeSpots(

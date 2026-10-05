@@ -222,6 +222,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(fxTableProvider);
     ref.invalidate(categoryMapProvider);
     ref.invalidate(categoryTotalAmountProvider);
+    ref.invalidate(categoryTotalUnconvertedProvider);
     ref.invalidate(monthlyTotalsProvider);
     final dateStart = ref.watch(filterDateStartProvider);
     final dateEnd = ref.watch(filterDateEndProvider);
@@ -236,6 +237,17 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     // Read, not watched: this method invalidates what the converter depends
     // on, so watching it would rebuild in a loop.
     final converter = await ref.read(mainConverterProvider.future);
+    ref
+        .read(totalAmountUnconvertedProvider.notifier)
+        .set(
+          transactions.any(
+            (t) =>
+                !t.isBalanceReset &&
+                (t.type == TransactionType.income ||
+                    t.type == TransactionType.expense) &&
+                converter.unconverted(t),
+          ),
+        );
     ref.read(totalAmountProvider.notifier).state = transactions.fold<num>(0, (
       prev,
       transaction,
@@ -415,6 +427,7 @@ class TransactionsNotifier extends _$TransactionsNotifier {
     ref.invalidate(fxTableProvider);
     ref.invalidate(categoryMapProvider);
     ref.invalidate(categoryTotalAmountProvider);
+    ref.invalidate(categoryTotalUnconvertedProvider);
     ref.invalidate(monthlyTotalsProvider);
     ref.invalidate(frequentCategoriesProvider);
   }
