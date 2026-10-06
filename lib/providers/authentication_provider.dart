@@ -1,22 +1,27 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/security/app_lock.dart';
 import 'settings_provider.dart';
 
-part 'authentication_provider.g.dart';
+final appLockProvider = Provider<AppLock>(
+  (ref) => AppLock(ref.watch(sharedPrefProvider)),
+);
 
-@Riverpod(keepAlive: true)
-class AuthenticationState extends _$AuthenticationState {
-  static const String _authKey = 'user_requires_authentication';
-
+class AppLockModeNotifier extends Notifier<AppLockMode> {
   @override
-  bool build() {
-    final prefs = ref.read(sharedPrefProvider);
-    return prefs.getBool(_authKey) ?? false;
+  AppLockMode build() => ref.watch(appLockProvider).mode;
+
+  Future<void> set(AppLockMode mode) async {
+    await ref.read(appLockProvider).setMode(mode);
+    state = mode;
   }
 
-  Future<void> updateAuthentication() async {
-    final prefs = ref.read(sharedPrefProvider);
-    await prefs.setBool(_authKey, !state);
-    state = !state;
+  Future<void> setPin(String pin) async {
+    await ref.read(appLockProvider).savePin(pin);
+    state = AppLockMode.pin;
   }
 }
+
+final appLockModeProvider = NotifierProvider<AppLockModeNotifier, AppLockMode>(
+  AppLockModeNotifier.new,
+);
