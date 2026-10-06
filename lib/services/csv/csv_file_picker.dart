@@ -34,14 +34,13 @@ class CSVFilePicker {
     }
 
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
-        allowMultiple: false,
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        return File(result.files.first.path!);
+      if (files.isNotEmpty) {
+        return File(files.first.path!);
       }
     } catch (e) {
       if (context.mounted) {
@@ -56,7 +55,7 @@ class CSVFilePicker {
     String? selectedDirectory;
     try {
       // Prompt the user to select a directory
-      selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      selectedDirectory = await FilePicker.getDirectoryPath();
       if (selectedDirectory == null) {
         // User canceled the picker
         return;

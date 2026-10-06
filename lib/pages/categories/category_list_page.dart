@@ -38,7 +38,7 @@ class CategoryList extends ConsumerWidget {
           padding: const EdgeInsets.only(top: Sizes.xl),
           itemCount: categories.length,
           buildDefaultDragHandles: false,
-          onReorder: (oldIndex, newIndex) {
+          onReorderItem: (oldIndex, newIndex) {
             ref
                 .read(categoriesProvider.notifier)
                 .reorderCategories(oldIndex, newIndex);

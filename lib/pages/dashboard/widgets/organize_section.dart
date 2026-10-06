@@ -29,7 +29,7 @@ class OrganizeSection extends ConsumerWidget {
       AsyncValue(:final value?) when value.items.isNotEmpty => ValueKey(
         value.items.first.id,
       ),
-      AsyncValue(:final value?) => const ValueKey('organize-empty'),
+      AsyncValue(hasValue: true) => const ValueKey('organize-empty'),
       AsyncError() => const ValueKey('organize-error'),
       _ => const ValueKey('organize-loading'),
     };

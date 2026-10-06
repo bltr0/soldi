@@ -488,11 +488,11 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
               SettingsGroup(
                 title: 'Shared & place',
                 children: [
-                  SettingsTile(
+                  const SettingsTile(
                     icon: Icons.group_rounded,
                     title: 'People concerned',
                     subtitle: 'Your share is the total divided equally',
-                    trailing: const PeopleConcernedStepper(),
+                    trailing: PeopleConcernedStepper(),
                   ),
                   SettingsSwitchTile(
                     icon: Icons.volunteer_activism_rounded,

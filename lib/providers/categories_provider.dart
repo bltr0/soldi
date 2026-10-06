@@ -225,10 +225,6 @@ class Categories extends _$Categories {
     final currentList = state.value;
     if (currentList == null) return;
 
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-
     final parents = currentList
         .where((c) => c.parent == null && c.deletedAt == null)
         .toList();

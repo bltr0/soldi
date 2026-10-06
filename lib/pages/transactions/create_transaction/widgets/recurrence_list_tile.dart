@@ -107,6 +107,7 @@ class RecurrenceListTile extends ConsumerWidget {
 
 class RecurrenceOptionButton extends StatelessWidget {
   const RecurrenceOptionButton({
+    super.key,
     required this.label,
     required this.value,
     required this.onTap,

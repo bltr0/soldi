@@ -48,7 +48,7 @@ class _AccountListPage extends ConsumerState<AccountListPage> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: accounts.length,
-                onReorder: (oldIndex, newIndex) {
+                onReorderItem: (oldIndex, newIndex) {
                   ref
                       .read(accountsProvider.notifier)
                       .reorderAccounts(oldIndex, newIndex);

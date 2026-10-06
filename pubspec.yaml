@@ -3,7 +3,7 @@ description: A wealth management / personal finance / net worth tracking app.
 
 publish_to: "none"
 
-version: 1.0.0+105
+version: 2.0.0+106
 
 environment:
   sdk: ^3.10.7
@@ -15,18 +15,18 @@ dependencies:
   collection: ^1.19.1
   csv: ^8.0.0
   dart_jsonwebtoken: ^3.4.1
-  device_info_plus: ^12.4.0
-  file_picker: ^10.3.10
+  device_info_plus: ^13.3.0
+  file_picker: ^13.1.0
   fl_chart: ^1.1.1
   flutter_local_notifications: ^22.3.1
   flutter_native_splash: ^2.4.7
   flutter_phoenix: ^1.1.1
   flutter_riverpod: ^3.1.0
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^11.2.0
   http: ^1.2.0
   intl: ^0.20.2
   local_auth: ^3.0.0
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.5
   percent_indicator: ^4.2.5
@@ -55,10 +55,6 @@ dev_dependencies:
   riverpod_generator: ^4.0.0+1
   riverpod_lint: ^3.1.0
   test: ^1.26.3
-
-dependency_overrides:
-  # google_sign_in_android 7.2.17 requires the Kotlin setup from AGP 9.
-  google_sign_in_android: 7.2.11
 
 flutter:
   uses-material-design: true

@@ -323,7 +323,7 @@ void main() {
         (2026, 9, 1, '2026-09-01'),
         (2028, 2, 29, '2028-02-29'),
       ];
-      for (final zone in ['Europe/Rome', 'America/Los_Angeles', 'UTC']) {
+      for (final zone in ['Europe/Rome', 'America/Los_Angeles', 'Etc/UTC']) {
         final location = tz.getLocation(zone);
         for (final (year, month, day, expected) in cases) {
           final from = tz.TZDateTime(location, year, month, day);
