@@ -127,24 +127,24 @@ class MonthSelector extends ConsumerWidget {
                   UnconvertedAmount(
                     unconverted: ref.watch(totalAmountUnconvertedProvider),
                     child: BlurWidget(
-                    sigma: 12,
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: totalAmount.toCurrency(currencyState.code),
-                            style: Theme.of(context).textTheme.bodyLarge!
-                                .copyWith(color: totalAmount.toColor()),
-                          ),
-                          TextSpan(
-                            text: currencyState.symbol,
-                            style: Theme.of(context).textTheme.labelLarge!
-                                .copyWith(color: totalAmount.toColor()),
-                          ),
-                        ],
+                      sigma: 12,
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: totalAmount.toCurrency(currencyState.code),
+                              style: Theme.of(context).textTheme.bodyLarge!
+                                  .copyWith(color: totalAmount.toColor()),
+                            ),
+                            TextSpan(
+                              text: currencyState.symbol,
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: totalAmount.toColor()),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   ),
               ],
             ),

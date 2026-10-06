@@ -8,6 +8,7 @@ import '../services/database/repositories/transactions_repository.dart';
 import 'accounts_provider.dart';
 import 'categories_provider.dart';
 import 'places_provider.dart';
+import 'settings_provider.dart';
 import 'transactions_provider.dart';
 
 part 'recurring_transactions_provider.g.dart';
@@ -45,6 +46,7 @@ class RecurringTransactionsNotifier extends _$RecurringTransactionsNotifier {
     final date = ref.read(selectedDateProvider);
     final toDate = ref.read(endDateProvider);
     final bankAccount = ref.read(selectedBankAccountProvider)!;
+    await ref.read(sharedPrefProvider).setInt(lastAccountKey, bankAccount.id!);
     final category = ref.read(selectedCategoryProvider);
     final recurrency = ref.read(intervalProvider);
     final peopleConcerned = type == TransactionType.expense

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../ui/widgets/category_type_button.dart';
 import '../../../../ui/widgets/default_container.dart';
+import '../../../../ui/widgets/settings_tiles.dart';
 import '../../../../model/category_transaction.dart';
 import '../../../../providers/categories_provider.dart';
 import '../../../../providers/statistics_provider.dart';
@@ -43,24 +44,11 @@ class CategoriesCardState extends ConsumerState<CategoriesCard> {
               const CategoryTypeButton(),
               Align(
                 alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Checkbox(
-                      value: myCosts,
-                      onChanged: (value) => ref
-                          .read(myCostsProvider.notifier)
-                          .setValue(value ?? false),
-                    ),
-                    GestureDetector(
-                      onTap: () =>
-                          ref.read(myCostsProvider.notifier).setValue(!myCosts),
-                      child: Text(
-                        "My costs",
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ),
-                  ],
+                child: TogglePill(
+                  label: 'Only my share',
+                  selected: myCosts,
+                  onTap: () =>
+                      ref.read(myCostsProvider.notifier).setValue(!myCosts),
                 ),
               ),
               categoryMap.when(
@@ -118,6 +106,7 @@ class CategoriesContent extends StatelessWidget {
           total: totalAmount,
         ),
         ListView.builder(
+          padding: EdgeInsets.zero,
           itemCount: sortedCategories.length,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -182,14 +171,14 @@ class LoadingContentWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // height of CategoriesPieChart2
-        const SizedBox(height: 200),
+        // Height of CategoriesGraphPieChart
+        const SizedBox(height: 96),
         const SizedBox(height: Sizes.xl),
         // Height of CategoryItem's list
         SizedBox(height: 50.0 * previousCategoriesCount),
         const SizedBox(height: Sizes.xxl),
         // Height of CategoriesBarChart
-        const SizedBox(height: 200),
+        const SizedBox(height: 260),
       ],
     );
   }

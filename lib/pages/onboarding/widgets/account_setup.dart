@@ -382,7 +382,6 @@ class _AccountSetupState extends ConsumerState<AccountSetup> {
                                 name: accountNameController.text,
                                 icon: accountIcon,
                                 color: accountColor,
-                                mainAccount: true,
                                 startingValue:
                                     num.tryParse(amountController.text) ?? 0,
                               );

@@ -181,9 +181,11 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                inputFormatters: [DecimalTextInputFormatter(
-                  decimalDigits: CurrencyCatalog.decimalsFor(code),
-                )],
+                inputFormatters: [
+                  DecimalTextInputFormatter(
+                    decimalDigits: CurrencyCatalog.decimalsFor(code),
+                  ),
+                ],
                 style: textTheme.headlineSmall?.copyWith(
                   color: visual.textPrimary,
                   fontWeight: FontWeight.w800,

@@ -15,7 +15,7 @@ class PlanningPage extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         insets,
-        Sizes.lg,
+        MediaQuery.paddingOf(context).top + Sizes.lg,
         insets,
         MediaQuery.paddingOf(context).bottom + Sizes.xl,
       ),

@@ -19,7 +19,9 @@ import 'services/backup/drive_backup_service.dart';
 import 'services/database/repositories/recurring_transactions_repository.dart';
 import 'services/database/sossoldi_database.dart';
 import 'services/notifications/notifications_service.dart';
+import 'services/security/app_lock.dart';
 import 'ui/theme/app_theme.dart';
+import 'ui/widgets/pin_pad.dart';
 
 void _initDesktopDatabase() {
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
@@ -44,9 +46,7 @@ Future<void> _authenticateIfRequired(
     final LocalAuthentication auth = LocalAuthentication();
     if (!await auth.isDeviceSupported()) return;
 
-    final bool requiresAuthentication =
-        sharedPreferences.getBool("user_requires_authentication") ?? false;
-    if (!requiresAuthentication) return;
+    if (AppLock(sharedPreferences).mode != AppLockMode.device) return;
 
     final bool didAuthenticate = await auth.authenticate(
       localizedReason: 'Please authenticate to use Sossoldi',
@@ -63,7 +63,6 @@ Future<void> _authenticateIfRequired(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _initDesktopDatabase();
-  NotificationService().requestNotificationPermissions();
   NotificationService().initializeNotifications();
   tz.initializeTimeZones();
   tz.setLocalLocation(tz.local);
@@ -167,6 +166,7 @@ class Launcher extends ConsumerWidget {
           ? ThemeMode.dark
           : ThemeMode.light,
       onGenerateRoute: makeRoute,
+      builder: (context, child) => AppLockGate(child: child!),
       initialRoute: !isOnboardingCompleted ? '/onboarding' : '/',
     );
   }

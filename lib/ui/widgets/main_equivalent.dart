@@ -7,6 +7,18 @@ import '../extensions.dart';
 import '../theme/dashboard_visual_theme.dart';
 import 'blur_widget.dart';
 
+/// Where the main-currency equivalent goes relative to the amount.
+enum EquivalentLayout {
+  /// On the left, both shortened if space runs out.
+  shared,
+
+  /// On the left, always shown in full; the amount shortens instead.
+  fullLeft,
+
+  /// On the line under the amount.
+  below,
+}
+
 /// Shows [child] (an amount held in [code]) with what it is worth in the
 /// main currency on [date] in grey on its left: "≈ 12.30 €  16,000 ₩".
 /// Main-currency amounts, or ones without a known rate, show [child] alone.
@@ -19,6 +31,7 @@ class MainEquivalent extends ConsumerWidget {
     this.style,
     this.alwaysBlurred = false,
     this.ignoreBlur = false,
+    this.layout = EquivalentLayout.shared,
     super.key,
   });
 
@@ -31,6 +44,7 @@ class MainEquivalent extends ConsumerWidget {
   final TextStyle? style;
   final bool alwaysBlurred;
   final bool ignoreBlur;
+  final EquivalentLayout layout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,19 +66,29 @@ class MainEquivalent extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
         style: base?.copyWith(
           color: context.dashboardTheme.textSecondary,
-          fontSize: (base.fontSize ?? 14) * 0.85,
+          fontSize:
+              (base.fontSize ?? 14) *
+              (layout == EquivalentLayout.below ? 0.75 : 0.85),
           fontWeight: FontWeight.w600,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
+    if (layout == EquivalentLayout.below) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [child, equivalent],
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         final bounded = constraints.hasBoundedWidth;
+        final full = layout == EquivalentLayout.fullLeft;
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            bounded ? Flexible(child: equivalent) : equivalent,
+            bounded && !full ? Flexible(child: equivalent) : equivalent,
             const SizedBox(width: 6),
             bounded ? Flexible(flex: 2, child: child) : child,
           ],

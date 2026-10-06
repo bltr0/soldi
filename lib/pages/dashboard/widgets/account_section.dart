@@ -130,7 +130,7 @@ class _AddAccountTile extends StatelessWidget {
     final visual = context.dashboardTheme;
     return SizedBox(
       width: width,
-      height: 72,
+      height: 80,
       child: TonalGlassSurface(
         onTap: onTap,
         semanticLabel: 'Add account',
@@ -197,7 +197,7 @@ class _AccountsLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return Container(
-      height: 72,
+      height: 80,
       decoration: BoxDecoration(
         color: visual.raisedSurface,
         borderRadius: BorderRadius.circular(22),
@@ -216,7 +216,7 @@ class _AccountsError extends StatelessWidget {
   Widget build(BuildContext context) {
     final visual = context.dashboardTheme;
     return SizedBox(
-      height: 72,
+      height: 80,
       child: Center(
         child: TextButton.icon(
           onPressed: onRetry,

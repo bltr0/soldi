@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sossoldi/pages/transactions/create_transaction/widgets/amount_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sossoldi/providers/settings_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -14,14 +16,19 @@ void main() {
   const amountWidgetKey = Key('amountWidgetKey');
   var amountController = TextEditingController();
 
-  setUp(() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
     amountController = TextEditingController();
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
   });
 
   Widget amountWidget() {
     return MaterialApp(
       home: Material(
         child: ProviderScope(
+          overrides: [sharedPrefProvider.overrideWithValue(prefs)],
           child: AmountWidget(amountController, key: amountWidgetKey),
         ),
       ),

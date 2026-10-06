@@ -49,8 +49,7 @@ class _TransactionsListState extends ConsumerState<TransactionsList> {
       final currentTotal = totals[date] ?? 0.0;
 
       final value =
-          converter?.transaction(transaction) ??
-          transaction.amount.toDouble();
+          converter?.transaction(transaction) ?? transaction.amount.toDouble();
       final amount = transaction.isBalanceReset
           ? 0.0
           : switch (transaction.type) {
@@ -75,7 +74,7 @@ class _TransactionsListState extends ConsumerState<TransactionsList> {
         margin: widget.margin,
         child: ListView.separated(
           physics: const NeverScrollableScrollPhysics(),
-          padding: widget.padding,
+          padding: widget.padding ?? EdgeInsets.zero,
           shrinkWrap: true,
           itemCount: totals.keys.length,
           separatorBuilder: (_, _) => const SizedBox(height: Sizes.lg),
@@ -104,6 +103,7 @@ class _TransactionsListState extends ConsumerState<TransactionsList> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(18),
                     child: ListView.separated(
+                      padding: EdgeInsets.zero,
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: dateTransactions.length,
@@ -237,9 +237,9 @@ class TransactionTile extends ConsumerWidget {
               code: code,
               date: transaction.date,
               ignoreBlur: ignoreBlur,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontSize: 15,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontSize: 15),
               child: BlurWidget(
                 ignore: ignoreBlur,
                 child: Row(
@@ -309,7 +309,9 @@ String _transferSubtitleFor(
     );
   }
   if (transaction.transferFee > 0) {
-    parts.add('fee ${transaction.transferFee.toCurrency(senderCode)} $senderSymbol');
+    parts.add(
+      'fee ${transaction.transferFee.toCurrency(senderCode)} $senderSymbol',
+    );
   }
   return parts.join(' · ');
 }

@@ -41,8 +41,7 @@ class AccountsTab extends ConsumerWidget {
         continue;
       }
       final amount =
-          converter?.transaction(transaction) ??
-          transaction.amount.toDouble();
+          converter?.transaction(transaction) ?? transaction.amount.toDouble();
       if (transaction.type == TransactionType.income) {
         (accountToTransactionsIncome[accountId] ??= []).add(transaction);
         totalIncome += amount;
@@ -165,6 +164,7 @@ class AccountSection extends StatelessWidget {
             unconverted: unconverted,
           ),
         ListView.separated(
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: accountList.length,

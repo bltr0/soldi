@@ -35,7 +35,7 @@ class AccountsSum extends ConsumerWidget {
 
     return SizedBox(
       width: width,
-      height: 72,
+      height: 80,
       child: TonalGlassSurface(
         onTap: () async {
           await ref
@@ -76,6 +76,7 @@ class AccountsSum extends ConsumerWidget {
               date: DateTime.now(),
               style: amountStyle,
               alwaysBlurred: account.alwaysBlurred,
+              layout: EquivalentLayout.below,
               child: BlurWidget(
                 sigma: 16,
                 always: account.alwaysBlurred,

@@ -4,6 +4,9 @@ import '../../../../providers/currency_provider.dart';
 
 import '../../../../model/category_transaction.dart';
 import '../../../../ui/extensions.dart';
+import '../../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../../ui/widgets/blur_widget.dart';
+import '../../../../ui/device.dart';
 
 class CategoryLabel extends ConsumerWidget {
   const CategoryLabel({
@@ -24,29 +27,41 @@ class CategoryLabel extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          category.name,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
+        Flexible(
+          child: Text(
+            category.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: context.dashboardTheme.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: "${amount.toCurrency(currencyState.code)}${currencyState.symbol}    ",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+        const SizedBox(width: Sizes.sm),
+        BlurWidget(
+          sigma: 8,
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text:
+                      "${amount.toCurrency(currencyState.code)} ${currencyState.symbol}  ",
+                  style: TextStyle(color: context.dashboardTheme.textPrimary),
                 ),
-              ),
-              TextSpan(
-                text: "${((amount / total) * 100).abs().toStringAsFixed(2)}%",
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+                TextSpan(
+                  text: "${((amount / total) * 100).abs().toStringAsFixed(1)}%",
+                  style: TextStyle(
+                    color: context.dashboardTheme.textSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],

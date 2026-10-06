@@ -251,12 +251,11 @@ class _AccountPageState extends ConsumerState<AccountPage> {
                 sliver: SliverList.separated(
                   itemCount: days.length,
                   separatorBuilder: (_, _) => const SizedBox(height: Sizes.lg),
-                  itemBuilder: (context, index) =>
-                      LedgerDayGroup(
-                        day: days[index],
-                        accountId: account.id!,
-                        alwaysBlurred: account.alwaysBlurred,
-                      ),
+                  itemBuilder: (context, index) => LedgerDayGroup(
+                    day: days[index],
+                    accountId: account.id!,
+                    alwaysBlurred: account.alwaysBlurred,
+                  ),
                 ),
               ),
           ],

@@ -29,13 +29,10 @@ class CategoriesGraphPieChart extends ConsumerWidget {
         if (entry.value != 0) entry,
     ];
     final categories = [for (final entry in entries) entry.key];
-    final selected = categories.indexWhere(
-      (c) => c.id == selectedCategory?.id,
-    );
+    final selected = categories.indexWhere((c) => c.id == selectedCategory?.id);
     return ShareBreakdown(
       totalText: '${total.toCurrency(currency.code)} ${currency.symbol}',
-      unconverted:
-          ref.watch(categoryTotalUnconvertedProvider).value ?? false,
+      unconverted: ref.watch(categoryTotalUnconvertedProvider).value ?? false,
       amountColor: total >= 0 ? visual.positive : visual.negative,
       selectedIndex: selected < 0 ? null : selected,
       onSelect: (i) => ref

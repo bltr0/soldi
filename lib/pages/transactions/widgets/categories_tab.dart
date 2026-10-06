@@ -98,6 +98,7 @@ class CategorySection extends StatelessWidget {
           unconverted: categoryData.any((e) => e.unconverted),
         ),
         ListView.separated(
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: categories.length,

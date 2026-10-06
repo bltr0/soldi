@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_auth/local_auth.dart';
 
 import '../../../providers/authentication_provider.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../providers/fx_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/database/repositories/currency_repository.dart';
+import '../../../services/security/app_lock.dart';
 import '../../../ui/device.dart';
+import '../../../ui/widgets/pin_pad.dart';
 import '../../../ui/widgets/segmented_pill.dart';
 import '../../../ui/widgets/settings_tiles.dart';
 import 'widgets/currency_selector_dialog.dart';
@@ -19,7 +22,7 @@ class GeneralSettingsPage extends ConsumerWidget {
     final isDark = ref.watch(appThemeStateProvider).isDarkModeEnabled;
     final currency = ref.watch(currencyStateProvider);
     final fxSource = ref.watch(fxSourceSettingProvider);
-    final requiresAuthentication = ref.watch(authenticationStateProvider);
+    final lockMode = ref.watch(appLockModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -42,7 +45,9 @@ class GeneralSettingsPage extends ConsumerWidget {
             title: 'Appearance',
             children: [
               SettingsTile(
-                icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                icon: isDark
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
                 title: 'Theme',
                 below: SegmentedPill<bool>(
                   options: const {false: 'Light', true: 'Dark'},
@@ -102,21 +107,71 @@ class GeneralSettingsPage extends ConsumerWidget {
           SettingsGroup(
             title: 'Security',
             children: [
-              SettingsSwitchTile(
-                icon: requiresAuthentication
-                    ? Icons.lock_rounded
-                    : Icons.lock_open_rounded,
-                title: 'Require authentication',
-                subtitle: 'Unlock the app with your device credentials',
-                value: requiresAuthentication,
-                onChanged: (_) => ref
-                    .read(authenticationStateProvider.notifier)
-                    .updateAuthentication(),
+              SettingsTile(
+                icon: lockMode == AppLockMode.none
+                    ? Icons.lock_open_rounded
+                    : Icons.lock_rounded,
+                title: 'App lock',
+                subtitle: switch (lockMode) {
+                  AppLockMode.none => 'Anyone holding your phone can open it',
+                  AppLockMode.device =>
+                    'Fingerprint, face or your phone\'s screen lock',
+                  AppLockMode.pin => 'A PIN only used by Sossoldi',
+                },
+                below: SegmentedPill<AppLockMode>(
+                  options: const {
+                    AppLockMode.none: 'Off',
+                    AppLockMode.device: 'Device',
+                    AppLockMode.pin: 'PIN',
+                  },
+                  selected: lockMode,
+                  onChanged: (mode) => _changeLock(context, ref, mode),
+                ),
               ),
+              if (lockMode == AppLockMode.pin)
+                SettingsTile(
+                  icon: Icons.pin_rounded,
+                  title: 'Change PIN',
+                  onTap: () => _changeLock(context, ref, AppLockMode.pin),
+                ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _changeLock(
+    BuildContext context,
+    WidgetRef ref,
+    AppLockMode mode,
+  ) async {
+    final notifier = ref.read(appLockModeProvider.notifier);
+    switch (mode) {
+      case AppLockMode.none:
+        await notifier.set(mode);
+      case AppLockMode.pin:
+        final pin = await showPinSetup(context);
+        if (pin != null) await notifier.setPin(pin);
+      case AppLockMode.device:
+        final auth = LocalAuthentication();
+        var ok = false;
+        try {
+          ok =
+              await auth.isDeviceSupported() &&
+              await auth.authenticate(
+                localizedReason: 'Confirm to lock Sossoldi with this device',
+              );
+        } catch (_) {}
+        if (ok) {
+          await notifier.set(mode);
+        } else if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Device unlock is not available or was cancelled'),
+            ),
+          );
+        }
+    }
   }
 }

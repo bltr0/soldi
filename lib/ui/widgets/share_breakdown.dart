@@ -52,6 +52,7 @@ class ShareBreakdown extends StatelessWidget {
 
   static const _barHeight = 14.0;
   static const _gap = 2.0;
+  static const _headerHeight = 60.0;
 
   @override
   Widget build(BuildContext context) {
@@ -76,70 +77,73 @@ class ShareBreakdown extends StatelessWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => onSelect(null),
-          child: AnimatedSwitcher(
-            duration: duration,
-            layoutBuilder: (current, previous) => Stack(
-              alignment: Alignment.centerLeft,
-              children: [...previous, ?current],
-            ),
-            child: Row(
-              key: ValueKey(index),
-              children: [
-                if (focused != null) ...[
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: focused.color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      focused.icon ?? Icons.circle,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: Sizes.md),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        focused == null
-                            ? totalLabel
-                            : '${focused.label} · ${share!.toStringAsFixed(share < 10 ? 1 : 0)}%',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.labelLarge?.copyWith(
-                          color: visual.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
+          child: SizedBox(
+            height: _headerHeight,
+            child: AnimatedSwitcher(
+              duration: duration,
+              layoutBuilder: (current, previous) => Stack(
+                alignment: Alignment.centerLeft,
+                children: [...previous, ?current],
+              ),
+              child: Row(
+                key: ValueKey(index),
+                children: [
+                  if (focused != null) ...[
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: focused.color,
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      UnconvertedAmount(
-                        unconverted: unconverted && focused == null,
-                        child: BlurWidget(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              focused?.amountText ?? totalText,
-                              style: textTheme.headlineMedium?.copyWith(
-                                color: amountColor ?? visual.textPrimary,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.8,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
+                      child: Icon(
+                        focused.icon ?? Icons.circle,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: Sizes.md),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          focused == null
+                              ? totalLabel
+                              : '${focused.label} · ${share!.toStringAsFixed(share < 10 ? 1 : 0)}%',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.labelLarge?.copyWith(
+                            color: visual.textSecondary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        UnconvertedAmount(
+                          unconverted: unconverted && focused == null,
+                          child: BlurWidget(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                focused?.amountText ?? totalText,
+                                style: textTheme.headlineMedium?.copyWith(
+                                  color: amountColor ?? visual.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.8,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

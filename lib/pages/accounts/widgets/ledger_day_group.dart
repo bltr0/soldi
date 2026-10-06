@@ -104,8 +104,7 @@ class LedgerDayGroup extends ConsumerWidget {
                         style: TextStyle(color: visual.textSecondary),
                       ),
                       TextSpan(
-                        text:
-                            '${day.endBalance.toCurrency(code)} $symbol',
+                        text: '${day.endBalance.toCurrency(code)} $symbol',
                       ),
                     ],
                   ),
@@ -123,16 +122,8 @@ class LedgerDayGroup extends ConsumerWidget {
           pressScale: 1,
           child: Column(
             children: [
-              for (final (index, entry) in day.entries.indexed) ...[
-                if (index > 0)
-                  Divider(
-                    height: 1,
-                    indent: 64,
-                    endIndent: Sizes.md,
-                    color: visual.hairline,
-                  ),
+              for (final entry in day.entries)
                 _LedgerTile(entry: entry, accountId: accountId),
-              ],
             ],
           ),
         ),

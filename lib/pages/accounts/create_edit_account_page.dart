@@ -130,7 +130,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
             .removeAccount(selectedAccount)
             .whenComplete(() {
               if (context.mounted) {
-                Navigator.popUntil(context, ModalRoute.withName('/account-list'));
+                Navigator.popUntil(
+                  context,
+                  ModalRoute.withName('/account-list'),
+                );
               }
             }),
       ),

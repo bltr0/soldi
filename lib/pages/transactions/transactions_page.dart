@@ -64,7 +64,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage>
           child: Column(
             children: [
               Padding(
-                padding: EdgeInsets.fromLTRB(insets, Sizes.lg, insets, 0),
+                padding: EdgeInsets.fromLTRB(
+                  insets,
+                  MediaQuery.paddingOf(context).top + Sizes.lg,
+                  insets,
+                  0,
+                ),
                 child: Column(
                   children: [
                     AnimatedBuilder(

@@ -23,7 +23,9 @@ enum FxSource {
   frankfurter,
 }
 
-const _sourceKey = 'fx_source';
+// Renamed in 2.0.0: earlier builds could store a source the user never
+// picked, so everyone is asked once again.
+const _sourceKey = 'fx_source_choice';
 const _lastSyncKey = 'fx_last_sync';
 
 @Riverpod(keepAlive: true)

@@ -30,7 +30,7 @@ class _GraphsPageState extends ConsumerState<GraphsPage> {
       physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         insets,
-        Sizes.lg,
+        MediaQuery.paddingOf(context).top + Sizes.lg,
         insets,
         MediaQuery.paddingOf(context).bottom + Sizes.xl,
       ),
@@ -207,12 +207,15 @@ class _ChangePill extends StatelessWidget {
             children: [
               Icon(icon, size: 17, color: color),
               const SizedBox(width: Sizes.xs),
-              Text(
-                '${change > 0 ? '+' : ''}${change.toCurrency()}% vs last month',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w800,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+              BlurWidget(
+                sigma: 8,
+                child: Text(
+                  '${change > 0 ? '+' : ''}${change.toCurrency()}% vs last month',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ],

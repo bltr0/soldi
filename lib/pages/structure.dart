@@ -64,10 +64,10 @@ class _StructureState extends ConsumerState<Structure> {
         backgroundColor: Colors.transparent,
         resizeToAvoidBottomInset: false,
         extendBody: true,
-        // Keep the body's top edge fixed for every tab. Toggling this per tab
-        // moved the body by the bar's height in the same frame the cross-fade
-        // started, so the outgoing page jumped while it faded.
-        extendBodyBehindAppBar: false,
+        // Pages scroll under the top bar and fade out in its gradient. Kept
+        // the same for every tab: toggling it per tab moved the body by the
+        // bar's height in the same frame the cross-fade started.
+        extendBodyBehindAppBar: true,
         appBar: PreferredSize(
           preferredSize: const Size.fromHeight(_topBarHeight),
           child: _TopControls(
@@ -114,6 +114,9 @@ class _StructureState extends ConsumerState<Structure> {
 
 const double _topBarHeight = 60;
 
+/// How far below the bar its gradient keeps fading out over the page.
+const double _fadeHeight = 28;
+
 class _TopControls extends StatelessWidget {
   const _TopControls({
     required this.title,
@@ -136,83 +139,113 @@ class _TopControls extends StatelessWidget {
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : const Duration(milliseconds: 260);
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1160),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              Sizes.responsiveInsets(context),
-              Sizes.sm,
-              Sizes.responsiveInsets(context),
-              0,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: duration,
-                    layoutBuilder: (current, previous) => Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [...previous, ?current],
-                    ),
-                    child: title == null
-                        ? _searchCapsule(context)
-                        : Padding(
-                            key: ValueKey(title),
-                            padding: const EdgeInsets.only(left: Sizes.sm),
-                            child: Text(
-                              title!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    color: visual.textPrimary,
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.9,
-                                  ),
-                            ),
-                          ),
-                  ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height:
+              MediaQuery.paddingOf(context).top + _topBarHeight + _fadeHeight,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    visual.backgroundTop,
+                    visual.backgroundTop.withValues(alpha: 0.92),
+                    visual.backgroundTop.withValues(alpha: 0),
+                  ],
+                  stops: const [0, 0.55, 1],
                 ),
-                // Animate the search button in and out so the title slot
-                // resizes smoothly instead of snapping by the button's width.
-                AnimatedSize(
-                  duration: duration,
-                  curve: Curves.easeOutCubic,
-                  alignment: Alignment.centerRight,
-                  child: title == null
-                      ? const SizedBox(height: 52)
-                      : Padding(
-                          padding: const EdgeInsets.only(left: Sizes.sm),
-                          child: _DashboardAction(
-                            label: 'Search transactions',
-                            icon: Icons.search_rounded,
-                            onTap: onSearch,
-                          ),
-                        ),
-                ),
-                const SizedBox(width: Sizes.sm),
-                _DashboardAction(
-                  label: isVisible ? 'Hide amounts' : 'Show amounts',
-                  icon: isVisible
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  onTap: onVisibility,
-                ),
-                const SizedBox(width: Sizes.sm),
-                _DashboardAction(
-                  label: 'Settings',
-                  icon: Icons.tune_rounded,
-                  onTap: onSettings,
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1160),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  Sizes.responsiveInsets(context),
+                  Sizes.sm,
+                  Sizes.responsiveInsets(context),
+                  0,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: duration,
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [...previous, ?current],
+                        ),
+                        child: title == null
+                            ? _searchCapsule(context)
+                            : Padding(
+                                key: ValueKey(title),
+                                padding: const EdgeInsets.only(left: Sizes.sm),
+                                child: Text(
+                                  title!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        color: visual.textPrimary,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.9,
+                                      ),
+                                ),
+                              ),
+                      ),
+                    ),
+                    // Animate the search button in and out so the title slot
+                    // resizes smoothly instead of snapping by the button's width.
+                    AnimatedSize(
+                      duration: duration,
+                      curve: Curves.easeOutCubic,
+                      alignment: Alignment.centerRight,
+                      child: title == null
+                          ? const SizedBox(height: 52)
+                          : Padding(
+                              padding: const EdgeInsets.only(left: Sizes.sm),
+                              child: _DashboardAction(
+                                label: 'Search transactions',
+                                icon: Icons.search_rounded,
+                                onTap: onSearch,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(width: Sizes.sm),
+                    _DashboardAction(
+                      label: isVisible ? 'Hide amounts' : 'Show amounts',
+                      icon: isVisible
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      onTap: onVisibility,
+                    ),
+                    const SizedBox(width: Sizes.sm),
+                    _DashboardAction(
+                      label: 'Settings',
+                      icon: Icons.tune_rounded,
+                      onTap: onSettings,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

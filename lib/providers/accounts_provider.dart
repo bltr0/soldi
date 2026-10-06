@@ -122,6 +122,8 @@ class Accounts extends _$Accounts {
 
       if (account.mainAccount) {
         ref.read(mainAccountProvider.notifier).state = account;
+      } else if (ref.read(mainAccountProvider)?.id == account.id) {
+        ref.read(mainAccountProvider.notifier).state = null;
       }
       ref.invalidate(dashboardProvider);
 

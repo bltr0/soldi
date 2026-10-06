@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/bank_account.dart';
@@ -8,6 +9,7 @@ import '../model/transaction.dart';
 import '../services/database/repositories/place_repository.dart';
 import '../services/database/repositories/transactions_repository.dart';
 import 'accounts_provider.dart';
+import 'settings_provider.dart';
 import 'budgets_provider.dart';
 import 'categories_provider.dart';
 import 'dashboard_provider.dart';
@@ -85,10 +87,22 @@ class BankAccountTransfer extends _$BankAccountTransfer {
   void setAccount(BankAccount? account) => state = account;
 }
 
+/// Account the last transaction was added to; new ones default to it.
+const lastAccountKey = 'last_transaction_account';
+
 @Riverpod(keepAlive: true)
 class SelectedBankAccount extends _$SelectedBankAccount {
   @override
-  BankAccount? build() => ref.read(mainAccountProvider);
+  BankAccount? build() {
+    final accounts = [
+      for (final account in ref.read(accountsProvider).value ?? <BankAccount>[])
+        if (account.active && account.deletedAt == null) account,
+    ];
+    final lastId = ref.read(sharedPrefProvider).getInt(lastAccountKey);
+    return accounts.firstWhereOrNull((a) => a.id == lastId) ??
+        ref.read(mainAccountProvider) ??
+        accounts.firstOrNull;
+  }
 
   void setAccount(BankAccount? account) => state = account;
 }
@@ -321,6 +335,9 @@ class TransactionsNotifier extends _$TransactionsNotifier {
 
     state = await AsyncValue.guard(() async {
       await ref.read(transactionsRepositoryProvider).insert(transaction);
+      await ref
+          .read(sharedPrefProvider)
+          .setInt(lastAccountKey, transaction.idBankAccount);
       return await _getTransactions();
     });
   }
