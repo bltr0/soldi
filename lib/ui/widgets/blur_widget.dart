@@ -93,7 +93,7 @@ class _BlurWidgetState extends ConsumerState<BlurWidget>
                 sigmaY: widget.sigma * t,
                 tileMode: TileMode.decal,
               ),
-              child: Opacity(opacity: 1 - (0.18 * t), child: widget.child),
+              child: widget.child,
             ),
           );
         }
