@@ -13,9 +13,14 @@ import 'account_selector.dart';
 import 'amount_widget.dart';
 
 class AmountSection extends ConsumerWidget {
-  const AmountSection(this.amountController, {super.key});
+  const AmountSection(
+    this.amountController, {
+    this.autofocus = false,
+    super.key,
+  });
 
   final TextEditingController amountController;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +63,7 @@ class AmountSection extends ConsumerWidget {
                 ref.invalidate(bankAccountTransferProvider);
               },
             ),
-          AmountWidget(amountController),
+          AmountWidget(amountController, autofocus: autofocus),
           AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,

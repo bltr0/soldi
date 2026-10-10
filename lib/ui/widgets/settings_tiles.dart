@@ -69,10 +69,12 @@ class SettingsGroup extends StatelessWidget {
 
 /// One settings row: accent icon, title, optional subtitle, and a trailing
 /// control or chevron. [below] sits under the row, inside the same tile.
+/// [leading] replaces the icon box, for logos and other custom marks.
 class SettingsTile extends StatelessWidget {
   const SettingsTile({
     required this.title,
     this.icon,
+    this.leading,
     this.subtitle,
     this.trailing,
     this.onTap,
@@ -81,6 +83,7 @@ class SettingsTile extends StatelessWidget {
   });
 
   final IconData? icon;
+  final Widget? leading;
   final String title;
   final String? subtitle;
   final Widget? trailing;
@@ -103,7 +106,10 @@ class SettingsTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                if (icon != null) ...[
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: Sizes.md),
+                ] else if (icon != null) ...[
                   Container(
                     width: 40,
                     height: 40,
@@ -237,12 +243,16 @@ class TogglePill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.leading,
     super.key,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Shown before the label, such as a small logo.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -263,14 +273,23 @@ class TogglePill extends StatelessWidget {
               horizontal: Sizes.md,
               vertical: Sizes.sm,
             ),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected
-                    ? visual.navigationFill.withValues(alpha: 1)
-                    : visual.textSecondary,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: Sizes.sm),
+                ],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: selected
+                        ? visual.navigationFill.withValues(alpha: 1)
+                        : visual.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

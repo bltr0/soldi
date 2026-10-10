@@ -11,6 +11,7 @@ import '../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
 import '../../../model/currency_catalog.dart';
+import '../../../ui/widgets/date_picker_sheet.dart';
 
 class ReconcileResult {
   const ReconcileResult({required this.date, required this.balance});
@@ -75,8 +76,8 @@ class _ReconcileDialogState extends ConsumerState<_ReconcileDialog> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await showAppDatePicker(
+      context,
       initialDate: _date,
       firstDate: DateTime(1970),
       lastDate: DateTime.now().add(const Duration(days: 3650)),

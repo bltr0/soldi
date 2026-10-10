@@ -10,7 +10,9 @@ import '../../../../services/places/place_search.dart';
 import '../../../../services/places/place_search_provider.dart';
 import '../../../../services/places/place_search_settings_store.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/widgets/accent_button.dart';
 import '../../../../ui/widgets/place_provider_badge.dart';
+import '../../../../ui/widgets/settings_tiles.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
 
 typedef PlaceSearchChoice = ({bool apply, Place? place});
@@ -25,43 +27,77 @@ Future<Place?> promptRenamePlace(
   final controller = TextEditingController(text: place.name);
   final name = await showDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Rename place'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'The map location stays put.',
-            style: TextStyle(color: visual.textSecondary),
-          ),
-          const SizedBox(height: Sizes.sm),
-          Text(
-            '${place.latitude.toStringAsFixed(5)}, ${place.longitude.toStringAsFixed(5)}',
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: visual.textSecondary),
-          ),
-          const SizedBox(height: Sizes.md),
-          TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Name'),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+    builder: (context) {
+      final textTheme = Theme.of(context).textTheme;
+      return Dialog(
+        backgroundColor: visual.solidSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(color: visual.hairline),
         ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(controller.text),
-          child: const Text('Save'),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(Sizes.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Rename place',
+                  style: textTheme.titleLarge?.copyWith(
+                    color: visual.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: Sizes.sm),
+                Text(
+                  'The map location stays put: '
+                  '${place.latitude.toStringAsFixed(5)}, '
+                  '${place.longitude.toStringAsFixed(5)}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: visual.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: Sizes.lg),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (value) => Navigator.of(context).pop(value),
+                  style: textTheme.titleSmall?.copyWith(
+                    color: visual.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: placeFieldDecoration(context, hint: 'Name'),
+                ),
+                const SizedBox(height: Sizes.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: Sizes.md),
+                    Expanded(
+                      child: AccentButton(
+                        label: 'Save',
+                        icon: Icons.check_rounded,
+                        onPressed: () =>
+                            Navigator.of(context).pop(controller.text),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ],
-    ),
+      );
+    },
   );
   controller.dispose();
   final trimmed = name?.trim();
@@ -78,6 +114,28 @@ Future<Place?> promptRenamePlace(
   return updated;
 }
 
+/// Filled, borderless field used across the place panels.
+InputDecoration placeFieldDecoration(
+  BuildContext context, {
+  required String hint,
+  IconData? icon,
+}) {
+  final visual = context.dashboardTheme;
+  return InputDecoration(
+    isDense: true,
+    hintText: hint,
+    hintStyle: TextStyle(color: visual.textSecondary),
+    prefixIcon: icon == null ? null : Icon(icon, color: visual.textSecondary),
+    filled: true,
+    fillColor: visual.textPrimary.withValues(alpha: 0.06),
+    contentPadding: const EdgeInsets.all(Sizes.md),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide.none,
+    ),
+  );
+}
+
 Future<PlaceSearchChoice?> showPlaceSearchSheet(
   BuildContext context, {
   bool canClear = false,
@@ -87,6 +145,11 @@ Future<PlaceSearchChoice?> showPlaceSearchSheet(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
+    backgroundColor: context.dashboardTheme.solidSurface,
+    clipBehavior: Clip.antiAlias,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     builder: (_) => PlaceSearchSheet(canClear: canClear),
   );
 }
@@ -233,39 +296,16 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
     return ListView(
       children: [
         if (mine.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: Sizes.sm, bottom: Sizes.xs),
-            child: Text(
-              'Your places',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: visual.textSecondary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+          const Padding(
+            padding: EdgeInsets.only(top: Sizes.sm, bottom: Sizes.xs),
+            child: _SectionLabel('Your places'),
           ),
         for (final place in mine)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: PlaceProviderBadge(
-              provider: PlaceSearchProvider.fromId(place.provider),
-            ),
-            title: Text(
-              place.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: visual.textPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: place.address == null
-                ? null
-                : Text(
-                    place.address!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: visual.textSecondary),
-                  ),
+          _PlaceRow(
+            provider: PlaceSearchProvider.fromId(place.provider),
+            name: place.name,
+            address: place.address,
+            onTap: () => Navigator.of(context).pop((apply: true, place: place)),
             trailing: IconButton(
               tooltip: 'Rename',
               onPressed: () async {
@@ -273,20 +313,13 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
                 if (!mounted || updated == null) return;
                 setState(() {});
               },
-              icon: Icon(Icons.edit_outlined, color: visual.textSecondary),
+              icon: Icon(Icons.edit_rounded, color: visual.textSecondary),
             ),
-            onTap: () => Navigator.of(context).pop((apply: true, place: place)),
           ),
         if (showMap) ...[
           Padding(
             padding: const EdgeInsets.only(top: Sizes.md, bottom: Sizes.xs),
-            child: Text(
-              _serviceLabel,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: visual.textSecondary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            child: _SectionLabel(_serviceLabel),
           ),
           if (_loading)
             Padding(
@@ -304,30 +337,11 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
             )
           else
             for (final hit in _hits)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                enabled: !_saving,
-                leading: PlaceProviderBadge(
-                  provider: PlaceSearchProvider.fromId(hit.provider),
-                ),
-                title: Text(
-                  hit.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: visual.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                subtitle: hit.address == null
-                    ? null
-                    : Text(
-                        hit.address!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: visual.textSecondary),
-                      ),
-                onTap: () => _choose(hit),
+              _PlaceRow(
+                provider: PlaceSearchProvider.fromId(hit.provider),
+                name: hit.name,
+                address: hit.address,
+                onTap: _saving ? null : () => _choose(hit),
               ),
         ],
       ],
@@ -365,14 +379,14 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
                   for (final provider in _available)
                     Padding(
                       padding: const EdgeInsets.only(right: Sizes.xs),
-                      child: ChoiceChip(
-                        avatar: PlaceProviderBadge(
+                      child: TogglePill(
+                        leading: PlaceProviderBadge(
                           provider: provider,
-                          size: 20,
+                          size: 18,
                         ),
-                        label: Text(provider.label),
+                        label: provider.label,
                         selected: provider == _active,
-                        onSelected: (_) => _selectProvider(provider),
+                        onTap: () => _selectProvider(provider),
                       ),
                     ),
                 ],
@@ -382,45 +396,112 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
           const SizedBox(height: Sizes.sm),
           TextField(
             controller: _controller,
-            autofocus: true,
             textInputAction: TextInputAction.search,
             onChanged: _onChanged,
             onSubmitted: _search,
+            onTapOutside: (_) => FocusScope.of(context).unfocus(),
             style: TextStyle(color: visual.textPrimary),
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: 'Your places, or a new $_serviceLabel search',
-              hintStyle: TextStyle(color: visual.textSecondary),
-              prefixIcon: Icon(
-                Icons.place_outlined,
-                color: visual.textSecondary,
-              ),
-              filled: true,
-              fillColor: visual.textPrimary.withValues(alpha: 0.06),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
+            decoration: placeFieldDecoration(
+              context,
+              hint: 'Your places, or a new $_serviceLabel search',
+              icon: Icons.search_rounded,
             ),
           ),
           if (widget.canClear) ...[
+            const SizedBox(height: Sizes.sm),
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () =>
+              child: TogglePill(
+                label: 'Remove place',
+                selected: false,
+                onTap: () =>
                     Navigator.of(context).pop((apply: true, place: null)),
-                child: const Text('Remove place'),
               ),
             ),
           ],
+          const SizedBox(height: Sizes.sm),
           SizedBox(height: 320, child: _results(visual)),
-          Text(
-            'Places from $_serviceLabel',
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: visual.textSecondary),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+        color: context.dashboardTheme.textSecondary,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
+
+/// One place in the panel: source logo, name, address.
+class _PlaceRow extends StatelessWidget {
+  const _PlaceRow({
+    required this.provider,
+    required this.name,
+    required this.address,
+    required this.onTap,
+    this.trailing,
+  });
+
+  final PlaceSearchProvider? provider;
+  final String name;
+  final String? address;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    final textTheme = Theme.of(context).textTheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Sizes.sm),
+        child: Row(
+          children: [
+            PlaceProviderBadge(provider: provider, size: 36),
+            const SizedBox(width: Sizes.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleSmall?.copyWith(
+                      color: visual.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (address != null)
+                    Text(
+                      address!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: visual.textSecondary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            ?trailing,
+          ],
+        ),
       ),
     );
   }

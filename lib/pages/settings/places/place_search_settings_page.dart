@@ -4,8 +4,12 @@ import '../../../services/places/place_search.dart';
 import '../../../services/places/place_search_provider.dart';
 import '../../../services/places/place_search_settings_store.dart';
 import '../../../ui/device.dart';
+import '../../../ui/theme/dashboard_visual_theme.dart';
+import '../../../ui/widgets/accent_button.dart';
+import '../../../ui/widgets/place_provider_badge.dart';
+import '../../../ui/widgets/settings_tiles.dart';
 
-/// Choose the place search service and paste its API keys.
+/// Choose the default place search service and paste API keys.
 class PlaceSearchSettingsPage extends StatefulWidget {
   const PlaceSearchSettingsPage({super.key});
 
@@ -17,9 +21,10 @@ class PlaceSearchSettingsPage extends StatefulWidget {
 class _PlaceSearchSettingsPageState extends State<PlaceSearchSettingsPage> {
   final _store = const PlaceSearchSettingsStore();
   final _controllers = <PlaceSearchProvider, List<TextEditingController>>{};
-  PlaceSearchSettings? _settings;
-  PlaceSearchProvider? _testing;
   final _testResults = <PlaceSearchProvider, String>{};
+  PlaceSearchSettings? _settings;
+  PlaceSearchProvider? _expanded;
+  PlaceSearchProvider? _testing;
 
   @override
   void initState() {
@@ -57,6 +62,7 @@ class _PlaceSearchSettingsPageState extends State<PlaceSearchSettingsPage> {
   );
 
   Future<void> _save({PlaceSearchProvider? selected}) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final settings = _current().copyWith(selected: selected);
     await _store.write(settings);
     if (!mounted) return;
@@ -64,6 +70,7 @@ class _PlaceSearchSettingsPageState extends State<PlaceSearchSettingsPage> {
   }
 
   Future<void> _test(PlaceSearchProvider provider) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       _testing = provider;
       _testResults.remove(provider);
@@ -90,6 +97,7 @@ class _PlaceSearchSettingsPageState extends State<PlaceSearchSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final settings = _settings;
+    final visual = context.dashboardTheme;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -99,105 +107,158 @@ class _PlaceSearchSettingsPageState extends State<PlaceSearchSettingsPage> {
         title: const Text('Place search'),
       ),
       body: settings == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: visual.accent))
           : ListView(
-              padding: const EdgeInsets.all(Sizes.lg),
+              padding: EdgeInsets.fromLTRB(
+                Sizes.lg,
+                Sizes.lg,
+                Sizes.lg,
+                MediaQuery.paddingOf(context).bottom + Sizes.xl,
+              ),
+              physics: const BouncingScrollPhysics(),
               children: [
-                Text(
-                  'Pick the service used to find new places. Only your search '
-                  'text is sent to it, never amounts. Keys are stored '
-                  'encrypted on this device. If the chosen service has no '
-                  'key, OpenStreetMap is used.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: Sizes.lg),
-                RadioGroup<PlaceSearchProvider>(
-                  groupValue: settings.selected,
-                  onChanged: (p) => _save(selected: p),
-                  child: Column(
-                    children: [
-                      for (final provider in PlaceSearchProvider.values)
-                        _providerCard(context, settings, provider),
-                    ],
-                  ),
+                SettingsGroup(
+                  title: 'Search services',
+                  footer:
+                      'Only your search text is sent, never amounts. Keys stay '
+                      'encrypted on this device. Without a key, OpenStreetMap '
+                      'is used.',
+                  children: [
+                    for (final provider in PlaceSearchProvider.values)
+                      _providerTile(context, settings, provider),
+                  ],
                 ),
               ],
             ),
     );
   }
 
-  Widget _providerCard(
+  Widget _providerTile(
     BuildContext context,
     PlaceSearchSettings settings,
     PlaceSearchProvider provider,
   ) {
-    final controllers = _controllers[provider]!;
-    final missingKey =
-        provider == settings.selected && !settings.isConfigured(provider);
-    return Card(
-      margin: const EdgeInsets.only(bottom: Sizes.md),
-      child: Padding(
-        padding: const EdgeInsets.all(Sizes.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            RadioListTile<PlaceSearchProvider>(
-              contentPadding: EdgeInsets.zero,
-              value: provider,
-              title: Text(provider.label),
-              subtitle: Text(
-                missingKey
-                    ? '${provider.region}. Add a key to use it.'
-                    : provider.region,
-              ),
-            ),
-            for (var i = 0; i < controllers.length; i++)
+    final visual = context.dashboardTheme;
+    final isDefault = provider == settings.selected;
+    final configured = settings.isConfigured(provider);
+    final expanded = _expanded == provider;
+    return SettingsTile(
+      leading: PlaceProviderBadge(provider: provider, size: 40),
+      title: provider.label,
+      onTap: () => setState(() => _expanded = expanded ? null : provider),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isDefault)
+            SettingsValue(configured ? 'Default' : 'Needs key')
+          else if (configured && provider.keyFields.isNotEmpty)
+            Icon(Icons.check_circle_rounded, size: 20, color: visual.accent),
+          Icon(
+            expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+            color: visual.textSecondary,
+          ),
+        ],
+      ),
+      below: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _Bullet(provider.freeTier),
+          _Bullet(provider.usefulFor),
+          if (expanded) ...[
+            for (final (i, controller) in _controllers[provider]!.indexed)
               Padding(
-                padding: const EdgeInsets.only(bottom: Sizes.sm),
+                padding: const EdgeInsets.only(top: Sizes.sm),
                 child: TextField(
-                  controller: controllers[i],
+                  controller: controller,
                   obscureText: true,
                   autocorrect: false,
                   enableSuggestions: false,
-                  decoration: InputDecoration(
-                    labelText: provider.keyFields[i],
-                    isDense: true,
-                  ),
+                  textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _save(),
+                  onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                  style: TextStyle(color: visual.textPrimary),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: provider.keyFields[i],
+                    hintStyle: TextStyle(color: visual.textSecondary),
+                    filled: true,
+                    fillColor: visual.textPrimary.withValues(alpha: 0.06),
+                    contentPadding: const EdgeInsets.all(Sizes.md),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
               ),
+            if (_testResults[provider] case final result?)
+              Padding(
+                padding: const EdgeInsets.only(top: Sizes.sm),
+                child: Text(
+                  result,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: visual.textSecondary),
+                ),
+              ),
+            const SizedBox(height: Sizes.md),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    _testResults[provider] ?? '',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                TogglePill(
+                  label: _testing == provider ? 'Testing…' : 'Test',
+                  selected: false,
+                  onTap: () {
+                    if (_testing == null) _test(provider);
+                  },
                 ),
-                TextButton(
-                  onPressed: _testing == null ? () => _test(provider) : null,
-                  child: _testing == provider
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Test'),
+                const SizedBox(width: Sizes.sm),
+                TogglePill(
+                  label: isDefault ? 'Default' : 'Use by default',
+                  selected: isDefault,
+                  onTap: () => _save(selected: provider),
                 ),
-                if (controllers.isNotEmpty)
-                  FilledButton(
-                    onPressed: () async {
-                      await _save();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${provider.label} keys saved')),
-                      );
-                    },
-                    child: const Text('Save'),
-                  ),
               ],
             ),
+            if (provider.keyFields.isNotEmpty) ...[
+              const SizedBox(height: Sizes.md),
+              AccentButton(
+                label: 'Save keys',
+                icon: Icons.check_rounded,
+                onPressed: () async {
+                  await _save();
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${provider.label} keys saved')),
+                  );
+                },
+              ),
+            ],
           ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Bullet extends StatelessWidget {
+  const _Bullet(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = context.dashboardTheme;
+    final style = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: visual.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('•  ', style: style),
+          Expanded(child: Text(text, style: style)),
+        ],
       ),
     );
   }

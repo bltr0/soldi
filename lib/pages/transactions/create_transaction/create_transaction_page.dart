@@ -26,6 +26,7 @@ import 'widgets/people_concerned_selector.dart';
 import 'widgets/place_search_sheet.dart';
 import 'widgets/recurrence_list_tile.dart';
 import 'widgets/transfer_details_fields.dart';
+import '../../../ui/widgets/date_picker_sheet.dart';
 
 class CreateTransactionPage extends ConsumerStatefulWidget {
   const CreateTransactionPage({super.key, this.transaction});
@@ -393,7 +394,10 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
               ),
               IconButton(
                 tooltip: 'Delete',
-                icon: Icon(Icons.delete_outline_rounded, color: visual.negative),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: visual.negative,
+                ),
                 onPressed: _deleteTransaction,
               ),
             ],
@@ -427,7 +431,10 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
               tone: GlassTone.hero,
               radius: 28,
               pressScale: 1,
-              child: AmountSection(amountController),
+              child: AmountSection(
+                amountController,
+                autofocus: widget.transaction == null,
+              ),
             ),
             if (selectedType == TransactionType.transfer) ...[
               const SizedBox(height: Sizes.lg),
@@ -543,8 +550,8 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
 
   Future<void> _pickDate() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await showAppDatePicker(
+      context,
       initialDate: ref.read(selectedDateProvider),
       firstDate: DateTime(2015),
       lastDate: DateTime(2050),

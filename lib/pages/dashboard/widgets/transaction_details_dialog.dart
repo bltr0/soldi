@@ -11,6 +11,8 @@ import '../../../providers/accounts_provider.dart';
 import '../../../providers/currency_provider.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../services/database/repositories/place_repository.dart';
+import '../../transactions/create_transaction/widgets/details_list_tile.dart';
+import '../../transactions/create_transaction/widgets/people_concerned_selector.dart';
 import '../../transactions/create_transaction/widgets/place_search_sheet.dart';
 import '../../transactions/create_transaction/widgets/transfer_details_fields.dart';
 import '../../../ui/device.dart';
@@ -19,7 +21,9 @@ import '../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
 import '../../../ui/widgets/segmented_pill.dart';
+import '../../../ui/widgets/settings_tiles.dart';
 import '../../../model/currency_catalog.dart';
+import '../../../ui/widgets/date_picker_sheet.dart';
 
 Future<void> showTransactionDetailsDialog(
   BuildContext context,
@@ -66,10 +70,10 @@ class _TransactionDetailsDialogState
     _amountController = TextEditingController(
       text: _original.amount.toCurrency(
         ref
-          .read(accountsProvider)
-          .value
-          ?.firstWhereOrNull((a) => a.id == _original.idBankAccount)
-          ?.currencyCode(ref.read(currencyStateProvider).code),
+            .read(accountsProvider)
+            .value
+            ?.firstWhereOrNull((a) => a.id == _original.idBankAccount)
+            ?.currencyCode(ref.read(currencyStateProvider).code),
       ),
     );
     _type = _original.type;
@@ -136,8 +140,8 @@ class _TransactionDetailsDialogState
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await showAppDatePicker(
+      context,
       initialDate: _date,
       firstDate: DateTime(1970),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
@@ -304,14 +308,11 @@ class _TransactionDetailsDialogState
                         ),
                         fontWeight: FontWeight.w800,
                       ),
-                      decoration: _decoration(
-                        context,
-                        hint: '0.00',
-                      ).copyWith(
+                      decoration: _decoration(context, hint: '0.00').copyWith(
                         suffixText:
-                            _account(_accountId)?.currencySymbol(
-                              currency.symbol,
-                            ) ??
+                            _account(
+                              _accountId,
+                            )?.currencySymbol(currency.symbol) ??
                             currency.symbol,
                       ),
                     ),
@@ -356,14 +357,14 @@ class _TransactionDetailsDialogState
                         amount: _amount,
                         padding: EdgeInsets.zero,
                         senderSymbol:
-                            _account(_accountId)?.currencySymbol(
-                              currency.symbol,
-                            ) ??
+                            _account(
+                              _accountId,
+                            )?.currencySymbol(currency.symbol) ??
                             currency.symbol,
                         receiverSymbol:
-                            _account(_toAccountId)?.currencySymbol(
-                              currency.symbol,
-                            ) ??
+                            _account(
+                              _toAccountId,
+                            )?.currencySymbol(currency.symbol) ??
                             currency.symbol,
                         senderCode: _account(
                           _accountId,
@@ -376,80 +377,52 @@ class _TransactionDetailsDialogState
                         receiverName: _account(_toAccountId)?.name,
                       ),
                     ),
-                  if (_type == TransactionType.expense) ...[
-                    _field(
-                      context,
-                      label: 'People concerned',
-                      child: Row(
-                        children: [
-                          IconButton.filledTonal(
-                            onPressed: _people > 1
-                                ? () => setState(() => _people--)
-                                : null,
-                            icon: const Icon(Icons.remove_rounded),
+                  if (_type == TransactionType.expense)
+                    SettingsGroup(
+                      title: 'Shared & place',
+                      children: [
+                        SettingsTile(
+                          icon: Icons.group_rounded,
+                          title: 'People concerned',
+                          subtitle: 'Your share is the total divided equally',
+                          trailing: PeopleStepper(
+                            value: _people,
+                            onDecrement: () => setState(() => _people--),
+                            onIncrement: () => setState(() => _people++),
                           ),
-                          Expanded(
-                            child: Text(
-                              '$_people',
-                              textAlign: TextAlign.center,
-                              style: textTheme.titleLarge?.copyWith(
-                                color: visual.textPrimary,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton.filledTonal(
-                            onPressed: () => setState(() => _people++),
-                            icon: const Icon(Icons.add_rounded),
-                          ),
-                        ],
-                      ),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: _reimbursementDue,
-                      activeColor: visual.textPrimary,
-                      checkColor: visual.solidSurface,
-                      title: Text(
-                        'Paid for other people',
-                        style: textTheme.titleSmall?.copyWith(
-                          color: visual.textPrimary,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                      subtitle: Text(
-                        _reimbursementDue ? 'Still due' : 'Paid back',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: visual.textSecondary,
+                        SettingsSwitchTile(
+                          icon: Icons.volunteer_activism_rounded,
+                          title: 'Paid for other people',
+                          subtitle: _reimbursementDue
+                              ? 'Still due, shown in Paybacks'
+                              : 'Nothing to get back',
+                          value: _reimbursementDue,
+                          onChanged: (value) =>
+                              setState(() => _reimbursementDue = value),
                         ),
-                      ),
-                      onChanged: (value) =>
-                          setState(() => _reimbursementDue = value ?? false),
+                        DetailsListTile(
+                          title: 'Place',
+                          icon: Icons.place_rounded,
+                          value:
+                              _place?.name ??
+                              (_placeId == null ? 'None' : 'Saved place'),
+                          callback: () async {
+                            final choice = await showPlaceSearchSheet(
+                              context,
+                              canClear: _placeId != null,
+                            );
+                            if (choice == null || !choice.apply || !mounted) {
+                              return;
+                            }
+                            setState(() {
+                              _place = choice.place;
+                              _placeId = choice.place?.id;
+                            });
+                          },
+                        ),
+                      ],
                     ),
-                    _field(
-                      context,
-                      label: 'Place',
-                      child: _Tappable(
-                        icon: Icons.place_outlined,
-                        text:
-                            _place?.name ??
-                            (_placeId == null ? 'Add a place' : 'Saved place'),
-                        onTap: () async {
-                          final choice = await showPlaceSearchSheet(
-                            context,
-                            canClear: _placeId != null,
-                          );
-                          if (choice == null || !choice.apply || !mounted) {
-                            return;
-                          }
-                          setState(() {
-                            _place = choice.place;
-                            _placeId = choice.place?.id;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

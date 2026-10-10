@@ -11,9 +11,16 @@ import '../../../../ui/formatters/decimal_text_input_formatter.dart';
 import '../../../../ui/device.dart';
 
 class AmountWidget extends ConsumerStatefulWidget {
-  const AmountWidget(this.amountController, {super.key});
+  const AmountWidget(
+    this.amountController, {
+    this.autofocus = false,
+    super.key,
+  });
 
   final TextEditingController amountController;
+
+  /// Opens the keyboard when the page appears. Used for new transactions.
+  final bool autofocus;
 
   @override
   ConsumerState<AmountWidget> createState() => _AmountWidgetState();
@@ -58,7 +65,9 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
             ),
           ),
         ],
-        autofocus: false,
+        autofocus: widget.autofocus,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
         textAlign: TextAlign.center,
         cursorColor: grey1,
         style: TextStyle(

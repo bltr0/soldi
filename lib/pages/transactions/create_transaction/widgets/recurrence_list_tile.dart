@@ -9,6 +9,7 @@ import '../../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../../ui/widgets/picker_sheet.dart';
 import '../../../../ui/widgets/settings_tiles.dart';
 import 'recurrence_selector.dart';
+import '../../../../ui/widgets/date_picker_sheet.dart';
 
 class RecurrenceListTile extends ConsumerWidget {
   const RecurrenceListTile({
@@ -27,7 +28,8 @@ class RecurrenceListTile extends ConsumerWidget {
     final interval = ref.watch(intervalProvider);
     final endDate = ref.watch(endDateProvider);
     final editable = selectedTransaction == null || recurrencyEditingPermitted;
-    final generated = selectedTransaction != null && !recurrencyEditingPermitted;
+    final generated =
+        selectedTransaction != null && !recurrencyEditingPermitted;
 
     return SettingsTile(
       icon: Icons.autorenew_rounded,
@@ -46,8 +48,9 @@ class RecurrenceListTile extends ConsumerWidget {
         value: isRecurring,
         activeTrackColor: visual.accent,
         onChanged: recurrencyEditingPermitted
-            ? (value) =>
-                  ref.read(selectedRecurringPayProvider.notifier).setValue(value)
+            ? (value) => ref
+                  .read(selectedRecurringPayProvider.notifier)
+                  .setValue(value)
             : null,
       ),
       below: isRecurring
@@ -198,8 +201,8 @@ class EndDateSelector extends ConsumerWidget {
             subtitle: endDate?.formatEDMY(),
             selected: endDate != null,
             onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
+              final picked = await showAppDatePicker(
+                context,
                 initialDate: endDate ?? DateTime.now(),
                 firstDate: DateTime(2015),
                 lastDate: DateTime(2050),

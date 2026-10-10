@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import '../../model/place.dart';
 import 'search_http.dart';
 
-/// Google Places API (New) text search. Only the fields shown are requested,
-/// which keeps each call on the cheapest billing tier.
+/// Google Places API (New) text search. Only the fields shown are requested;
+/// together they are billed as the Text Search Pro SKU.
 Future<List<PlaceHit>> searchGooglePlaces(
   String query, {
   required String apiKey,

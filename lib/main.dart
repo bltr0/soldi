@@ -14,6 +14,7 @@ import 'package:flutter_phoenix/flutter_phoenix.dart';
 
 import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
+import 'routes/focus_reset_observer.dart';
 import 'routes/routes.dart';
 import 'services/backup/drive_backup_service.dart';
 import 'services/database/repositories/recurring_transactions_repository.dart';
@@ -166,6 +167,7 @@ class Launcher extends ConsumerWidget {
           ? ThemeMode.dark
           : ThemeMode.light,
       onGenerateRoute: makeRoute,
+      navigatorObservers: [FocusResetObserver()],
       builder: (context, child) => AppLockGate(child: child!),
       initialRoute: !isOnboardingCompleted ? '/onboarding' : '/',
     );
