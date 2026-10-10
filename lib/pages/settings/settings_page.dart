@@ -55,6 +55,12 @@ List<List<Object?>> get settingsOptions => [
     "/notifications-settings",
   ],
   [
+    Icons.place_outlined,
+    "Place search",
+    "Choose the map service and manage API keys",
+    "/place-search-settings",
+  ],
+  [
     Icons.groups,
     "Credits",
     "The people behind Sossoldi and its MIT license",

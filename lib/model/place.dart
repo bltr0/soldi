@@ -34,7 +34,7 @@ class Place extends BaseEntity {
   final double latitude;
   final double longitude;
 
-  /// Search service that found this place. The beta uses `osm`.
+  /// Search service that found this place, a `PlaceSearchProvider` id.
   final String provider;
   final String providerPlaceId;
 

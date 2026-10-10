@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../model/place.dart';
+import 'place_search_provider.dart';
 
 /// Searches the public Photon service, which reads OpenStreetMap.
 ///
@@ -24,7 +25,7 @@ Future<List<PlaceHit>> searchPhotonPlaces(
       .get(uri, headers: const {'User-Agent': 'Sossoldi place search beta'})
       .timeout(const Duration(seconds: 8));
   if (response.statusCode != 200) {
-    throw PhotonSearchException('Place search returned ${response.statusCode}');
+    throw PlaceSearchException('Place search returned ${response.statusCode}');
   }
 
   final body = jsonDecode(response.body);
@@ -38,14 +39,6 @@ Future<List<PlaceHit>> searchPhotonPlaces(
     if (hit != null) hits.add(hit);
   }
   return hits;
-}
-
-class PhotonSearchException implements Exception {
-  PhotonSearchException(this.message);
-  final String message;
-
-  @override
-  String toString() => message;
 }
 
 PlaceHit? _hitFromFeature(Object? feature) {

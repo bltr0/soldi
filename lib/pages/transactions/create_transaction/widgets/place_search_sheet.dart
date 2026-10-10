@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../model/place.dart';
 import '../../../../providers/places_provider.dart';
 import '../../../../services/database/repositories/place_repository.dart';
-import '../../../../services/places/photon_search.dart';
+import '../../../../services/places/place_search.dart';
+import '../../../../services/places/place_search_provider.dart';
+import '../../../../services/places/place_search_settings_store.dart';
 import '../../../../ui/device.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
 
@@ -104,6 +106,17 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
   bool _loading = false;
   bool _saving = false;
   String? _error;
+  PlaceSearchSettings _searchSettings = const PlaceSearchSettings();
+
+  String get _serviceLabel => _searchSettings.effective.label;
+
+  @override
+  void initState() {
+    super.initState();
+    const PlaceSearchSettingsStore().read().then((settings) {
+      if (mounted) setState(() => _searchSettings = settings);
+    });
+  }
 
   @override
   void dispose() {
@@ -134,17 +147,23 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
     });
     try {
       final language = Localizations.localeOf(context).languageCode;
-      final hits = await searchPhotonPlaces(query, languageCode: language);
+      final hits = await searchPlaces(
+        query,
+        _searchSettings,
+        languageCode: language,
+      );
       if (!mounted || _controller.text.trim() != query) return;
       setState(() {
         _hits = hits;
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Place search is unavailable right now.';
+        _error = error is PlaceSearchException
+            ? '$error'
+            : '$_serviceLabel search is unavailable right now.';
       });
     }
   }
@@ -181,7 +200,7 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
     if (mine.isEmpty && !showMap && !_loading && _error == null) {
       return Center(
         child: Text(
-          'Search OpenStreetMap to save a place, then pick it from this list.',
+          'Search $_serviceLabel to save a place, then pick it from this list.',
           textAlign: TextAlign.center,
           style: TextStyle(color: visual.textSecondary),
         ),
@@ -236,7 +255,7 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
           Padding(
             padding: const EdgeInsets.only(top: Sizes.md, bottom: Sizes.xs),
             child: Text(
-              'OpenStreetMap',
+              _serviceLabel,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: visual.textSecondary,
                 fontWeight: FontWeight.w800,
@@ -318,7 +337,7 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
             style: TextStyle(color: visual.textPrimary),
             decoration: InputDecoration(
               isDense: true,
-              hintText: 'Your places, or a new OpenStreetMap search',
+              hintText: 'Your places, or a new $_serviceLabel search',
               hintStyle: TextStyle(color: visual.textSecondary),
               prefixIcon: Icon(
                 Icons.place_outlined,
@@ -344,7 +363,7 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
           ],
           SizedBox(height: 320, child: _results(visual)),
           Text(
-            'Places from OpenStreetMap',
+            'Places from $_serviceLabel',
             style: Theme.of(
               context,
             ).textTheme.labelSmall?.copyWith(color: visual.textSecondary),
