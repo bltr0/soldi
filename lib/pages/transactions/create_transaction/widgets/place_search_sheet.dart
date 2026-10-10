@@ -10,6 +10,7 @@ import '../../../../services/places/place_search.dart';
 import '../../../../services/places/place_search_provider.dart';
 import '../../../../services/places/place_search_settings_store.dart';
 import '../../../../ui/device.dart';
+import '../../../../ui/widgets/place_provider_badge.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
 
 typedef PlaceSearchChoice = ({bool apply, Place? place});
@@ -108,7 +109,26 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
   String? _error;
   PlaceSearchSettings _searchSettings = const PlaceSearchSettings();
 
-  String get _serviceLabel => _searchSettings.effective.label;
+  /// Service picked in the panel's filter; defaults to the settings choice.
+  PlaceSearchProvider? _filter;
+
+  PlaceSearchProvider get _active => _filter ?? _searchSettings.effective;
+
+  String get _serviceLabel => _active.label;
+
+  List<PlaceSearchProvider> get _available => [
+    for (final provider in PlaceSearchProvider.values)
+      if (_searchSettings.isConfigured(provider)) provider,
+  ];
+
+  void _selectProvider(PlaceSearchProvider provider) {
+    if (provider == _active) return;
+    setState(() {
+      _filter = provider;
+      _hits = const [];
+    });
+    _search(_controller.text);
+  }
 
   @override
   void initState() {
@@ -147,12 +167,15 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
     });
     try {
       final language = Localizations.localeOf(context).languageCode;
+      final provider = _active;
       final hits = await searchPlaces(
         query,
         _searchSettings,
+        provider: provider,
         languageCode: language,
       );
       if (!mounted || _controller.text.trim() != query) return;
+      if (_active != provider) return;
       setState(() {
         _hits = hits;
         _loading = false;
@@ -223,6 +246,9 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
         for (final place in mine)
           ListTile(
             contentPadding: EdgeInsets.zero,
+            leading: PlaceProviderBadge(
+              provider: PlaceSearchProvider.fromId(place.provider),
+            ),
             title: Text(
               place.name,
               maxLines: 1,
@@ -281,6 +307,9 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 enabled: !_saving,
+                leading: PlaceProviderBadge(
+                  provider: PlaceSearchProvider.fromId(hit.provider),
+                ),
                 title: Text(
                   hit.name,
                   maxLines: 1,
@@ -327,6 +356,29 @@ class _PlaceSearchSheetState extends ConsumerState<PlaceSearchSheet> {
               fontWeight: FontWeight.w800,
             ),
           ),
+          if (_available.length > 1) ...[
+            const SizedBox(height: Sizes.sm),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final provider in _available)
+                    Padding(
+                      padding: const EdgeInsets.only(right: Sizes.xs),
+                      child: ChoiceChip(
+                        avatar: PlaceProviderBadge(
+                          provider: provider,
+                          size: 20,
+                        ),
+                        label: Text(provider.label),
+                        selected: provider == _active,
+                        onSelected: (_) => _selectProvider(provider),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: Sizes.sm),
           TextField(
             controller: _controller,
