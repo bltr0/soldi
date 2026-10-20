@@ -63,6 +63,12 @@ class ExchangeRateRepository {
     ];
   }
 
+  /// Drops every fetched rate so the next sync downloads them again.
+  Future<void> clear() async {
+    final db = await _sossoldiDB.database;
+    await db.delete(exchangeRateTable);
+  }
+
   Future<void> upsert(Iterable<StoredRate> rates) async {
     final db = await _sossoldiDB.database;
     final batch = db.batch();

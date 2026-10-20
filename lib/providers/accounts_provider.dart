@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../model/bank_account.dart';
 import '../model/transaction.dart';
+import '../services/app_log.dart';
 import '../services/database/repositories/account_repository.dart';
 import '../services/database/repositories/recurring_transactions_repository.dart';
 import 'dashboard_provider.dart';
@@ -87,6 +88,9 @@ class Accounts extends _$Accounts {
       await ref.read(accountRepositoryProvider).insert(account);
       return _getAccounts();
     });
+    if (state case AsyncError(:final error, :final stackTrace)) {
+      AppLog.error('accounts', 'Adding "$name" failed: $error', stackTrace);
+    }
   }
 
   Future<void> updateAccount({

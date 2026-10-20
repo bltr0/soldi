@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/refresh.dart';
 import '../../providers/currency_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/statistics_provider.dart';
@@ -26,37 +27,43 @@ class _GraphsPageState extends ConsumerState<GraphsPage> {
   @override
   Widget build(BuildContext context) {
     final insets = Sizes.responsiveInsets(context);
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(
-        insets,
-        MediaQuery.paddingOf(context).top + Sizes.lg,
-        insets,
-        MediaQuery.paddingOf(context).bottom + Sizes.xl,
-      ),
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1160),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ref
-                    .watch(statisticsProvider)
-                    .when(
-                      data: (_) => const _NetWorthHero(),
-                      loading: () => const SizedBox(height: 360),
-                      error: (error, stack) => Text('Error: $error'),
-                    ),
-                const SizedBox(height: Sizes.xl),
-                const AccountsCard(),
-                const SizedBox(height: Sizes.xl),
-                const CategoriesCard(),
-              ],
+    return RefreshIndicator(
+      edgeOffset: MediaQuery.paddingOf(context).top,
+      onRefresh: () => refreshAppData(ref),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          insets,
+          MediaQuery.paddingOf(context).top + Sizes.lg,
+          insets,
+          MediaQuery.paddingOf(context).bottom + Sizes.xl,
+        ),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1160),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ref
+                      .watch(statisticsProvider)
+                      .when(
+                        data: (_) => const _NetWorthHero(),
+                        loading: () => const SizedBox(height: 360),
+                        error: (error, stack) => Text('Error: $error'),
+                      ),
+                  const SizedBox(height: Sizes.xl),
+                  const AccountsCard(),
+                  const SizedBox(height: Sizes.xl),
+                  const CategoriesCard(),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

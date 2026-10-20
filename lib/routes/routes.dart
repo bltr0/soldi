@@ -20,6 +20,7 @@ import '../pages/settings/general/general_settings_page.dart';
 import '../pages/settings/infos/collaborators_page.dart';
 import '../ui/widgets/themed_page.dart';
 import '../pages/settings/infos/privacy_policy_page.dart';
+import '../pages/settings/logs/logs_page.dart';
 import '../pages/settings/places/place_search_settings_page.dart';
 import '../pages/settings/notifications/notifications_settings.dart';
 import '../pages/settings/settings_page.dart';
@@ -87,6 +88,8 @@ Route<dynamic> makeRoute(RouteSettings settings) {
       return buildAdaptiveRoute(settings.name, const NotificationsSettings());
     case '/place-search-settings':
       return buildAdaptiveRoute(settings.name, const PlaceSearchSettingsPage());
+    case '/logs':
+      return buildAdaptiveRoute(settings.name, const LogsPage());
     case '/search':
       return buildAdaptiveRoute(settings.name, const SearchPage());
     case '/backup-page':

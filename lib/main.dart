@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/material.dart';
+
+import 'services/app_log.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -63,6 +67,15 @@ Future<void> _authenticateIfRequired(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppLog.init();
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLog.error('flutter', details.exception, details.stack);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AppLog.error('uncaught', error, stack);
+    return true;
+  };
   _initDesktopDatabase();
   NotificationService().initializeNotifications();
   tz.initializeTimeZones();

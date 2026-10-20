@@ -69,6 +69,10 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
   Future<void> _save() async {
     final selectedAccount = ref.read(selectedAccountProvider);
     final currencyState = ref.read(currencyStateProvider);
+    // An empty field used to throw here and the Save button silently did
+    // nothing: no balance typed means zero.
+    final balance =
+        num.tryParse(balanceController.text.trim().replaceAll(',', '.')) ?? 0;
     if (selectedAccount != null) {
       await ref
           .read(accountsProvider.notifier)
@@ -76,7 +80,7 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
             name: nameController.text,
             icon: accountIcon,
             color: accountColor,
-            balance: balanceController.text.toNum(),
+            balance: balance,
             countNetWorth: countNetWorth,
             mainAccount: mainAccount,
             updateCurrency: true,
@@ -92,7 +96,7 @@ class _CreateEditAccountPage extends ConsumerState<CreateEditAccountPage> {
             color: accountColor,
             countNetWorth: countNetWorth,
             mainAccount: mainAccount,
-            startingValue: balanceController.text.toNum(),
+            startingValue: balance,
             currency: accountCurrency,
             alwaysBlurred: alwaysBlurred,
           );

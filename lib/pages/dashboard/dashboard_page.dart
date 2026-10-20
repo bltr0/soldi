@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/refresh.dart';
 import '../../providers/categories_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/transactions_provider.dart';
@@ -29,66 +30,74 @@ class DashboardPage extends ConsumerWidget {
       ),
     );
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            Sizes.responsiveInsets(context),
-            MediaQuery.paddingOf(context).top + Sizes.lg,
-            Sizes.responsiveInsets(context),
-            MediaQuery.paddingOf(context).bottom + Sizes.xl,
-          ),
-          sliver: SliverToBoxAdapter(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1160),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DashboardBalanceHero(snapshot: snapshot),
-                    const SizedBox(height: Sizes.lg),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth >= 900) {
-                          return const Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(flex: 6, child: AccountSection()),
-                              SizedBox(width: Sizes.lg),
-                              Expanded(
-                                flex: 5,
-                                child: Column(
-                                  children: [
-                                    DueSection(
-                                      margin: EdgeInsets.only(bottom: Sizes.lg),
-                                    ),
-                                    OrganizeSection(),
-                                  ],
+    return RefreshIndicator(
+      edgeOffset: MediaQuery.paddingOf(context).top,
+      onRefresh: () => refreshAppData(ref),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              Sizes.responsiveInsets(context),
+              MediaQuery.paddingOf(context).top + Sizes.lg,
+              Sizes.responsiveInsets(context),
+              MediaQuery.paddingOf(context).bottom + Sizes.xl,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1160),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DashboardBalanceHero(snapshot: snapshot),
+                      const SizedBox(height: Sizes.lg),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth >= 900) {
+                            return const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 6, child: AccountSection()),
+                                SizedBox(width: Sizes.lg),
+                                Expanded(
+                                  flex: 5,
+                                  child: Column(
+                                    children: [
+                                      DueSection(
+                                        margin: EdgeInsets.only(
+                                          bottom: Sizes.lg,
+                                        ),
+                                      ),
+                                      OrganizeSection(),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
+                            );
+                          }
+                          return const Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              AccountSection(),
+                              DueSection(),
+                              SizedBox(height: Sizes.lg),
+                              OrganizeSection(),
                             ],
                           );
-                        }
-                        return const Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            AccountSection(),
-                            DueSection(),
-                            SizedBox(height: Sizes.lg),
-                            OrganizeSection(),
-                          ],
-                        );
-                      },
-                    ),
-                    const PlacesSection(),
-                  ],
+                        },
+                      ),
+                      const PlacesSection(),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../services/app_log.dart';
 import '../services/database/repositories/account_repository.dart';
 import '../services/database/repositories/exchange_rate_repository.dart';
 import '../services/fx/frankfurter_client.dart';
@@ -27,6 +28,8 @@ enum FxSource {
 // picked, so everyone is asked once again.
 const _sourceKey = 'fx_source_choice';
 const _lastSyncKey = 'fx_last_sync';
+// Rates stored before 2026-10 were rounded by Frankfurter; refetched once.
+const _preciseRatesKey = 'fx_precise_rates';
 
 @Riverpod(keepAlive: true)
 class FxSourceSetting extends _$FxSourceSetting {
@@ -62,7 +65,11 @@ Future<FxTable> fxTable(Ref ref) async {
   if (source == FxSource.unset) return FxTable(mainCode: main);
   final repository = ref.read(exchangeRateRepositoryProvider);
   if (source == FxSource.frankfurter) {
-    return FxTable(mainCode: main, stored: await repository.all(), strict: true);
+    return FxTable(
+      mainCode: main,
+      stored: await repository.all(),
+      strict: true,
+    );
   }
   return FxTable(mainCode: main, transfers: await repository.transferRates());
 }
@@ -85,13 +92,29 @@ class FxSync extends _$FxSync {
 
   /// Fetches rates now. Without [force], does nothing if it already ran today.
   Future<void> sync({bool force = false}) async {
-    if (_running) return;
-    if (ref.read(fxSourceSettingProvider) != FxSource.frankfurter) return;
+    if (_running) {
+      AppLog.info('fx', 'Sync skipped: already running');
+      return;
+    }
+    final source = ref.read(fxSourceSettingProvider);
+    if (source != FxSource.frankfurter) {
+      AppLog.info('fx', 'Sync skipped: rate source is ${source.name}');
+      return;
+    }
     final prefs = ref.read(sharedPrefProvider);
+    if (prefs.getBool(_preciseRatesKey) != true) {
+      AppLog.info('fx', 'Dropping rounded rates stored by older builds');
+      await ref.read(exchangeRateRepositoryProvider).clear();
+      await prefs.setBool(_preciseRatesKey, true);
+      force = true;
+    }
     final today = _today();
     // Keyed by main currency too: changing it needs rates for new pairs.
     final stamp = '$today:${ref.read(currencyStateProvider).code}';
-    if (!force && prefs.getString(_lastSyncKey) == stamp) return;
+    if (!force && prefs.getString(_lastSyncKey) == stamp) {
+      AppLog.info('fx', 'Sync skipped: already done today ($stamp)');
+      return;
+    }
 
     _running = true;
     try {
@@ -104,6 +127,11 @@ class FxSync extends _$FxSync {
               account.currency != main)
             account.currency!,
       };
+      AppLog.info(
+        'fx',
+        'Sync start (force: $force), main $main, '
+            'currencies: ${codes.isEmpty ? 'none' : codes.join(', ')}',
+      );
       final repository = ref.read(exchangeRateRepositoryProvider);
       final client = FrankfurterClient();
       var complete = true;
@@ -132,6 +160,11 @@ class FxSync extends _$FxSync {
           from: from,
           to: now,
         );
+        AppLog.info(
+          'fx',
+          '$code>$main from ${from.toIso8601String().substring(0, 10)}: '
+              '${rates.length} rates (stored $stored..$latest)',
+        );
         if (rates.isEmpty) {
           complete = false;
           continue;
@@ -141,6 +174,9 @@ class FxSync extends _$FxSync {
       }
       if (complete) await prefs.setString(_lastSyncKey, stamp);
       if (fetchedAny) ref.invalidate(fxTableProvider);
+      AppLog.info('fx', 'Sync done, complete: $complete');
+    } catch (e, stack) {
+      AppLog.error('fx', 'Sync failed: $e', stack);
     } finally {
       _running = false;
     }

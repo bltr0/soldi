@@ -61,6 +61,12 @@ List<List<Object?>> get settingsOptions => [
     "/place-search-settings",
   ],
   [
+    Icons.receipt_long,
+    "Logs",
+    "See what the app did, e.g. why exchange rates failed",
+    "/logs",
+  ],
+  [
     Icons.groups,
     "Credits",
     "The people behind Sossoldi and its MIT license",
