@@ -4,6 +4,7 @@ import '../../../model/bank_account.dart';
 import '../../../model/recurring_transaction.dart';
 import '../../../model/transaction.dart';
 import '../../../model/category_transaction.dart';
+import '../../../model/place.dart';
 import '../sossoldi_database.dart';
 
 part 'transactions_repository.g.dart';
@@ -292,7 +293,8 @@ class TransactionsRepository {
       to.toIso8601String().substring(0, 10),
     ];
 
-    return db.rawQuery('''
+    return db.rawQuery(
+      '''
       SELECT month, currency, SUM(change) as change FROM (
         SELECT $month as month, b1.${BankAccountFields.currency} as currency,
           CASE
@@ -323,7 +325,9 @@ class TransactionsRepository {
           AND ${counted('b2')} AND $inRange
       )
       GROUP BY month, currency
-    ''', [...range, ...range, ...range]);
+    ''',
+      [...range, ...range, ...range],
+    );
   }
 
   Future<List> _transactionByFrequencyAndPeriod({
@@ -443,5 +447,124 @@ class TransactionsRepository {
       where: '${TransactionFields.id} = ?',
       whereArgs: [id],
     );
+  }
+
+  /// Transactions matching every word of [text] (in the note, category,
+  /// parent category, accounts or place, or the amount when the word is a
+  /// number) and every filter given. Empty sets mean no filter on that field;
+  /// [categoryIds] also matches their subcategories. Newest first.
+  Future<List<Transaction>> search({
+    String text = '',
+    Set<TransactionType> types = const {},
+    Set<int> accountIds = const {},
+    Set<int> categoryIds = const {},
+    DateTime? from,
+    DateTime? to,
+    num? minAmount,
+    num? maxAmount,
+    int limit = 500,
+  }) async {
+    final db = await _sossoldiDB.database;
+    final where = <String>[];
+    final args = <Object?>[];
+
+    for (final word in text.trim().toLowerCase().split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final escaped = word
+          .replaceAll(r'\', r'\\')
+          .replaceAll('%', r'\%')
+          .replaceAll('_', r'\_');
+      final fields = [
+        't.${TransactionFields.note}',
+        'c.${CategoryTransactionFields.name}',
+        'cp.${CategoryTransactionFields.name}',
+        'b1.${BankAccountFields.name}',
+        'b2.${BankAccountFields.name}',
+        'p.${PlaceFields.name}',
+        'p.${PlaceFields.address}',
+      ];
+      final clauses = [
+        for (final f in fields) "LOWER(IFNULL($f, '')) LIKE ? ESCAPE '\\'",
+      ];
+      args.addAll(List.filled(fields.length, '%$escaped%'));
+      final number = num.tryParse(word.replaceAll(',', '.'));
+      if (number != null) {
+        // "12" finds 12.00 to 12.99, "12.5" finds 12.50 to 12.59.
+        final parts = word.split(RegExp('[.,]'));
+        final decimals = parts.length > 1 ? parts.last.length : 0;
+        var step = 1.0;
+        for (var i = 0; i < decimals; i++) {
+          step /= 10;
+        }
+        clauses.add(
+          '(ABS(t.${TransactionFields.amount}) >= ? '
+          'AND ABS(t.${TransactionFields.amount}) < ?)',
+        );
+        args.addAll([number.abs(), number.abs() + step]);
+      }
+      where.add('(${clauses.join(' OR ')})');
+    }
+
+    if (types.isNotEmpty) {
+      final marks = List.filled(types.length, '?').join(',');
+      where.add('t.${TransactionFields.type} IN ($marks)');
+      args.addAll(types.map((t) => t.code));
+    }
+    if (accountIds.isNotEmpty) {
+      final marks = List.filled(accountIds.length, '?').join(',');
+      where.add(
+        '(t.${TransactionFields.idBankAccount} IN ($marks) '
+        'OR t.${TransactionFields.idBankAccountTransfer} IN ($marks))',
+      );
+      args
+        ..addAll(accountIds)
+        ..addAll(accountIds);
+    }
+    if (categoryIds.isNotEmpty) {
+      final marks = List.filled(categoryIds.length, '?').join(',');
+      where.add(
+        '(t.${TransactionFields.idCategory} IN ($marks) '
+        'OR c.${CategoryTransactionFields.parent} IN ($marks))',
+      );
+      args
+        ..addAll(categoryIds)
+        ..addAll(categoryIds);
+    }
+    if (from != null) {
+      where.add("strftime('%Y-%m-%d', t.${TransactionFields.date}) >= ?");
+      args.add(from.toIso8601String().substring(0, 10));
+    }
+    if (to != null) {
+      where.add("strftime('%Y-%m-%d', t.${TransactionFields.date}) <= ?");
+      args.add(to.toIso8601String().substring(0, 10));
+    }
+    if (minAmount != null) {
+      where.add('ABS(t.${TransactionFields.amount}) >= ?');
+      args.add(minAmount);
+    }
+    if (maxAmount != null) {
+      where.add('ABS(t.${TransactionFields.amount}) <= ?');
+      args.add(maxAmount);
+    }
+
+    final result = await db.rawQuery('''
+      SELECT t.*,
+        c.${CategoryTransactionFields.name} as ${TransactionFields.categoryName},
+        c.${CategoryTransactionFields.color} as ${TransactionFields.categoryColor},
+        c.${CategoryTransactionFields.symbol} as ${TransactionFields.categorySymbol},
+        c.${CategoryTransactionFields.parent} as ${TransactionFields.categoryParent},
+        b1.${BankAccountFields.name} as ${TransactionFields.bankAccountName},
+        b2.${BankAccountFields.name} as ${TransactionFields.bankAccountTransferName}
+      FROM "$transactionTable" as t
+      LEFT JOIN $categoryTransactionTable as c ON t.${TransactionFields.idCategory} = c.${CategoryTransactionFields.id}
+      LEFT JOIN $categoryTransactionTable as cp ON c.${CategoryTransactionFields.parent} = cp.${CategoryTransactionFields.id}
+      LEFT JOIN $bankAccountTable as b1 ON t.${TransactionFields.idBankAccount} = b1.${BankAccountFields.id}
+      LEFT JOIN $bankAccountTable as b2 ON t.${TransactionFields.idBankAccountTransfer} = b2.${BankAccountFields.id}
+      LEFT JOIN $placeTable as p ON t.${TransactionFields.idPlace} = p.${PlaceFields.id}
+      ${where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}'}
+      ORDER BY t.${TransactionFields.date} DESC
+      LIMIT $limit
+    ''', args);
+    return result.map(Transaction.fromJson).toList();
   }
 }

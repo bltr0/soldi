@@ -9,6 +9,7 @@ import '../../../providers/theme_provider.dart';
 import '../../../services/database/repositories/currency_repository.dart';
 import '../../../services/security/app_lock.dart';
 import '../../../ui/device.dart';
+import '../../../ui/widgets/lock_prompt.dart';
 import '../../../ui/widgets/pin_pad.dart';
 import '../../../ui/widgets/segmented_pill.dart';
 import '../../../ui/widgets/settings_tiles.dart';
@@ -117,12 +118,14 @@ class GeneralSettingsPage extends ConsumerWidget {
                   AppLockMode.device =>
                     'Fingerprint, face or your phone\'s screen lock',
                   AppLockMode.pin => 'A PIN only used by Sossoldi',
+                  AppLockMode.pattern => 'A pattern only used by Sossoldi',
                 },
                 below: SegmentedPill<AppLockMode>(
                   options: const {
                     AppLockMode.none: 'Off',
                     AppLockMode.device: 'Device',
                     AppLockMode.pin: 'PIN',
+                    AppLockMode.pattern: 'Pattern',
                   },
                   selected: lockMode,
                   onChanged: (mode) => _changeLock(context, ref, mode),
@@ -133,6 +136,12 @@ class GeneralSettingsPage extends ConsumerWidget {
                   icon: Icons.pin_rounded,
                   title: 'Change PIN',
                   onTap: () => _changeLock(context, ref, AppLockMode.pin),
+                ),
+              if (lockMode == AppLockMode.pattern)
+                SettingsTile(
+                  icon: Icons.pattern_rounded,
+                  title: 'Change pattern',
+                  onTap: () => _changeLock(context, ref, AppLockMode.pattern),
                 ),
             ],
           ),
@@ -147,12 +156,22 @@ class GeneralSettingsPage extends ConsumerWidget {
     AppLockMode mode,
   ) async {
     final notifier = ref.read(appLockModeProvider.notifier);
+    // Otherwise anyone holding the unlocked app could swap the code and then
+    // open the card vault with it.
+    if (ref.read(appLockModeProvider) != AppLockMode.none &&
+        !await confirmIdentity(context, ref, reason: 'Change the app lock')) {
+      return;
+    }
+    if (!context.mounted) return;
     switch (mode) {
       case AppLockMode.none:
         await notifier.set(mode);
       case AppLockMode.pin:
         final pin = await showPinSetup(context);
         if (pin != null) await notifier.setPin(pin);
+      case AppLockMode.pattern:
+        final dots = await showPatternSetup(context);
+        if (dots != null) await notifier.setPattern(dots);
       case AppLockMode.device:
         final auth = LocalAuthentication();
         var ok = false;

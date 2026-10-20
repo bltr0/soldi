@@ -36,6 +36,12 @@ List<List<Object?>> get settingsOptions => [
     "/account-list",
   ],
   [
+    Icons.credit_card_rounded,
+    "Cards",
+    "Card numbers, expiry and PIN codes, behind an extra unlock",
+    "/cards",
+  ],
+  [
     Icons.list_alt,
     "Categories",
     "Add/edit categories and subcategories",

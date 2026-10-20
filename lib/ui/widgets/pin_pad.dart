@@ -7,6 +7,7 @@ import '../../services/security/app_lock.dart';
 import '../device.dart';
 import '../theme/dashboard_visual_theme.dart';
 import 'atmospheric_background.dart';
+import 'lock_prompt.dart';
 
 /// Dots and a digit keypad. With [length] the code is submitted as soon as
 /// that many digits are typed; otherwise a confirm key appears once the
@@ -216,7 +217,7 @@ extension on Widget {
   );
 }
 
-/// Shows [child] once the PIN is entered, when the app is locked by PIN.
+/// Shows [child] once the PIN or pattern is entered, when the app uses one.
 class AppLockGate extends ConsumerStatefulWidget {
   const AppLockGate({required this.child, super.key});
 
@@ -227,28 +228,24 @@ class AppLockGate extends ConsumerStatefulWidget {
 }
 
 class _AppLockGateState extends ConsumerState<AppLockGate> {
-  late bool _unlocked = ref.read(appLockModeProvider) != AppLockMode.pin;
+  late bool _unlocked = switch (ref.read(appLockModeProvider)) {
+    AppLockMode.pin || AppLockMode.pattern => false,
+    AppLockMode.none || AppLockMode.device => true,
+  };
 
   @override
   Widget build(BuildContext context) {
     if (_unlocked) return widget.child;
-    final lock = ref.read(appLockProvider);
+    final pattern = ref.read(appLockModeProvider) == AppLockMode.pattern;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AtmosphericBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              child: PinPad(
-                title: 'Enter your PIN',
-                length: lock.pinLength,
-                onSubmit: (pin) async {
-                  if (await lock.verifyPin(pin)) {
-                    setState(() => _unlocked = true);
-                    return null;
-                  }
-                  return 'Wrong PIN';
-                },
+              child: LockPrompt(
+                title: pattern ? 'Draw your pattern' : 'Enter your PIN',
+                onUnlocked: () => setState(() => _unlocked = true),
               ),
             ),
           ),

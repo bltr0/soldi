@@ -30,20 +30,6 @@ class SelectedAccount extends _$SelectedAccount {
 }
 
 @Riverpod(keepAlive: true)
-class FilterAccount extends _$FilterAccount {
-  @override
-  Map<int, bool> build() {
-    final accounts = ref.watch(accountsProvider).value;
-    if (accounts != null) {
-      return {for (var account in accounts) account.id!: false};
-    }
-    return {};
-  }
-
-  void setAccounts(Map<int, bool> accountsFilter) => state = accountsFilter;
-}
-
-@Riverpod(keepAlive: true)
 class Accounts extends _$Accounts {
   @override
   Future<List<BankAccount>> build() async {

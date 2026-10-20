@@ -20,6 +20,11 @@ class AppLockModeNotifier extends Notifier<AppLockMode> {
     await ref.read(appLockProvider).savePin(pin);
     state = AppLockMode.pin;
   }
+
+  Future<void> setPattern(List<int> dots) async {
+    await ref.read(appLockProvider).savePattern(dots);
+    state = AppLockMode.pattern;
+  }
 }
 
 final appLockModeProvider = NotifierProvider<AppLockModeNotifier, AppLockMode>(

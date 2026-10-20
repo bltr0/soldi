@@ -76,6 +76,9 @@ extension DateTimeExtension on DateTime {
 
   String formatYMD() => DateFormat('yyyyMMdd').format(this);
 
+  /// Short day for compact labels: '11 Sep 2001'.
+  String formatDMY() => DateFormat('d MMM y').format(this);
+
   bool isSameDay(DateTime other) {
     return year == other.year && month == other.month && day == other.day;
   }
