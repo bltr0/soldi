@@ -142,7 +142,7 @@ void main() async {
     ),
   );
 
-  unawaited(initBackgroundBackup(sharedPreferences));
+  unawaited(initAutoBackup(sharedPreferences));
   unawaited(runAutoBackup(sharedPreferences, trigger: 'launch'));
 }
 

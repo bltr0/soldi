@@ -12,6 +12,10 @@ import 'drive_oauth_config.dart';
 const driveBackupOnOpenPref = 'drive_backup_on_open';
 const driveLastBackupMsPref = 'drive_last_backup_ms';
 
+/// Email of the account that granted Drive access, shown without asking
+/// Google again each time the backup page opens.
+const driveAccountEmailPref = 'drive_account_email';
+
 class DriveBackupException implements Exception {
   DriveBackupException(this.message);
   final String message;
@@ -140,6 +144,9 @@ class DriveBackupService {
   Future<void> signOut() async {
     await ensureInitialized();
     await GoogleSignIn.instance.signOut();
+    try {
+      await GoogleSignIn.instance.disconnect();
+    } catch (_) {}
     _user = null;
   }
 
@@ -201,18 +208,35 @@ class DriveBackupService {
     });
   }
 
-  Future<T> _withDrive<T>(Future<T> Function(drive.DriveApi api) action) async {
-    final user = _user ?? await restoreSession();
-    if (user == null) {
-      throw DriveBackupException('Sign in with Google first.');
-    }
-    GoogleSignInClientAuthorization authz;
+  /// A Drive token without any UI, from the access granted at sign-in.
+  /// Works in the background (no account picker or sign-in sheet), so the
+  /// midnight backup and the backup page never re-run the sign-in.
+  Future<GoogleSignInClientAuthorization?> silentAuthorization() async {
+    await ensureInitialized();
     try {
-      authz =
-          await user.authorizationClient.authorizationForScopes(_scopes) ??
-          await user.authorizationClient.authorizeScopes(_scopes);
+      return await GoogleSignIn.instance.authorizationClient
+          .authorizationForScopes(_scopes);
     } on GoogleSignInException catch (error) {
       throw DriveBackupException(describeDriveAuthError(error));
+    }
+  }
+
+  Future<T> _withDrive<T>(Future<T> Function(drive.DriveApi api) action) async {
+    GoogleSignInClientAuthorization? authz = await silentAuthorization();
+    if (authz == null) {
+      // Access was revoked or never granted: only the signed-in user, in
+      // the foreground, can grant it again.
+      final user = _user;
+      if (user == null) {
+        throw DriveBackupException(
+          'Drive access expired, open Backup and sign in again.',
+        );
+      }
+      try {
+        authz = await user.authorizationClient.authorizeScopes(_scopes);
+      } on GoogleSignInException catch (error) {
+        throw DriveBackupException(describeDriveAuthError(error));
+      }
     }
     final client = _GoogleAuthClient({
       'Authorization': 'Bearer ${authz.accessToken}',

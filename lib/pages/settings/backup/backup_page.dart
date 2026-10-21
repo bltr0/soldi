@@ -31,7 +31,7 @@ class BackupPage extends ConsumerStatefulWidget {
 
 class _BackupPageState extends ConsumerState<BackupPage> {
   final _drive = DriveBackupService.instance;
-  GoogleSignInAccount? _driveUser;
+  String? _driveEmail;
   bool _driveReady = false;
 
   @override
@@ -40,22 +40,20 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     _restoreDriveSession();
   }
 
-  Future<void> _restoreDriveSession() async {
-    if (!_drive.isSupported || !_drive.isConfigured) {
-      if (mounted) setState(() => _driveReady = true);
-      return;
-    }
-    try {
-      final user = await _drive.restoreSession();
-      if (mounted) {
-        setState(() {
-          _driveUser = user;
-          _driveReady = true;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _driveReady = true);
-    }
+  /// Shows the account remembered at sign-in. Asking Google here would
+  /// pop its sign-in sheet on every visit; Drive calls get their token
+  /// silently instead (see [DriveBackupService.silentAuthorization]).
+  BackupPermissions? _permissions;
+
+  Future<void> _checkPermissions() async {
+    final status = await backupPermissions();
+    if (mounted) setState(() => _permissions = status);
+  }
+
+  void _restoreDriveSession() {
+    _driveEmail = ref.read(sharedPrefProvider).getString(driveAccountEmailPref);
+    _driveReady = true;
+    _checkPermissions();
   }
 
   Future<EncodedBackup> _encode() async {
@@ -209,7 +207,10 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   Future<void> _handleDriveSignIn() async {
     try {
       final user = await _drive.signIn();
-      if (mounted) setState(() => _driveUser = user);
+      await ref
+          .read(sharedPrefProvider)
+          .setString(driveAccountEmailPref, user.email);
+      if (mounted) setState(() => _driveEmail = user.email);
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) return;
       if (mounted) {
@@ -241,7 +242,9 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   Future<void> _handleDriveSignOut() async {
     try {
       await _drive.signOut();
-      if (mounted) setState(() => _driveUser = null);
+      await ref.read(sharedPrefProvider).remove(driveAccountEmailPref);
+      await _setAutoBackup(false);
+      if (mounted) setState(() => _driveEmail = null);
     } catch (e) {
       if (mounted) showSnackBar(context, message: e.toString());
     }
@@ -341,9 +344,13 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
   Future<void> _setAutoBackup(bool enabled) async {
     final prefs = ref.read(sharedPrefProvider);
+    if (enabled) {
+      final granted = await requestBackupPermissions();
+      if (mounted) setState(() => _permissions = granted);
+    }
     await prefs.setBool(driveBackupOnOpenPref, enabled);
-    await scheduleBackgroundBackup(enabled);
-    setState(() {});
+    await scheduleMidnightBackup(enabled);
+    if (mounted) setState(() {});
     if (enabled) {
       await runAutoBackup(prefs, trigger: 'enabled', force: true);
       if (mounted) setState(() {});
@@ -352,14 +359,24 @@ class _BackupPageState extends ConsumerState<BackupPage> {
 
   String _autoBackupStatus(SharedPreferences prefs, bool enabled) {
     if (!enabled) {
-      return 'Once a day in the background, and when the app opens';
+      return 'Every night at midnight, shown as a notification';
     }
+    final missing = [
+      if (_permissions?.exactAlarms == false) 'alarms (may run late)',
+      if (_permissions?.battery == false)
+        'unrestricted battery (may fail while the phone sleeps)',
+      if (_permissions?.notifications == false) 'notifications',
+    ];
     final last = prefs.getInt(driveLastBackupMsPref);
     final error = prefs.getString(driveLastBackupErrorPref);
     final when = last == null
         ? 'No backup yet'
         : 'Last backup ${DateFormat('d MMM, HH:mm').format(DateTime.fromMillisecondsSinceEpoch(last))}';
-    return error == null ? when : '$when. Last try failed: $error';
+    final status = error == null ? when : '$when. Last try failed: $error';
+    return missing.isEmpty
+        ? status
+        : '$status\nNot allowed: ${missing.join(', ')}. Tap the switch off '
+              'and on to ask again.';
   }
 
   @override
@@ -471,14 +488,12 @@ class _BackupPageState extends ConsumerState<BackupPage> {
           else ...[
             _BackupCard(
               icon: Icons.account_circle,
-              title: _driveUser == null
-                  ? 'Sign in with Google'
-                  : (_driveUser!.displayName ?? _driveUser!.email),
-              description: _driveUser == null
+              title: _driveEmail ?? 'Sign in with Google',
+              description: _driveEmail == null
                   ? 'Connect your Google account to back up to Drive'
                   : 'Tap to sign out',
               onTap: _driveReady
-                  ? (_driveUser == null
+                  ? (_driveEmail == null
                         ? _handleDriveSignIn
                         : _handleDriveSignOut)
                   : () {},
@@ -488,7 +503,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
               icon: Icons.cloud_upload,
               title: 'Backup to Drive',
               description: 'Upload a CSV into the Sossoldi folder in Drive',
-              onTap: _driveUser == null
+              onTap: _driveEmail == null
                   ? () => showSnackBar(
                       context,
                       message: 'Sign in with Google first',
@@ -500,7 +515,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
               icon: Icons.cloud_download,
               title: 'Restore from Drive',
               description: 'Replace local data with a Drive backup',
-              onTap: _driveUser == null
+              onTap: _driveEmail == null
                   ? () => showSnackBar(
                       context,
                       message: 'Sign in with Google first',
@@ -509,7 +524,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
             ),
             const SizedBox(height: Sizes.lg),
             DefaultCard(
-              onTap: _driveUser == null
+              onTap: _driveEmail == null
                   ? () {}
                   : () async {
                       await _setAutoBackup(!backupOnOpen);
@@ -540,7 +555,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                   ),
                   Switch.adaptive(
                     value: backupOnOpen,
-                    onChanged: _driveUser == null ? null : _setAutoBackup,
+                    onChanged: _driveEmail == null ? null : _setAutoBackup,
                   ),
                 ],
               ),

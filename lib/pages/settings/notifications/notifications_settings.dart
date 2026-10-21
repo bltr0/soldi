@@ -45,7 +45,11 @@ class NotificationsSettings extends ConsumerWidget {
                 subtitle: 'A nudge to log what you spent',
                 value: isTrscReminderEnabled,
                 onChanged: (value) async {
-                  await NotificationService().requestNotificationPermissions();
+                  // Asked only when turning the reminder on.
+                  if (value) {
+                    await NotificationService()
+                        .requestNotificationPermissions();
+                  }
                   ref
                       .read(notificationsProvider.notifier)
                       .updateNotificationReminder(active: value);

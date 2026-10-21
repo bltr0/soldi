@@ -44,8 +44,7 @@ dependencies:
   crypto: ^3.0.7
   calendar_date_picker2: ^3.0.0
   cryptography: ^2.9.0
-  workmanager: ^0.10.10
-
+  android_alarm_manager_plus: ^5.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
