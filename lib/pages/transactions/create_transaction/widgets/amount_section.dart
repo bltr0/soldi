@@ -16,11 +16,13 @@ class AmountSection extends ConsumerWidget {
   const AmountSection(
     this.amountController, {
     this.autofocus = false,
+    this.onSubmitted,
     super.key,
   });
 
   final TextEditingController amountController;
   final bool autofocus;
+  final VoidCallback? onSubmitted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,7 +65,11 @@ class AmountSection extends ConsumerWidget {
                 ref.invalidate(bankAccountTransferProvider);
               },
             ),
-          AmountWidget(amountController, autofocus: autofocus),
+          AmountWidget(
+            amountController,
+            autofocus: autofocus,
+            onSubmitted: onSubmitted,
+          ),
           AnimatedSize(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,

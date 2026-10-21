@@ -36,6 +36,12 @@ List<List<Object?>> get settingsOptions => [
     "/account-list",
   ],
   [
+    Icons.edit_note_rounded,
+    "Transaction entry",
+    "Keyboard sequence, details order, calendar start day",
+    "/entry-settings",
+  ],
+  [
     Icons.credit_card_rounded,
     "Cards",
     "Card numbers, expiry and PIN codes, behind an extra unlock",

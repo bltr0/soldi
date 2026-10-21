@@ -14,10 +14,14 @@ class AmountWidget extends ConsumerStatefulWidget {
   const AmountWidget(
     this.amountController, {
     this.autofocus = false,
+    this.onSubmitted,
     super.key,
   });
 
   final TextEditingController amountController;
+
+  /// After the keyboard's done key; the keyboard is already closed.
+  final VoidCallback? onSubmitted;
 
   /// Opens the keyboard when the page appears. Used for new transactions.
   final bool autofocus;
@@ -67,7 +71,10 @@ class _AmountWidgetState extends ConsumerState<AmountWidget> {
         ],
         autofocus: widget.autofocus,
         textInputAction: TextInputAction.done,
-        onSubmitted: (_) => FocusScope.of(context).unfocus(),
+        onSubmitted: (_) {
+          FocusScope.of(context).unfocus();
+          widget.onSubmitted?.call();
+        },
         textAlign: TextAlign.center,
         cursorColor: grey1,
         style: TextStyle(

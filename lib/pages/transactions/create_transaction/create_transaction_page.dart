@@ -7,9 +7,11 @@ import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/currency_provider.dart';
+import '../../../providers/entry_settings_provider.dart';
 import '../../../providers/places_provider.dart';
 import '../../../providers/recurring_transactions_provider.dart';
 import '../../../providers/transactions_provider.dart';
+import '../../../routes/focus_reset_observer.dart';
 import '../../../ui/device.dart';
 import '../../../ui/extensions.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
@@ -41,6 +43,7 @@ class CreateTransactionPage extends ConsumerStatefulWidget {
 class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   final TextEditingController amountController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
+  final FocusNode _noteFocus = FocusNode();
   late final TransferDetailsController _transfer;
   bool recurrencyEditingPermitted = true;
   late final String _originalAmount;
@@ -96,6 +99,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
   void dispose() {
     amountController.dispose();
     noteController.dispose();
+    _noteFocus.dispose();
     _transfer.dispose();
     super.dispose();
   }
@@ -434,6 +438,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
               child: AmountSection(
                 amountController,
                 autofocus: widget.transaction == null,
+                onSubmitted: _afterAmount,
               ),
             ),
             if (selectedType == TransactionType.transfer) ...[
@@ -462,32 +467,41 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
             const SizedBox(height: Sizes.lg),
             SettingsGroup(
               children: [
-                LabelListTile(noteController),
-                if (selectedType != TransactionType.transfer)
-                  DetailsListTile(
-                    title: "Account",
-                    icon: Icons.account_balance_wallet_rounded,
-                    value: fromAccount?.name ?? 'Choose',
-                    callback: () => showAccountSelector(context),
-                  ),
-                if (selectedType == TransactionType.income ||
-                    selectedType == TransactionType.expense)
-                  DetailsListTile(
-                    title: "Category",
-                    icon: Icons.category_rounded,
-                    value:
-                        ref.watch(selectedCategoryProvider)?.name ??
-                        "Uncategorized",
-                    callback: () => showCategorySelector(context),
-                  ),
-                DetailsListTile(
-                  title: "Date",
-                  icon: Icons.calendar_month_rounded,
-                  value: date.isSameDay(DateTime.now())
-                      ? 'Today'
-                      : date.formatEDMY(),
-                  callback: _pickDate,
-                ),
+                for (final field in ref.watch(entrySettingsProvider).order)
+                  ?switch (field) {
+                    EntryField.description => LabelListTile(
+                      noteController,
+                      focusNode: _noteFocus,
+                    ),
+                    EntryField.account
+                        when selectedType != TransactionType.transfer =>
+                      DetailsListTile(
+                        title: "Account",
+                        icon: Icons.account_balance_wallet_rounded,
+                        value: fromAccount?.name ?? 'Choose',
+                        callback: () => showAccountSelector(context),
+                      ),
+                    EntryField.category
+                        when selectedType == TransactionType.income ||
+                            selectedType == TransactionType.expense =>
+                      DetailsListTile(
+                        title: "Category",
+                        icon: Icons.category_rounded,
+                        value:
+                            ref.watch(selectedCategoryProvider)?.name ??
+                            "Uncategorized",
+                        callback: () => showCategorySelector(context),
+                      ),
+                    EntryField.date => DetailsListTile(
+                      title: "Date",
+                      icon: Icons.calendar_month_rounded,
+                      value: date.isSameDay(DateTime.now())
+                          ? 'Today'
+                          : date.formatEDMY(),
+                      callback: _pickDate,
+                    ),
+                    _ => null,
+                  },
               ],
             ),
             if (selectedType == TransactionType.expense) ...[
@@ -548,7 +562,24 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
     );
   }
 
-  Future<void> _pickDate() async {
+  /// The amount's done key on a new transaction: the calendar, then the
+  /// description keyboard, as set in Settings > Transaction entry. Nothing
+  /// opens by itself after that.
+  Future<void> _afterAmount() async {
+    if (widget.transaction != null) return;
+    final settings = ref.read(entrySettingsProvider);
+    if (settings.calendarAfterAmount) {
+      final picked = await _pickDate();
+      // Dismissing the calendar ends the sequence.
+      if (!picked) return;
+    }
+    if (!settings.descriptionAfterAmount || !mounted) return;
+    await FocusResetObserver.settled;
+    if (mounted) _noteFocus.requestFocus();
+  }
+
+  /// True when a day was confirmed.
+  Future<bool> _pickDate() async {
     FocusManager.instance.primaryFocus?.unfocus();
     final picked = await showAppDatePicker(
       context,
@@ -556,7 +587,7 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
       firstDate: DateTime(2015),
       lastDate: DateTime(2050),
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return false;
     final current = ref.read(selectedDateProvider);
     ref
         .read(selectedDateProvider.notifier)
@@ -570,5 +601,6 @@ class _CreateTransactionPage extends ConsumerState<CreateTransactionPage> {
             current.second,
           ),
         );
+    return true;
   }
 }

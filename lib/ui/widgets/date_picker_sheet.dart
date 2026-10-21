@@ -1,5 +1,8 @@
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../providers/entry_settings_provider.dart';
 
 import '../device.dart';
 import '../theme/dashboard_visual_theme.dart';
@@ -29,7 +32,7 @@ Future<DateTime?> showAppDatePicker(
   );
 }
 
-class _DatePickerSheet extends StatefulWidget {
+class _DatePickerSheet extends ConsumerStatefulWidget {
   const _DatePickerSheet({
     required this.title,
     required this.initialDate,
@@ -43,10 +46,10 @@ class _DatePickerSheet extends StatefulWidget {
   final DateTime lastDate;
 
   @override
-  State<_DatePickerSheet> createState() => _DatePickerSheetState();
+  ConsumerState<_DatePickerSheet> createState() => _DatePickerSheetState();
 }
 
-class _DatePickerSheetState extends State<_DatePickerSheet> {
+class _DatePickerSheetState extends ConsumerState<_DatePickerSheet> {
   late DateTime _value = DateUtils.dateOnly(widget.initialDate);
   late DateTime _month = _value;
 
@@ -119,9 +122,9 @@ class _DatePickerSheetState extends State<_DatePickerSheet> {
                 firstDate: widget.firstDate,
                 lastDate: widget.lastDate,
                 currentDate: today,
-                firstDayOfWeek: MaterialLocalizations.of(
-                  context,
-                ).firstDayOfWeekIndex,
+                firstDayOfWeek:
+                    ref.watch(entrySettingsProvider).weekStart.dayIndex ??
+                    MaterialLocalizations.of(context).firstDayOfWeekIndex,
                 centerAlignModePicker: true,
                 dynamicCalendarRows: true,
                 controlsTextStyle: textTheme.titleMedium?.copyWith(

@@ -4,9 +4,10 @@ import '../../../../ui/device.dart';
 import '../../../../ui/theme/dashboard_visual_theme.dart';
 
 class LabelListTile extends StatelessWidget {
-  const LabelListTile(this.labelController, {super.key});
+  const LabelListTile(this.labelController, {this.focusNode, super.key});
 
   final TextEditingController labelController;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,7 @@ class LabelListTile extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: labelController,
+              focusNode: focusNode,
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               onTapOutside: (_) => FocusScope.of(context).unfocus(),

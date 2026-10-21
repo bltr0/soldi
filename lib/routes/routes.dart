@@ -17,6 +17,7 @@ import '../pages/planning/widget/edit_recurring_transaction.dart';
 import '../pages/search/search_page.dart';
 import '../pages/settings/backup/backup_page.dart';
 import '../pages/settings/cards/cards_page.dart';
+import '../pages/settings/entry/entry_settings_page.dart';
 import '../pages/settings/general/general_settings_page.dart';
 import '../pages/settings/infos/collaborators_page.dart';
 import '../ui/widgets/themed_page.dart';
@@ -91,6 +92,8 @@ Route<dynamic> makeRoute(RouteSettings settings) {
       return buildAdaptiveRoute(settings.name, const PlaceSearchSettingsPage());
     case '/logs':
       return buildAdaptiveRoute(settings.name, const LogsPage());
+    case '/entry-settings':
+      return buildAdaptiveRoute(settings.name, const EntrySettingsPage());
     case '/cards':
       return buildAdaptiveRoute(settings.name, const CardsPage());
     case '/search':
