@@ -35,6 +35,8 @@ class EntrySettings {
     this.descriptionAfterAmount = true,
     this.order = defaultOrder,
     this.weekStart = WeekStart.monday,
+    this.centeredTransfers = true,
+    this.mirroredInflows = true,
   });
 
   static const defaultOrder = [
@@ -53,17 +55,28 @@ class EntrySettings {
   final List<EntryField> order;
   final WeekStart weekStart;
 
+  /// Account ledgers draw transfers centered, apart from income and expenses.
+  final bool centeredTransfers;
+
+  /// Account ledgers mirror money coming in (amount left, icon right), so it
+  /// reads opposite to expenses.
+  final bool mirroredInflows;
+
   EntrySettings copyWith({
     bool? calendarAfterAmount,
     bool? descriptionAfterAmount,
     List<EntryField>? order,
     WeekStart? weekStart,
+    bool? centeredTransfers,
+    bool? mirroredInflows,
   }) => EntrySettings(
     calendarAfterAmount: calendarAfterAmount ?? this.calendarAfterAmount,
     descriptionAfterAmount:
         descriptionAfterAmount ?? this.descriptionAfterAmount,
     order: order ?? this.order,
     weekStart: weekStart ?? this.weekStart,
+    centeredTransfers: centeredTransfers ?? this.centeredTransfers,
+    mirroredInflows: mirroredInflows ?? this.mirroredInflows,
   );
 }
 
@@ -72,6 +85,8 @@ class EntrySettingsNotifier extends Notifier<EntrySettings> {
   static const _descriptionKey = 'entry_description_after_amount';
   static const _orderKey = 'entry_field_order';
   static const _weekStartKey = 'calendar_week_start';
+  static const _centeredTransfersKey = 'ledger_centered_transfers';
+  static const _mirroredInflowsKey = 'ledger_mirrored_inflows';
 
   @override
   EntrySettings build() {
@@ -92,6 +107,8 @@ class EntrySettingsNotifier extends Notifier<EntrySettings> {
       weekStart:
           WeekStart.values.asNameMap()[prefs.getString(_weekStartKey)] ??
           WeekStart.monday,
+      centeredTransfers: prefs.getBool(_centeredTransfersKey) ?? true,
+      mirroredInflows: prefs.getBool(_mirroredInflowsKey) ?? true,
     );
   }
 
@@ -101,6 +118,8 @@ class EntrySettingsNotifier extends Notifier<EntrySettings> {
     await prefs.setBool(_descriptionKey, next.descriptionAfterAmount);
     await prefs.setStringList(_orderKey, [for (final f in next.order) f.name]);
     await prefs.setString(_weekStartKey, next.weekStart.name);
+    await prefs.setBool(_centeredTransfersKey, next.centeredTransfers);
+    await prefs.setBool(_mirroredInflowsKey, next.mirroredInflows);
     state = next;
   }
 }

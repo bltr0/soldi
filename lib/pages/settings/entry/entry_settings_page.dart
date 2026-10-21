@@ -6,8 +6,8 @@ import '../../../ui/device.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/settings_tiles.dart';
 
-/// How adding a transaction flows: what opens after the amount, the order
-/// of the details, and the calendar's first weekday.
+/// How adding a transaction flows (what opens after the amount, the order
+/// of the details, the calendar's first weekday) and how account rows look.
 class EntrySettingsPage extends ConsumerWidget {
   const EntrySettingsPage({super.key});
 
@@ -110,6 +110,32 @@ class EntrySettingsPage extends ConsumerWidget {
                 onTap: () => notifier.update(
                   settings.copyWith(order: EntrySettings.defaultOrder),
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Sizes.xl),
+          SettingsGroup(
+            title: 'Account history',
+            footer:
+                'How rows look on an account page. Expenses keep the usual '
+                'layout.',
+            children: [
+              SettingsSwitchTile(
+                icon: Icons.swap_horiz_rounded,
+                title: 'Center transfers',
+                subtitle: 'Shown apart from income and expenses',
+                value: settings.centeredTransfers,
+                onChanged: (value) => notifier.update(
+                  settings.copyWith(centeredTransfers: value),
+                ),
+              ),
+              SettingsSwitchTile(
+                icon: Icons.flip_rounded,
+                title: 'Mirror money coming in',
+                subtitle: 'Amount on the left, icon on the right',
+                value: settings.mirroredInflows,
+                onChanged: (value) =>
+                    notifier.update(settings.copyWith(mirroredInflows: value)),
               ),
             ],
           ),

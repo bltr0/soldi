@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../constants/constants.dart';
 import '../../../model/transaction.dart';
 import '../../../providers/accounts_provider.dart';
+import '../../../providers/entry_settings_provider.dart';
 import '../../../ui/account_currency.dart';
 import '../../../providers/transactions_provider.dart';
 import '../../../ui/device.dart';
@@ -192,6 +193,105 @@ class _LedgerTile extends ConsumerWidget {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
+    final settings = ref.watch(entrySettingsProvider);
+    void open() async {
+      await ref.read(transactionsProvider.notifier).transactionSelect(t);
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamed('/add-page', arguments: {'transaction': t});
+      }
+    }
+
+    Widget icon({double size = 22, double padding = Sizes.sm}) => RoundedIcon(
+      icon: t.isBalanceReset
+          ? Icons.sync
+          : t.categorySymbol != null
+          ? iconList[t.categorySymbol]
+          : incoming
+          ? Icons.call_received_rounded
+          : Icons.swap_horiz_rounded,
+      backgroundColor: t.categoryColor != null
+          ? categoryColorListTheme[t.categoryColor!]
+          : Theme.of(context).colorScheme.secondary,
+      size: size,
+      padding: EdgeInsets.all(padding),
+    );
+    final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
+      color: visual.textPrimary,
+      fontWeight: FontWeight.w700,
+    );
+    final kindStyle = Theme.of(
+      context,
+    ).textTheme.labelMedium?.copyWith(color: visual.textSecondary);
+    final amount = MainEquivalent(
+      amount: entry.delta,
+      code: code,
+      date: t.date,
+      style: amountStyle,
+      child: BlurWidget(
+        child: Text(
+          '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency(code)} $symbol',
+          style: amountStyle,
+        ),
+      ),
+    );
+
+    if (settings.centeredTransfers && t.type == TransactionType.transfer) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: open,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Sizes.md,
+              vertical: Sizes.sm,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    icon(size: 16, padding: 6),
+                    const SizedBox(width: Sizes.sm),
+                    Flexible(
+                      child: Text(
+                        title,
+                        overflow: TextOverflow.ellipsis,
+                        style: titleStyle,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        kind,
+                        overflow: TextOverflow.ellipsis,
+                        style: kindStyle,
+                      ),
+                    ),
+                    Text(' · ', style: kindStyle),
+                    amount,
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Money coming in, mirrored so it reads opposite to expenses.
+    final mirrored =
+        settings.mirroredInflows &&
+        !t.isBalanceReset &&
+        t.type != TransactionType.transfer &&
+        entry.delta > 0;
+
     return Material(
       color: Colors.transparent,
       child: ListTile(
@@ -201,55 +301,21 @@ class _LedgerTile extends ConsumerWidget {
           horizontal: Sizes.md,
           vertical: Sizes.xs,
         ),
-        onTap: () async {
-          await ref.read(transactionsProvider.notifier).transactionSelect(t);
-          if (context.mounted) {
-            Navigator.of(
-              context,
-            ).pushNamed('/add-page', arguments: {'transaction': t});
-          }
-        },
-        leading: RoundedIcon(
-          icon: t.isBalanceReset
-              ? Icons.sync
-              : t.categorySymbol != null
-              ? iconList[t.categorySymbol]
-              : incoming
-              ? Icons.call_received_rounded
-              : Icons.swap_horiz_rounded,
-          backgroundColor: t.categoryColor != null
-              ? categoryColorListTheme[t.categoryColor!]
-              : Theme.of(context).colorScheme.secondary,
-          size: 22,
-          padding: const EdgeInsets.all(Sizes.sm),
-        ),
+        onTap: open,
+        leading: mirrored ? amount : icon(),
         title: Text(
           title,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: visual.textPrimary,
-            fontWeight: FontWeight.w700,
-          ),
+          textAlign: mirrored ? TextAlign.end : TextAlign.start,
+          style: titleStyle,
         ),
         subtitle: Text(
           kind,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.labelMedium?.copyWith(color: visual.textSecondary),
+          textAlign: mirrored ? TextAlign.end : TextAlign.start,
+          style: kindStyle,
         ),
-        trailing: MainEquivalent(
-          amount: entry.delta,
-          code: code,
-          date: t.date,
-          style: amountStyle,
-          child: BlurWidget(
-            child: Text(
-              '${entry.delta > 0 ? '+' : ''}${entry.delta.toCurrency(code)} $symbol',
-              style: amountStyle,
-            ),
-          ),
-        ),
+        trailing: mirrored ? icon() : amount,
       ),
     );
   }
