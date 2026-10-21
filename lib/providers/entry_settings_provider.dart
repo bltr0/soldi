@@ -58,7 +58,7 @@ class EntrySettings {
   /// Account ledgers draw transfers centered, apart from income and expenses.
   final bool centeredTransfers;
 
-  /// Account ledgers mirror money coming in (amount left, icon right), so it
+  /// Account ledgers align money coming in to the right, so it
   /// reads opposite to expenses.
   final bool mirroredInflows;
 

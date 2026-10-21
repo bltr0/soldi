@@ -132,7 +132,7 @@ class EntrySettingsPage extends ConsumerWidget {
               SettingsSwitchTile(
                 icon: Icons.flip_rounded,
                 title: 'Mirror money coming in',
-                subtitle: 'Amount on the left, icon on the right',
+                subtitle: 'Aligned right, opposite to expenses',
                 value: settings.mirroredInflows,
                 onChanged: (value) =>
                     notifier.update(settings.copyWith(mirroredInflows: value)),

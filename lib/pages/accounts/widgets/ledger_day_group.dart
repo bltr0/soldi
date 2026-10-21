@@ -237,85 +237,60 @@ class _LedgerTile extends ConsumerWidget {
       ),
     );
 
-    if (settings.centeredTransfers && t.type == TransactionType.transfer) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: open,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Sizes.md,
-              vertical: Sizes.sm,
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    icon(size: 16, padding: 6),
-                    const SizedBox(width: Sizes.sm),
-                    Flexible(
-                      child: Text(
-                        title,
-                        overflow: TextOverflow.ellipsis,
-                        style: titleStyle,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        kind,
-                        overflow: TextOverflow.ellipsis,
-                        style: kindStyle,
-                      ),
-                    ),
-                    Text(' · ', style: kindStyle),
-                    amount,
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
+    final centered =
+        settings.centeredTransfers && t.type == TransactionType.transfer;
     // Money coming in, mirrored so it reads opposite to expenses.
     final mirrored =
         settings.mirroredInflows &&
         !t.isBalanceReset &&
         t.type != TransactionType.transfer &&
         entry.delta > 0;
+    final align = centered
+        ? MainAxisAlignment.center
+        : mirrored
+        ? MainAxisAlignment.end
+        : MainAxisAlignment.start;
+    final rowIcon = icon(size: 16, padding: 6);
+    final titleText = Flexible(
+      child: Text(title, overflow: TextOverflow.ellipsis, style: titleStyle),
+    );
+    final kindText = Flexible(
+      child: Text(kind, overflow: TextOverflow.ellipsis, style: kindStyle),
+    );
+    final dot = Text(' · ', style: kindStyle);
 
     return Material(
       color: Colors.transparent,
-      child: ListTile(
-        dense: true,
-        visualDensity: VisualDensity.compact,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: Sizes.md,
-          vertical: Sizes.xs,
-        ),
+      child: InkWell(
         onTap: open,
-        leading: mirrored ? amount : icon(),
-        title: Text(
-          title,
-          overflow: TextOverflow.ellipsis,
-          textAlign: mirrored ? TextAlign.end : TextAlign.start,
-          style: titleStyle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sizes.md,
+            vertical: Sizes.sm,
+          ),
+          child: Column(
+            crossAxisAlignment: centered
+                ? CrossAxisAlignment.center
+                : mirrored
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: align,
+                children: mirrored
+                    ? [titleText, const SizedBox(width: Sizes.sm), rowIcon]
+                    : [rowIcon, const SizedBox(width: Sizes.sm), titleText],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: align,
+                children: mirrored
+                    ? [amount, dot, kindText]
+                    : [kindText, dot, amount],
+              ),
+            ],
+          ),
         ),
-        subtitle: Text(
-          kind,
-          overflow: TextOverflow.ellipsis,
-          textAlign: mirrored ? TextAlign.end : TextAlign.start,
-          style: kindStyle,
-        ),
-        trailing: mirrored ? icon() : amount,
       ),
     );
   }
