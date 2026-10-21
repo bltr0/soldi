@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/backup/auto_backup.dart';
 import '../providers/fx_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/transactions_provider.dart';
@@ -26,10 +27,21 @@ class Structure extends ConsumerStatefulWidget {
 
 class _StructureState extends ConsumerState<Structure> {
   AppDestination _selected = AppDestination.dashboard;
+  late final _lifecycle = AppLifecycleListener(
+    onResume: () =>
+        runAutoBackup(ref.read(sharedPrefProvider), trigger: 'resume'),
+  );
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
+    _lifecycle;
     // Once a day when the app opens, and only if the user allowed it.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await askFxSourceIfUnset(context, ref);

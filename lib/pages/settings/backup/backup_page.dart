@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_phoenix/flutter_phoenix.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../providers/settings_provider.dart';
+import '../../../services/backup/auto_backup.dart';
+import '../../../services/backup/backup_codec.dart';
 import '../../../services/backup/drive_backup_service.dart';
 import '../../../services/backup/drive_oauth_config.dart';
 import '../../../services/csv/csv_file_picker.dart';
@@ -15,6 +19,8 @@ import '../../../services/database/sossoldi_database.dart';
 import '../../../ui/device.dart';
 import '../../../ui/snack_bars/snack_bar.dart';
 import '../../../ui/widgets/default_card.dart';
+import '../../../ui/widgets/passphrase_dialog.dart';
+import 'backup_encryption_section.dart';
 
 class BackupPage extends ConsumerStatefulWidget {
   const BackupPage({super.key});
@@ -52,15 +58,56 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     }
   }
 
+  Future<EncodedBackup> _encode() async {
+    final csv = await SossoldiDatabase.instance.exportToCSV();
+    return const BackupCodec().encode(
+      csv,
+      backupEncryptionOf(ref.read(sharedPrefProvider)),
+    );
+  }
+
+  /// Decrypts [content] when needed (asking for the passphrase), restores
+  /// its cards, and writes the CSV to a temporary file for the importer.
+  /// Null when cancelled.
+  Future<String?> _openBackup(String content) async {
+    final DecodedBackup? decoded;
+    try {
+      decoded = await const BackupCodec().decode(
+        content,
+        ({required retry, required dataLocked}) => askPassphrase(
+          context,
+          title: 'Backup passphrase',
+          message: dataLocked
+              ? 'This backup is encrypted. Enter the passphrase it was made with.'
+              : 'Enter the passphrase to restore the cards in this backup, or '
+                    'skip to restore everything else.',
+          error: retry ? 'Wrong passphrase' : null,
+          cancelLabel: dataLocked ? 'Cancel' : 'Skip cards',
+        ),
+      );
+    } catch (e) {
+      if (mounted) showSnackBar(context, message: 'Cannot open backup: $e');
+      return null;
+    }
+    if (decoded == null) return null;
+    if (decoded.cards != null && mounted) {
+      showSnackBar(context, message: '${decoded.cards} cards restored');
+    }
+    final dir = await getTemporaryDirectory();
+    final path = p.join(dir.path, 'sossoldi-restore.csv');
+    await File(path).writeAsString(decoded.csv);
+    return path;
+  }
+
   Future<void> _handleImport() async {
     try {
       final file = await CSVFilePicker.pickCSVFile(context);
       if (file != null) {
         if (!mounted) return;
+        final path = await _openBackup(await file.readAsString());
+        if (path == null || !mounted) return;
         CSVFilePicker.showLoading(context, 'Importing data...');
-        final results = await SossoldiDatabase.instance.importFromCSV(
-          file.path,
-        );
+        final results = await SossoldiDatabase.instance.importFromCSV(path);
         if (!mounted) return;
         CSVFilePicker.hideLoading(context);
 
@@ -142,12 +189,16 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     try {
       CSVFilePicker.showLoading(context, 'Exporting data...');
 
-      final csv = await SossoldiDatabase.instance.exportToCSV();
+      final backup = await _encode();
 
       if (!mounted) return;
       CSVFilePicker.hideLoading(context);
 
-      await CSVFilePicker.saveCSVFile(csv, context);
+      await CSVFilePicker.saveCSVFile(
+        backup.content,
+        context,
+        extension: backup.extension,
+      );
     } catch (e) {
       if (!mounted) return;
       CSVFilePicker.hideLoading(context);
@@ -199,8 +250,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   Future<void> _handleDriveBackup() async {
     try {
       CSVFilePicker.showLoading(context, 'Uploading to Drive...');
-      final csv = await SossoldiDatabase.instance.exportToCSV();
-      await _drive.uploadCsv(csv);
+      await _drive.uploadBackup(await _encode());
       final prefs = ref.read(sharedPrefProvider);
       await prefs.setInt(
         driveLastBackupMsPref,
@@ -265,11 +315,13 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       );
       if (confirmed != true || !mounted) return;
 
+      CSVFilePicker.showLoading(context, 'Downloading from Drive...');
+      final content = await _drive.downloadCsv(selected.id);
+      if (!mounted) return;
+      CSVFilePicker.hideLoading(context);
+      final path = await _openBackup(content);
+      if (path == null || !mounted) return;
       CSVFilePicker.showLoading(context, 'Restoring from Drive...');
-      final csv = await _drive.downloadCsv(selected.id);
-      final dir = await getTemporaryDirectory();
-      final path = p.join(dir.path, 'sossoldi-drive-restore.csv');
-      await File(path).writeAsString(csv);
       final results = await SossoldiDatabase.instance.importFromCSV(path);
       if (!mounted) return;
       CSVFilePicker.hideLoading(context);
@@ -285,6 +337,29 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       CSVFilePicker.hideLoading(context);
       showSnackBar(context, message: 'Drive restore failed: $e');
     }
+  }
+
+  Future<void> _setAutoBackup(bool enabled) async {
+    final prefs = ref.read(sharedPrefProvider);
+    await prefs.setBool(driveBackupOnOpenPref, enabled);
+    await scheduleBackgroundBackup(enabled);
+    setState(() {});
+    if (enabled) {
+      await runAutoBackup(prefs, trigger: 'enabled', force: true);
+      if (mounted) setState(() {});
+    }
+  }
+
+  String _autoBackupStatus(SharedPreferences prefs, bool enabled) {
+    if (!enabled) {
+      return 'Once a day in the background, and when the app opens';
+    }
+    final last = prefs.getInt(driveLastBackupMsPref);
+    final error = prefs.getString(driveLastBackupErrorPref);
+    final when = last == null
+        ? 'No backup yet'
+        : 'Last backup ${DateFormat('d MMM, HH:mm').format(DateTime.fromMillisecondsSinceEpoch(last))}';
+    return error == null ? when : '$when. Last try failed: $error';
   }
 
   @override
@@ -311,6 +386,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                 'Append uncategorized CSV rows: date, amount, bank, and optional note',
             onTap: _handleTransactionImport,
           ),
+          const BackupEncryptionSection(),
           Padding(
             padding: const EdgeInsets.fromLTRB(
               Sizes.lg,
@@ -328,7 +404,8 @@ class _BackupPageState extends ConsumerState<BackupPage> {
           _BackupCard(
             icon: Icons.upload_file,
             title: 'Restore full backup',
-            description: 'Replace all local data with a Sossoldi backup CSV',
+            description:
+                'Replace all local data with a Sossoldi backup (CSV or encrypted)',
             onTap: () {
               showDialog(
                 context: context,
@@ -435,9 +512,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
               onTap: _driveUser == null
                   ? () {}
                   : () async {
-                      final next = !backupOnOpen;
-                      await prefs.setBool(driveBackupOnOpenPref, next);
-                      setState(() {});
+                      await _setAutoBackup(!backupOnOpen);
                     },
               child: Row(
                 children: [
@@ -448,14 +523,14 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Backup when the app opens',
+                          'Automatic daily backup',
                           style: Theme.of(
                             context,
                           ).textTheme.titleLarge!.copyWith(color: primary),
                         ),
                         const SizedBox(height: Sizes.xs),
                         Text(
-                          'If you are signed in, upload once per day on launch',
+                          _autoBackupStatus(prefs, backupOnOpen),
                           style: Theme.of(
                             context,
                           ).textTheme.bodyMedium!.copyWith(color: primary),
@@ -465,12 +540,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                   ),
                   Switch.adaptive(
                     value: backupOnOpen,
-                    onChanged: _driveUser == null
-                        ? null
-                        : (value) async {
-                            await prefs.setBool(driveBackupOnOpenPref, value);
-                            setState(() {});
-                          },
+                    onChanged: _driveUser == null ? null : _setAutoBackup,
                   ),
                 ],
               ),

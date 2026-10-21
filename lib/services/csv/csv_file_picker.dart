@@ -36,7 +36,7 @@ class CSVFilePicker {
     try {
       final files = await FilePicker.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['csv'],
+        allowedExtensions: ['csv', 'json'],
       );
 
       if (files.isNotEmpty) {
@@ -51,7 +51,11 @@ class CSVFilePicker {
   }
 
   // Share exported CSV file
-  static Future<void> saveCSVFile(String csv, BuildContext context) async {
+  static Future<void> saveCSVFile(
+    String csv,
+    BuildContext context, {
+    String extension = 'csv',
+  }) async {
     String? selectedDirectory;
     try {
       // Prompt the user to select a directory
@@ -64,7 +68,7 @@ class CSVFilePicker {
       final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
       final String filePath = join(
         selectedDirectory,
-        'sossoldi_export_$timestamp.csv',
+        'sossoldi_export_$timestamp.$extension',
       );
 
       // Write the CSV content directly to the file

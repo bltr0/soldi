@@ -43,6 +43,8 @@ dependencies:
   googleapis: ^17.0.0
   crypto: ^3.0.7
   calendar_date_picker2: ^3.0.0
+  cryptography: ^2.9.0
+  workmanager: ^0.10.10
 
 dev_dependencies:
   flutter_test:

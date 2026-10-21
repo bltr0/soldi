@@ -5,12 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../services/app_log.dart';
+import '../../../services/security/backup_crypto.dart';
+import '../../../services/security/biometric_key.dart';
 import '../../../services/security/card_vault.dart';
 import '../../../services/security/secure_window.dart';
 import '../../../ui/device.dart';
 import '../../../ui/theme/dashboard_visual_theme.dart';
 import '../../../ui/widgets/accent_button.dart';
-import '../../../ui/widgets/lock_prompt.dart';
+import '../../../ui/widgets/passphrase_dialog.dart';
 
 /// The card vault. Asks for the owner again on every visit, shows nothing
 /// until then, blocks screenshots while open, and closes itself when the
@@ -27,7 +29,8 @@ class _CardsPageState extends ConsumerState<CardsPage>
   static const _idleTimeout = Duration(minutes: 2);
 
   final _vault = const CardVault();
-  List<StoredCard>? _cards;
+  CardVaultSession? _session;
+  List<StoredCard>? get _cards => _session?.cards;
   final _revealed = <String>{};
   Timer? _idle;
   ModalRoute<dynamic>? _route;
@@ -49,35 +52,87 @@ class _CardsPageState extends ConsumerState<CardsPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _idle?.cancel();
-    _cards = null;
+    _session?.close();
     SecureWindow.setSecure(false);
     super.dispose();
   }
 
   Future<void> _unlock() async {
-    final ok = await confirmIdentity(context, ref, reason: 'Open your cards');
-    if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cards need the app lock or a phone screen lock to open',
-          ),
-        ),
-      );
-      Navigator.pop(context);
-      return;
-    }
     try {
-      final cards = await _vault.read();
-      if (!mounted) return;
-      setState(() => _cards = cards);
-      // Only now: the unlock prompt itself may briefly pause the app.
+      final session = await _openSession();
+      if (!mounted) return session?.close();
+      if (session == null) {
+        Navigator.pop(context);
+        return;
+      }
+      setState(() => _session = session);
+      // Only now: the unlock prompts themselves pause the app briefly.
       WidgetsBinding.instance.addObserver(this);
       _touch();
     } catch (e, stack) {
-      AppLog.error('cards', 'Reading the vault failed: $e', stack);
-      if (mounted) Navigator.pop(context);
+      AppLog.error('cards', 'Opening the vault failed: $e', stack);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Cannot open cards: $e')));
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  /// Fingerprint/face first, the backup passphrase otherwise; sets the
+  /// passphrase up on the very first visit. Null when the user gives up.
+  Future<CardVaultSession?> _openSession() async {
+    final biometrics = await BiometricKey.status() == BiometricStatus.ok;
+    if (!await _vault.isSetUp) {
+      if (!mounted) return null;
+      final chosen = await choosePassphrase(context);
+      if (chosen == null) return null;
+      final session = await _vault.setUp(chosen.$2);
+      if (biometrics) await _tryEnroll(session);
+      return session;
+    }
+
+    String? notice;
+    if (biometrics && await _vault.hasBiometricUnlock) {
+      try {
+        return await _vault.unlockWithBiometrics('Open your cards');
+      } on BiometricException catch (e) {
+        if (e.error == BiometricError.invalidated) {
+          notice =
+              'Fingerprints changed on this phone: enter the passphrase once '
+              'to turn fingerprint unlock back on.';
+        }
+      }
+    }
+
+    var retry = false;
+    while (true) {
+      if (!mounted) return null;
+      final passphrase = await askPassphrase(
+        context,
+        title: 'Open your cards',
+        message: notice ?? 'Enter your backup passphrase.',
+        error: retry ? 'Wrong passphrase' : null,
+      );
+      if (passphrase == null) return null;
+      try {
+        final session = await _vault.unlockWithPassphrase(passphrase);
+        if (biometrics && !await _vault.hasBiometricUnlock) {
+          await _tryEnroll(session);
+        }
+        return session;
+      } on WrongPassphrase {
+        retry = true;
+      }
+    }
+  }
+
+  Future<void> _tryEnroll(CardVaultSession session) async {
+    try {
+      await session.enrollBiometrics('Unlock cards with your fingerprint');
+    } on BiometricException catch (e) {
+      AppLog.info('cards', 'Fingerprint unlock not enrolled: ${e.error.name}');
     }
   }
 
@@ -106,8 +161,8 @@ class _CardsPageState extends ConsumerState<CardsPage>
   }
 
   Future<void> _save(List<StoredCard> cards) async {
-    await _vault.write(cards);
-    if (mounted) setState(() => _cards = cards);
+    await _session?.save(cards);
+    if (mounted) setState(() {});
   }
 
   Future<void> _edit([StoredCard? card]) async {
@@ -234,11 +289,12 @@ class _CardsPageState extends ConsumerState<CardsPage>
                   ],
                   const SizedBox(height: Sizes.md),
                   Text(
-                    'Kept encrypted in this phone\'s keystore only: never in '
-                    'backups, exports or the cloud. Screenshots are blocked '
-                    'here, copied values are wiped after 30 s, and the vault '
-                    'closes when you leave the app or after 2 minutes idle. '
-                    'CVV codes are never stored.',
+                    'Encrypted with a key only your fingerprint (on this '
+                    'phone) or your backup passphrase can open. Backups carry '
+                    'them still encrypted. Screenshots are blocked here, '
+                    'copied values are wiped after 30 s, and the vault closes '
+                    'when you leave the app or after 2 minutes idle. CVV '
+                    'codes are never stored.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: visual.textSecondary,
                     ),

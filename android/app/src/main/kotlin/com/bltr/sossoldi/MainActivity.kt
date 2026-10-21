@@ -12,6 +12,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
+    private val biometricVault by lazy { BiometricVault(this) }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "sossoldi/security")
@@ -48,6 +50,22 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         result.success(null)
                     }
+                    "bioStatus" -> result.success(biometricVault.status())
+                    "bioReset" -> {
+                        biometricVault.reset()
+                        result.success(null)
+                    }
+                    "bioEncrypt" -> biometricVault.encrypt(
+                        call.argument<ByteArray>("data")!!,
+                        call.argument<String>("reason")!!,
+                        result,
+                    )
+                    "bioDecrypt" -> biometricVault.decrypt(
+                        call.argument<ByteArray>("iv")!!,
+                        call.argument<ByteArray>("ct")!!,
+                        call.argument<String>("reason")!!,
+                        result,
+                    )
                     else -> result.notImplemented()
                 }
             }

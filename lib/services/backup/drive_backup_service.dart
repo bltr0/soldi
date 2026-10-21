@@ -6,6 +6,7 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
+import 'backup_codec.dart';
 import 'drive_oauth_config.dart';
 
 const driveBackupOnOpenPref = 'drive_backup_on_open';
@@ -142,19 +143,19 @@ class DriveBackupService {
     _user = null;
   }
 
-  Future<void> uploadCsv(String csv) async {
+  Future<void> uploadBackup(EncodedBackup backup) async {
     await _withDrive((api) async {
       final folderId = await _ensureFolder(api);
-      final bytes = utf8.encode(csv);
+      final bytes = utf8.encode(backup.content);
       final stamp = DateFormat('yyyy-MM-dd-HHmmss').format(DateTime.now());
       final metadata = drive.File()
-        ..name = 'sossoldi-backup-$stamp.csv'
+        ..name = 'sossoldi-backup-$stamp.${backup.extension}'
         ..parents = [folderId]
-        ..mimeType = 'text/csv';
+        ..mimeType = backup.mimeType;
       final media = drive.Media(
         Stream<List<int>>.fromIterable([bytes]),
         bytes.length,
-        contentType: 'text/csv',
+        contentType: backup.mimeType,
       );
       await api.files.create(metadata, uploadMedia: media);
     });

@@ -3,6 +3,9 @@ import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'backup_crypto.dart';
+import 'biometric_key.dart';
+
 /// A payment card kept in the vault. There is deliberately no CVV: it is
 /// printed to be read, never stored (PCI DSS forbids keeping it).
 class StoredCard {
@@ -132,44 +135,219 @@ bool isValidCardNumber(String digits) {
   return sum % 10 == 0;
 }
 
-/// Cards live only in the platform keystore-backed secure storage, never
-/// in the database, so they are not part of exports, CSV or Drive backups.
-/// The page reading them asks for the owner first (see `confirmIdentity`).
+/// Cards encrypted on the phone and in backups.
+///
+/// A random vault key encrypts the cards (AES-256-GCM). That key is itself
+/// kept twice: wrapped by an Android Keystore key that only a fingerprint
+/// or face unlocks (this phone only), and sealed to the backup key ring,
+/// whose private half only the user's passphrase opens. Backups carry the
+/// encrypted cards and the sealed key, so a new phone restores them with
+/// the passphrase. Nothing on the phone can read cards without one of the
+/// two.
 class CardVault {
-  const CardVault({FlutterSecureStorage? storage})
-    : _storage =
-          storage ??
-          const FlutterSecureStorage(
-            iOptions: IOSOptions(
-              accessibility: KeychainAccessibility.unlocked_this_device,
-            ),
-            mOptions: MacOsOptions(
-              accessibility: KeychainAccessibility.unlocked_this_device,
-            ),
-          );
+  const CardVault({FlutterSecureStorage? storage, KeyRingStore? rings})
+    : _storage = storage ?? const FlutterSecureStorage(),
+      _rings = rings ?? const KeyRingStore();
 
   final FlutterSecureStorage _storage;
+  final KeyRingStore _rings;
 
-  static const _key = 'card_vault_v1';
+  static const _legacyKey = 'card_vault_v1';
+  static const _cardsKey = 'card_vault_v2';
+  static const _sealedKey = 'card_vault_v2_sealed';
+  static const _bioKey = 'card_vault_v2_bio';
 
-  Future<List<StoredCard>> read() async {
-    final raw = await _storage.read(key: _key);
-    if (raw == null || raw.isEmpty) return const [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return [
+  /// A passphrase was set, so the vault can hold cards.
+  Future<bool> get isSetUp async => await _rings.read() != null;
+
+  /// Fingerprint/face unlock is enrolled for the current vault key.
+  Future<bool> get hasBiometricUnlock async =>
+      await _storage.read(key: _bioKey) != null;
+
+  /// Creates the key ring and an empty vault, moving any cards saved by the
+  /// earlier, unencrypted build into it.
+  Future<CardVaultSession> setUp(String passphrase) async {
+    final ring = await KeyRing.create(passphrase);
+    await _rings.write(ring);
+    final vaultKey = randomBytes(32);
+    await _storage.write(
+      key: _sealedKey,
+      value: jsonEncode((await seal(ring.publicKey, vaultKey)).toJson()),
+    );
+    await _storage.delete(key: _bioKey);
+    final session = CardVaultSession._(this, vaultKey, await _readLegacy());
+    await session.save(session.cards);
+    await _storage.delete(key: _legacyKey);
+    return session;
+  }
+
+  Future<CardVaultSession> unlockWithBiometrics(String reason) async {
+    final raw = await _storage.read(key: _bioKey);
+    if (raw == null) {
+      throw const BiometricException(BiometricError.invalidated);
+    }
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    try {
+      final vaultKey = await BiometricKey.decrypt(
+        base64Decode(json['iv'] as String),
+        base64Decode(json['ct'] as String),
+        reason: reason,
+      );
+      return await _open(vaultKey);
+    } on BiometricException catch (e) {
+      if (e.error == BiometricError.invalidated) {
+        await _storage.delete(key: _bioKey);
+      }
+      rethrow;
+    }
+  }
+
+  /// Throws [WrongPassphrase].
+  Future<CardVaultSession> unlockWithPassphrase(String passphrase) async {
+    final ring = await _rings.read();
+    if (ring == null) throw const WrongPassphrase();
+    final seed = await ring.unlock(passphrase);
+    final sealed = await _storage.read(key: _sealedKey);
+    if (sealed == null) throw const WrongPassphrase();
+    final vaultKey = await openSealed(
+      seed,
+      Sealed.fromJson(jsonDecode(sealed) as Map<String, dynamic>),
+    );
+    return _open(vaultKey);
+  }
+
+  Future<CardVaultSession> _open(List<int> vaultKey) async {
+    final raw = await _storage.read(key: _cardsKey);
+    if (raw == null) return CardVaultSession._(this, vaultKey, const []);
+    final clear = await aesDecrypt(
+      vaultKey,
+      Box.fromJson(jsonDecode(raw) as Map<String, dynamic>),
+    );
+    final list = jsonDecode(utf8.decode(clear)) as List<dynamic>;
+    return CardVaultSession._(this, vaultKey, [
       for (final item in list)
+        StoredCard.fromJson((item as Map).cast<String, Object?>()),
+    ]);
+  }
+
+  Future<List<StoredCard>> _readLegacy() async {
+    final raw = await _storage.read(key: _legacyKey);
+    if (raw == null || raw.isEmpty) return const [];
+    return [
+      for (final item in jsonDecode(raw) as List<dynamic>)
         StoredCard.fromJson((item as Map).cast<String, Object?>()),
     ];
   }
 
-  Future<void> write(List<StoredCard> cards) async {
-    if (cards.isEmpty) {
-      await _storage.delete(key: _key);
-      return;
-    }
+  /// Same key pair under a new passphrase; throws [WrongPassphrase]. Older
+  /// backups still open with the passphrase they were made with.
+  Future<void> changePassphrase(String current, String next) async {
+    final ring = await _rings.read();
+    if (ring == null) throw const WrongPassphrase();
+    await _rings.write(await ring.rewrap(current, next));
+  }
+
+  /// For a forgotten passphrase: a new key ring, the open vault's key
+  /// sealed to it. Backups made before only open with the old passphrase.
+  Future<void> replacePassphrase(
+    CardVaultSession session,
+    String passphrase,
+  ) async {
+    final ring = await KeyRing.create(passphrase);
+    await _rings.write(ring);
     await _storage.write(
-      key: _key,
-      value: jsonEncode([for (final card in cards) card.toJson()]),
+      key: _sealedKey,
+      value: jsonEncode((await seal(ring.publicKey, session._key)).toJson()),
     );
+  }
+
+  /// What backups carry: still encrypted, readable only with the
+  /// passphrase. Null when there is no card.
+  Future<Map<String, Object?>?> exportBundle() async {
+    final cards = await _storage.read(key: _cardsKey);
+    final sealed = await _storage.read(key: _sealedKey);
+    if (cards == null || sealed == null) return null;
+    return {'vault': jsonDecode(cards), 'sealedKey': jsonDecode(sealed)};
+  }
+
+  /// Replaces the vault with the cards of a backup made under [ring],
+  /// opened with [passphrase]. Throws [WrongPassphrase]. Returns how many
+  /// cards came back.
+  Future<int> importBundle(
+    Map<String, dynamic> bundle,
+    KeyRing ring,
+    String passphrase,
+  ) async {
+    final seed = await ring.unlock(passphrase);
+    final sealed = Sealed.fromJson(
+      (bundle['sealedKey'] as Map).cast<String, dynamic>(),
+    );
+    final vaultKey = await openSealed(seed, sealed);
+    final vault = Box.fromJson(
+      (bundle['vault'] as Map).cast<String, dynamic>(),
+    );
+    // Proves the key and cards match before anything is replaced.
+    final count =
+        (jsonDecode(utf8.decode(await aesDecrypt(vaultKey, vault)))
+                as List<dynamic>)
+            .length;
+
+    var local = await _rings.read();
+    if (local == null) {
+      // A new phone: the backup's passphrase becomes this phone's.
+      await _rings.write(ring);
+      local = ring;
+    }
+    await _storage.write(key: _cardsKey, value: jsonEncode(vault.toJson()));
+    await _storage.write(
+      key: _sealedKey,
+      value: jsonEncode((await seal(local.publicKey, vaultKey)).toJson()),
+    );
+    // The fingerprint copy held the replaced key.
+    await _storage.delete(key: _bioKey);
+    await BiometricKey.reset();
+    return count;
+  }
+}
+
+/// An unlocked vault: the cards and their key, kept only in memory while
+/// the vault page is open.
+class CardVaultSession {
+  CardVaultSession._(this._vault, List<int> key, List<StoredCard> cards)
+    : _key = List.of(key),
+      cards = List.unmodifiable(cards);
+
+  final CardVault _vault;
+  final List<int> _key;
+  List<StoredCard> cards;
+
+  Future<void> save(List<StoredCard> next) async {
+    final box = await aesEncrypt(
+      _key,
+      utf8.encode(jsonEncode([for (final c in next) c.toJson()])),
+    );
+    await _vault._storage.write(
+      key: CardVault._cardsKey,
+      value: jsonEncode(box.toJson()),
+    );
+    cards = List.unmodifiable(next);
+  }
+
+  /// Wraps the key for fingerprint/face unlock; asks for one now.
+  Future<void> enrollBiometrics(String reason) async {
+    final wrapped = await BiometricKey.encrypt(_key, reason: reason);
+    await _vault._storage.write(
+      key: CardVault._bioKey,
+      value: jsonEncode({
+        'iv': base64Encode(wrapped.iv),
+        'ct': base64Encode(wrapped.ct),
+      }),
+    );
+  }
+
+  /// Forgets the key and cards.
+  void close() {
+    _key.fillRange(0, _key.length, 0);
+    cards = const [];
   }
 }
