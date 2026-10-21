@@ -209,7 +209,7 @@ class TransactionTile extends ConsumerWidget {
               ? transaction.note!
               : transaction.type == TransactionType.transfer
               ? "Transfer"
-              : DateFormat("dd MMMM - HH:mm").format(transaction.date),
+              : DateFormat("dd MMMM").format(transaction.date),
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium!.copyWith(
             color: visual.textPrimary,

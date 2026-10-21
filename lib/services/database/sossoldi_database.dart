@@ -263,6 +263,8 @@ class SossoldiDatabase {
     var duplicates = 0;
     var invalid = 0;
     final unknownBanks = <String>{};
+    final seenInFile = <String, int>{};
+    final preexistingCounts = <String, int>{};
 
     await db.transaction((txn) async {
       for (var rowIndex = 1; rowIndex < rows.length; rowIndex++) {
@@ -298,20 +300,30 @@ class SossoldiDatabase {
             : TransactionType.income;
         final amount = signedAmount.abs();
         final day = date.toIso8601String().substring(0, 10);
-        final existing = await txn.rawQuery(
-          '''
-          SELECT 1
+        // Identical rows in one file are distinct charges (e.g. two 0.63 €
+        // purchases at the same shop on the same day), so a row is only a
+        // duplicate when the database already held more copies of it before
+        // this import than the file has produced so far.
+        final key = '$accountId|${type.code}|$amount|$day|${note ?? ''}';
+        final seen = seenInFile[key] ?? 0;
+        seenInFile[key] = seen + 1;
+        final preexisting = preexistingCounts[key] ??=
+            Sqflite.firstIntValue(
+              await txn.rawQuery(
+                '''
+          SELECT COUNT(*)
           FROM "$transactionTable"
           WHERE ${TransactionFields.idBankAccount} = ?
             AND ${TransactionFields.type} = ?
             AND ${TransactionFields.amount} = ?
             AND strftime('%Y-%m-%d', ${TransactionFields.date}) = ?
             AND IFNULL(${TransactionFields.note}, '') = ?
-          LIMIT 1
           ''',
-          [accountId, type.code, amount, day, note ?? ''],
-        );
-        if (existing.isNotEmpty) {
+                [accountId, type.code, amount, day, note ?? ''],
+              ),
+            ) ??
+            0;
+        if (seen < preexisting) {
           duplicates++;
           continue;
         }

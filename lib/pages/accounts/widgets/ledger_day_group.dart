@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../constants/constants.dart';
 import '../../../model/transaction.dart';
@@ -29,7 +28,12 @@ class LedgerDay {
   final List<LedgerEntry> entries;
   final num endBalance;
 
-  num get net => entries.map((e) => e.delta).sum;
+  /// Real money movement of the day: balance adjustments only correct the
+  /// balance, so they are left out (they still count in [endBalance]).
+  num get net => entries
+      .where((e) => !e.transaction.isBalanceReset)
+      .map((e) => e.delta)
+      .sum;
 }
 
 class LedgerDayGroup extends ConsumerWidget {
@@ -174,7 +178,9 @@ class _LedgerTile extends ConsumerWidget {
             TransactionType.income ||
             TransactionType.expense => t.categoryName ?? 'Uncategorized',
           };
-    final amountColor = t.type == TransactionType.transfer
+    final amountColor = t.isBalanceReset
+        ? visual.textSecondary
+        : t.type == TransactionType.transfer
         ? t.type.toColor(brightness: Theme.of(context).brightness)
         : entry.delta < 0
         ? visual.negative
@@ -226,7 +232,7 @@ class _LedgerTile extends ConsumerWidget {
           ),
         ),
         subtitle: Text(
-          '$kind · ${DateFormat.Hm().format(t.date)}',
+          kind,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(
             context,

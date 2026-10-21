@@ -297,7 +297,7 @@ class TransactionsList extends ConsumerWidget {
                               child: Text(
                                 (transaction.note?.isEmpty ?? true)
                                     ? DateFormat(
-                                        "dd MMMM - HH:mm",
+                                        "dd MMMM",
                                       ).format(transaction.date)
                                     : transaction.note!,
                                 overflow: TextOverflow.ellipsis,

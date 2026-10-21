@@ -20,7 +20,10 @@ import 'statistics_provider.dart';
 
 part 'transactions_provider.g.dart';
 
-@riverpod
+// Kept alive like the other add-page form providers: transactionSelect sets it
+// before the page that watches it is pushed, and an auto-dispose provider
+// would fall back to expense in between.
+@Riverpod(keepAlive: true)
 class SelectedTransactionType extends _$SelectedTransactionType {
   @override
   TransactionType build() => TransactionType.expense;
